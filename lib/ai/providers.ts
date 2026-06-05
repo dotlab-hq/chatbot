@@ -1,6 +1,6 @@
-import { customProvider, gateway } from "ai";
+import { openai } from "@ai-sdk/openai";
+import { customProvider } from "ai";
 import { isTestEnvironment } from "../constants";
-import { titleModel } from "./models";
 
 export const myProvider = isTestEnvironment
   ? (() => {
@@ -19,12 +19,14 @@ export function getLanguageModel(modelId: string) {
     return myProvider.languageModel(modelId);
   }
 
-  return gateway.languageModel(modelId);
+  // Use Chat Completions API — the Responses API on this endpoint
+  // returns 401 upstream errors for the available models.
+  return openai.chat(modelId);
 }
 
 export function getTitleModel() {
   if (isTestEnvironment && myProvider) {
     return myProvider.languageModel("title-model");
   }
-  return gateway.languageModel(titleModel.id);
+  return openai.chat("gpt-4.1-nano");
 }

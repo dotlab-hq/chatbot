@@ -1,4 +1,4 @@
-import { createClient } from "redis";
+import Redis from "ioredis";
 
 import { isProductionEnvironment } from "@/lib/constants";
 import { ChatbotError } from "@/lib/errors";
@@ -6,11 +6,15 @@ import { ChatbotError } from "@/lib/errors";
 const MAX_MESSAGES = 10;
 const TTL_SECONDS = 60 * 60;
 
-let client: ReturnType<typeof createClient> | null = null;
+let client: Redis | null = null;
 
 function getClient() {
   if (!client && process.env.REDIS_URL) {
-    client = createClient({ url: process.env.REDIS_URL });
+    client = new Redis(process.env.REDIS_URL, {
+      maxRetriesPerRequest: 3,
+      enableReadyCheck: true,
+      lazyConnect: true,
+    });
     client.on("error", () => undefined);
     client.connect().catch(() => {
       client = null;
@@ -25,18 +29,18 @@ export async function checkIpRateLimit(ip: string | undefined) {
   }
 
   const redis = getClient();
-  if (!redis?.isReady) {
+  if (!redis || redis.status !== "ready") {
     return;
   }
 
   try {
     const key = `ip-rate-limit:${ip}`;
-    const [count] = await redis
-      .multi()
-      .incr(key)
-      .expire(key, TTL_SECONDS, "NX")
-      .exec();
-
+    const pipeline = redis.pipeline();
+    pipeline.incr(key);
+    pipeline.expire(key, TTL_SECONDS, "NX");
+    const results = await pipeline.exec();
+    if (!results) { return; }
+    const [, count] = results[0] ?? [];
     if (typeof count === "number" && count > MAX_MESSAGES) {
       throw new ChatbotError("rate_limit:chat");
     }
