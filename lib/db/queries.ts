@@ -29,7 +29,6 @@ import {
   user,
   vote,
 } from "@/lib/db/schema";
-import { generateHashedPassword } from "@/lib/db/utils";
 import { ChatbotError } from "@/lib/errors";
 import { generateUUID } from "@/lib/utils";
 
@@ -47,11 +46,13 @@ export async function getUser(email: string): Promise<User[]> {
   }
 }
 
-export async function createUser(email: string, password: string) {
-  const hashedPassword = generateHashedPassword(password);
-
+export async function createUser(email: string) {
   try {
-    return await db.insert(user).values({ email, password: hashedPassword });
+    const id = generateUUID();
+    return await db
+      .insert(user)
+      .values({ id, name: email, email, type: "regular" })
+      .returning({ id: user.id, email: user.email });
   } catch (_error) {
     throw new ChatbotError("bad_request:database", "Failed to create user");
   }
@@ -59,13 +60,17 @@ export async function createUser(email: string, password: string) {
 
 export async function createGuestUser() {
   const email = `guest-${Date.now()}`;
-  const password = generateHashedPassword(generateUUID());
 
   try {
-    return await db.insert(user).values({ email, password }).returning({
-      id: user.id,
-      email: user.email,
-    });
+    return await db
+      .insert(user)
+      .values({
+        id: generateUUID(),
+        name: email,
+        email,
+        type: "guest",
+      })
+      .returning({ id: user.id, email: user.email });
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",

@@ -1,8 +1,8 @@
 "use server";
 
 import { z } from "zod";
-import { signInCredentials } from "@/app/(auth)/auth";
-import { createUser, getUser } from "@/lib/db/queries";
+import { signInCredentials, signUpEmail } from "@/app/(auth)/auth";
+import { getUser } from "@/lib/db/queries";
 
 const authFormSchema = z.object({
   email: z.string().email(),
@@ -55,12 +55,12 @@ export const register = async (
       password: formData.get("password"),
     });
 
-    const [user] = await getUser(validatedData.email);
+    const [existingUser] = await getUser(validatedData.email);
 
-    if (user) {
+    if (existingUser) {
       return { status: "user_exists" } as RegisterActionState;
     }
-    await createUser(validatedData.email, validatedData.password);
+    await signUpEmail(validatedData.email, validatedData.password);
     await signInCredentials(validatedData.email, validatedData.password);
 
     return { status: "success" };
