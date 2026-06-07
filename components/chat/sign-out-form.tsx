@@ -1,5 +1,7 @@
 import Form from "next/form";
-import { signOut } from "@/app/(auth)/auth";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { betterAuthInstance } from "@/app/(auth)/auth";
 
 export const SignOutForm = () => {
   return (
@@ -7,9 +9,11 @@ export const SignOutForm = () => {
       action={async () => {
         "use server";
 
-        await signOut({
-          redirectTo: "/",
+        await betterAuthInstance.api.signOut({
+          headers: await headers(),
         });
+
+        redirect("/");
       }}
       className="w-full"
     >

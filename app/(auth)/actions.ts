@@ -1,7 +1,8 @@
 "use server";
 
+import { headers } from "next/headers";
 import { z } from "zod";
-import { signInCredentials, signUpEmail } from "@/app/(auth)/auth";
+import { betterAuthInstance } from "@/app/(auth)/auth";
 import { getUser } from "@/lib/db/queries";
 
 const authFormSchema = z.object({
@@ -23,7 +24,10 @@ export const login = async (
       password: formData.get("password"),
     });
 
-    await signInCredentials(validatedData.email, validatedData.password);
+    await betterAuthInstance.api.signInEmail({
+      body: { email: validatedData.email, password: validatedData.password },
+      headers: await headers(),
+    });
 
     return { status: "success" };
   } catch (error) {
@@ -60,8 +64,22 @@ export const register = async (
     if (existingUser) {
       return { status: "user_exists" } as RegisterActionState;
     }
-    await signUpEmail(validatedData.email, validatedData.password);
-    await signInCredentials(validatedData.email, validatedData.password);
+
+    const h = await headers();
+
+    await betterAuthInstance.api.signUpEmail({
+      body: {
+        email: validatedData.email,
+        password: validatedData.password,
+        name: "",
+      },
+      headers: h,
+    });
+
+    await betterAuthInstance.api.signInEmail({
+      body: { email: validatedData.email, password: validatedData.password },
+      headers: h,
+    });
 
     return { status: "success" };
   } catch (error) {
