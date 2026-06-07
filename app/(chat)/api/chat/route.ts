@@ -1,3 +1,4 @@
+import { openai } from "@ai-sdk/openai";
 import { geolocation, ipAddress } from "@vercel/functions";
 import {
   convertToModelMessages,
@@ -203,6 +204,7 @@ export async function POST(request: Request) {
             isReasoningModel && !supportsTools
               ? []
               : [
+                  "webSearch",
                   "getWeather",
                   "createDocument",
                   "editDocument",
@@ -215,6 +217,7 @@ export async function POST(request: Request) {
             }),
           },
           tools: {
+            webSearch: openai.tools.webSearch() as any,
             getWeather,
             createDocument: createDocument({
               session,

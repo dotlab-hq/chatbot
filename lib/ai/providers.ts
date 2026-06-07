@@ -19,14 +19,12 @@ export function getLanguageModel(modelId: string) {
     return myProvider.languageModel(modelId);
   }
 
-  // Use Chat Completions API — the Responses API on this endpoint
-  // returns 401 upstream errors for the available models.
-  return openai.chat(modelId);
+  return openai.responses(modelId);
 }
 
 export function getTitleModel() {
   if (isTestEnvironment && myProvider) {
     return myProvider.languageModel("title-model");
   }
-  return openai.chat("gpt-4.1-nano");
+  return openai.responses("gpt-4.1-nano");
 }
