@@ -48,7 +48,7 @@ export const regularPrompt = `You are a helpful assistant. Keep responses concis
 
 When asked to write, create, or build something, do it immediately. Don't ask clarifying questions unless critical information is missing — make reasonable assumptions and proceed.
 
-When the user asks about current events, news, recent developments, or anything requiring up-to-date information, use the webSearch tool.`;
+Answer questions directly using your knowledge.`;
 
 export type RequestHints = {
   latitude: Geo["latitude"];

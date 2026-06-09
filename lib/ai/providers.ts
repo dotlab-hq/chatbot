@@ -19,12 +19,12 @@ export function getLanguageModel(modelId: string) {
     return myProvider.languageModel(modelId);
   }
 
-  return openai.responses(modelId);
+  return openai.chat(modelId);
 }
 
 export function getTitleModel() {
   if (isTestEnvironment && myProvider) {
     return myProvider.languageModel("title-model");
   }
-  return openai.responses("gpt-4.1-nano");
+  return openai.chat("gpt-4.1-nano");
 }

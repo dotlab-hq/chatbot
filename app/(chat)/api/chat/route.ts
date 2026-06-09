@@ -1,4 +1,3 @@
-import { openai } from "@ai-sdk/openai";
 import { geolocation, ipAddress } from "@vercel/functions";
 import {
   convertToModelMessages,
@@ -72,13 +71,16 @@ export async function POST(request: Request) {
   }
 
   try {
+    console.log("[chat-debug] 1. Parsing body done");
     const { id, message, messages, selectedChatModel, selectedVisibilityType } =
       requestBody;
+    console.log("[chat-debug] 2. Destructured, selectedChatModel:", selectedChatModel);
 
     const [, session] = await Promise.all([
-      checkBotId().catch(() => null),
+      checkBotId().catch((e: any) => { console.log("[chat-debug] botId check failed:", e?.message); return null; }),
       auth(),
     ]);
+    console.log("[chat-debug] 3. Auth done, session user:", session?.user?.id ?? "none");
 
     if (!session?.user) {
       return new ChatbotError("unauthorized:chat").toResponse();
@@ -204,7 +206,6 @@ export async function POST(request: Request) {
             isReasoningModel && !supportsTools
               ? []
               : [
-                  "webSearch",
                   "getWeather",
                   "createDocument",
                   "editDocument",
@@ -217,7 +218,6 @@ export async function POST(request: Request) {
             }),
           },
           tools: {
-            webSearch: openai.tools.webSearch() as any,
             getWeather,
             createDocument: createDocument({
               session,
@@ -294,7 +294,14 @@ export async function POST(request: Request) {
           });
         }
       },
-      onError: () => {
+      onError: (error) => {
+        console.error("Stream text error:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
+        if (error instanceof Error) {
+          console.error("Error name:", error.name, "message:", error.message);
+          if ("cause" in error) {
+            console.error("Error cause:", error.cause);
+          }
+        }
         return "Oops, an error occurred!";
       },
     });
@@ -337,6 +344,16 @@ export async function POST(request: Request) {
     }
 
     console.error("Unhandled error in chat API:", error, { vercelId });
+    if (error instanceof Error) {
+      console.error("  name:", error.name, "message:", error.message);
+      console.error("  stack:", error.stack);
+      if ("cause" in error) {
+        console.error("  cause:", (error as any).cause);
+      }
+    } else {
+      console.error("  raw:", JSON.stringify(error));
+      console.error("  type:", typeof error, "str:", String(error));
+    }
     return new ChatbotError("offline:chat").toResponse();
   }
 }
