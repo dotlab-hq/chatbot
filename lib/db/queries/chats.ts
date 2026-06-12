@@ -23,7 +23,10 @@ export async function saveChat({
       title,
       visibility,
     });
-  } catch (_error) {
+  } catch (error: any) {
+    console.error("[saveChat] Actual error:", error?.message ?? error);
+    console.error("[saveChat] Error detail:", error?.cause ?? "none");
+    console.error("[saveChat] Error code:", error?.code ?? "none");
     throw new ChatbotError("bad_request:database", "Failed to save chat");
   }
 }
