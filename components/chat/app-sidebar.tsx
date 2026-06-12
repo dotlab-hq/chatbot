@@ -2,6 +2,7 @@
 
 import {
   ChevronRightIcon,
+  FolderIcon,
   MessageSquareIcon,
   PanelLeftIcon,
   PenSquareIcon,
