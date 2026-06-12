@@ -10,6 +10,7 @@ import {
   deleteProjectFileById,
   getProjectById,
   getProjectFiles,
+  updateProjectFile,
   updateProjectFileStatus,
 } from "@/lib/db/queries";
 import { ChatbotError } from "@/lib/errors";
@@ -74,7 +75,9 @@ export async function GET(
   // Cross-reference and sync status
   const enrichedFiles = await Promise.all(
     dbFiles.map(async (dbFile) => {
-      const openaiFile = openaiStatusMap.get(dbFile.openaiFileId);
+      const openaiFile = dbFile.vectorStoreFileId
+        ? openaiStatusMap.get(dbFile.vectorStoreFileId)
+        : undefined;
 
       if (!openaiFile) {
         // File not yet visible in the vector store — still uploading/processing
@@ -163,15 +166,19 @@ export async function POST(
 
   try {
     // Upload to OpenAI and add to vector store
-    const { vectorStoreFileId } = await uploadFileToVectorStore({
+    const { fileId, vectorStoreFileId } = await uploadFileToVectorStore({
       vectorStoreId: project.vectorStoreId,
       file,
       fileName: file.name,
     });
 
-    // Update the DB record with the real OpenAI file ID
-    // The vectorStoreFileId == fileId for vector store files
-    await updateProjectFileStatus({ id: dbFile.id, status: "processing" });
+    // Update the DB record with the real OpenAI file IDs
+    await updateProjectFile({
+      id: dbFile.id,
+      openaiFileId: fileId,
+      vectorStoreFileId,
+      status: "processing",
+    });
 
     return Response.json(
       {

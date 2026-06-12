@@ -361,6 +361,7 @@ export const projectFile = pgTable(
       .notNull()
       .references(() => project.id, { onDelete: "cascade" }),
     openaiFileId: text("openai_file_id").notNull(),
+    vectorStoreFileId: text("vector_store_file_id"),
     fileName: text("file_name").notNull(),
     fileSize: integer("file_size"),
     mimeType: text("mime_type"),

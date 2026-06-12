@@ -40,6 +40,7 @@ export {
   addProjectFile,
   deleteProjectFileById,
   getProjectFiles,
+  updateProjectFile,
   updateProjectFileStatus,
 } from "./project-files";
 // ─── Projects ───────────────────────────────────────────────────────────────

@@ -21,13 +21,12 @@ export async function uploadFileToVectorStore({
   fileName,
 }: {
   vectorStoreId: string;
-  file: File | Buffer;
+  file: File;
   fileName: string;
 }): Promise<{ fileId: string; vectorStoreFileId: string }> {
   // Step 1: Upload file to OpenAI Files API
   const uploadedFile = await openai.files.create({
-    file:
-      file instanceof File ? file : new File([new Uint8Array(file)], fileName),
+    file,
     purpose: "assistants",
   });
 

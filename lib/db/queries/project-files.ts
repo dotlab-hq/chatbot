@@ -47,6 +47,31 @@ export async function updateProjectFileStatus({
   }
 }
 
+export async function updateProjectFile({
+  id,
+  openaiFileId,
+  vectorStoreFileId,
+  status,
+}: {
+  id: string;
+  openaiFileId?: string;
+  vectorStoreFileId?: string;
+  status?: "uploading" | "processing" | "ready" | "failed";
+}): Promise<void> {
+  try {
+    const updates: Record<string, unknown> = {};
+    if (openaiFileId !== undefined) updates.openaiFileId = openaiFileId;
+    if (vectorStoreFileId !== undefined) updates.vectorStoreFileId = vectorStoreFileId;
+    if (status !== undefined) updates.status = status;
+    await db.update(projectFile).set(updates).where(eq(projectFile.id, id));
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to update project file"
+    );
+  }
+}
+
 export async function getProjectFiles({
   projectId,
 }: {
