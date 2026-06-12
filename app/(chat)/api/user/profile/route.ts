@@ -1,5 +1,8 @@
+import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { auth, betterAuthInstance } from "@/app/(auth)/auth";
+import { auth } from "@/app/(auth)/auth";
+import { db } from "@/lib/db";
+import { user } from "@/lib/db/schema";
 
 export async function PATCH(request: Request) {
   try {
@@ -37,22 +40,15 @@ export async function PATCH(request: Request) {
       );
     }
 
-    // Use Better Auth's API to update the user
-    const updatedUser = await betterAuthInstance.api.updateUser({
-      userId: session.user.id,
-      update: updateData,
-    });
-
-    const u = updatedUser as Record<string, unknown>;
+    // Use Drizzle directly to update the user
+    await db
+      .update(user)
+      .set({ ...updateData, updatedAt: new Date() })
+      .where(eq(user.id, session.user.id));
 
     return NextResponse.json({
       success: true,
-      user: {
-        id: updatedUser.id,
-        name: updatedUser.name,
-        email: updatedUser.email,
-        image: (u.image as string) || null,
-      },
+      user: { id: session.user.id, ...updateData },
     });
   } catch (error) {
     console.error("Failed to update user profile:", error);

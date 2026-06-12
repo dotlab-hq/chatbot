@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "openai-vector-store": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "openai-vector-store-mcp@latest",
+        "--env",
+        "OPENAI_API_KEY=qwerty-asdf"
+      ],
+      "env": {
+        "OPENAI_BASE_URL": "https://ai.wpsadi.dev/v1",
+        "OPENAI_API_BASE": "https://ai.wpsadi.dev/v1"
+      }
+    }
+  }
+}

@@ -1,6 +1,9 @@
 import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { auth, betterAuthInstance } from "@/app/(auth)/auth";
+import { auth } from "@/app/(auth)/auth";
+import { db } from "@/lib/db";
+import { user } from "@/lib/db/schema";
 import { getS3Client } from "@/lib/s3";
 
 export async function POST(request: Request) {
@@ -58,11 +61,11 @@ export async function POST(request: Request) {
       ? `${baseUrl}/${key}`
       : `${process.env.AWS_ENDPOINT ?? `https://${bucket}.s3.${process.env.AWS_REGION ?? "us-east-1"}.amazonaws.com`}/${key}`;
 
-    // Persist the avatar URL to the user record via Better Auth
-    await betterAuthInstance.api.updateUser({
-      userId: session.user.id,
-      update: { image: imageUrl },
-    });
+    // Persist the avatar URL to the user record
+    await db
+      .update(user)
+      .set({ image: imageUrl, updatedAt: new Date() })
+      .where(eq(user.id, session.user.id));
 
     return NextResponse.json({ url: imageUrl });
   } catch (error) {
