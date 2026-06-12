@@ -63,12 +63,20 @@ export function SidebarUserNav({
                 className="h-8 px-2 rounded-lg bg-transparent text-sidebar-foreground/70 transition-colors duration-150 hover:text-sidebar-foreground data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 data-testid="user-nav-button"
               >
-                <div
-                  className="size-5 shrink-0 rounded-full ring-1 ring-sidebar-border/50"
-                  style={{
-                    background: `linear-gradient(135deg, oklch(0.35 0.08 ${emailToHue(userEmail)}), oklch(0.25 0.05 ${emailToHue(userEmail) + 40}))`,
-                  }}
-                />
+                {session?.data?.user?.image ? (
+                  <img
+                    alt="Avatar"
+                    className="size-5 shrink-0 rounded-full object-cover ring-1 ring-sidebar-border/50"
+                    src={session.data.user.image}
+                  />
+                ) : (
+                  <div
+                    className="size-5 shrink-0 rounded-full ring-1 ring-sidebar-border/50"
+                    style={{
+                      background: `linear-gradient(135deg, oklch(0.35 0.08 ${emailToHue(userEmail)}), oklch(0.25 0.05 ${emailToHue(userEmail) + 40}))`,
+                    }}
+                  />
+                )}
                 <span className="truncate text-[13px]" data-testid="user-email">
                   {isGuest ? "Guest" : userEmail}
                 </span>

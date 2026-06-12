@@ -1,0 +1,41 @@
+- generic [ref=e1]:
+  - alert [ref=e2]
+  - main [ref=e4]:
+    - region "Notifications alt+T"
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - button [ref=e8]:
+          - img
+        - link [ref=e9] [cursor=pointer]:
+          - /url: https://vercel.com/templates/next.js/chatbot
+          - img [ref=e10]
+        - button "Private" [ref=e12]:
+          - img
+          - generic [ref=e13]: Private
+          - img
+      - generic [ref=e14]:
+        - generic [ref=e15]:
+          - generic:
+            - generic:
+              - generic: What can I help with?
+              - generic: Ask a question, write code, or explore ideas.
+          - button "Scroll to bottom":
+            - img
+        - generic [ref=e20]:
+          - generic [ref=e21]:
+            - button "What are the advantages of using Next.js?" [ref=e23] [cursor=pointer]
+            - button "Write code to demonstrate Dijkstra's algorithm" [ref=e25] [cursor=pointer]
+            - button "Help me write an essay about Silicon Valley" [ref=e27] [cursor=pointer]
+            - button "What is the weather in San Francisco?" [ref=e29] [cursor=pointer]
+          - button "Choose File"
+          - group [ref=e31]:
+            - textbox "Ask anything..." [active] [ref=e32]
+            - group [ref=e33]:
+              - generic [ref=e34]:
+                - button [ref=e35]:
+                  - img
+                - button "gpt-4.1-nano logo GPT 4.1 Nano" [ref=e36]:
+                  - img "gpt-4.1-nano logo" [ref=e37]
+                  - generic [ref=e38]: GPT 4.1 Nano
+              - button "Submit" [disabled]:
+                - img

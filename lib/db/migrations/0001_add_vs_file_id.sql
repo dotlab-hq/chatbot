@@ -1,1 +1,0 @@
-ALTER TABLE "ProjectFile" ADD COLUMN "vector_store_file_id" text;

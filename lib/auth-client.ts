@@ -36,7 +36,7 @@ export function useSession() {
 
   const refetch = useCallback(async () => {
     try {
-      await authClient.getSession({ query: {} });
+      await authClient.$fetch("/get-session", { method: "GET" });
     } catch {
       // best-effort refresh
     }

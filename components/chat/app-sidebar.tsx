@@ -2,7 +2,6 @@
 
 import {
   ChevronRightIcon,
-  FolderIcon,
   MessageSquareIcon,
   PanelLeftIcon,
   PenSquareIcon,
@@ -16,6 +15,7 @@ import { toast } from "sonner";
 import { useSWRConfig } from "swr";
 import { unstable_serialize } from "swr/infinite";
 import type { User } from "@/app/(auth)/auth";
+import { SettingsSheet } from "@/components/chat/settings-sheet";
 import {
   getChatHistoryPaginationKey,
   SidebarHistory,
@@ -64,6 +64,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
   const { setOpenMobile, toggleSidebar } = useSidebar();
   const { mutate } = useSWRConfig();
   const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [projects, setProjects] = useState<
     Array<{
       id: string;
@@ -101,6 +102,12 @@ export function AppSidebar({ user }: { user: User | undefined }) {
   useEffect(() => {
     loadProjects();
   }, [loadProjects]);
+
+  useEffect(() => {
+    const handler = () => setSettingsOpen(true);
+    window.addEventListener("open-settings", handler);
+    return () => window.removeEventListener("open-settings", handler);
+  }, []);
 
   const handleDeleteAll = () => {
     setShowDeleteAllDialog(false);
@@ -172,27 +179,24 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                 {user && (
                   <SidebarMenuItem>
                     <SidebarMenuButton
-                      className="rounded-lg text-sidebar-foreground/40 transition-colors duration-150 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-                      onClick={() => {
-                        setOpenMobile(false);
-                        router.push("/settings");
-                      }}
-                      tooltip="Settings"
-                    >
-                      <SettingsIcon className="size-4" />
-                      <span className="text-[13px]">Settings</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )}
-                {user && (
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
                       className="rounded-lg text-sidebar-foreground/40 transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive"
                       onClick={() => setShowDeleteAllDialog(true)}
                       tooltip="Delete All Chats"
                     >
                       <TrashIcon className="size-4" />
                       <span className="text-[13px]">Delete all</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
+                {user && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      className="rounded-lg text-sidebar-foreground/40 transition-colors duration-150 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                      onClick={() => setSettingsOpen(true)}
+                      tooltip="Settings"
+                    >
+                      <SettingsIcon className="size-4" />
+                      <span className="text-[13px]">Settings</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 )}
@@ -246,6 +250,8 @@ export function AppSidebar({ user }: { user: User | undefined }) {
         </SidebarFooter>
         <SidebarRail />
       </Sidebar>
+
+      <SettingsSheet onOpenChange={setSettingsOpen} open={settingsOpen} />
 
       <AlertDialog
         onOpenChange={setShowDeleteAllDialog}

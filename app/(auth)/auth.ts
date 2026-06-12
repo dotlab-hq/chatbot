@@ -16,6 +16,7 @@ export interface Session {
     id: string;
     email: string;
     name: string;
+    image: string | null;
     type: UserType;
   };
 }
@@ -41,10 +42,6 @@ export const betterAuthInstance = betterAuth({
   session: {
     expiresIn: 60 * 60 * 24 * 7,
     updateAge: 60 * 60 * 24,
-    cookieCache: {
-      enabled: true,
-      maxAge: 60 * 60 * 24 * 7,
-    },
   },
   user: {
     additionalFields: {
@@ -89,6 +86,7 @@ export async function auth(): Promise<Session | null> {
       id: session.user.id,
       email: session.user.email || "",
       name: session.user.name || "",
+      image: (u.image as string) || null,
       type: (u.type as UserType) || "regular",
     },
   };

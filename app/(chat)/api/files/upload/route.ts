@@ -1,44 +1,9 @@
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { auth } from "@/app/(auth)/auth";
-
-function getS3Client() {
-  console.log("[S3 Init] Building S3 client...");
-  console.log("[S3 Init] AWS_REGION:", process.env.AWS_REGION ? "SET" : "NOT SET");
-  console.log("[S3 Init] AWS_ACCESS_KEY_ID:", process.env.AWS_ACCESS_KEY_ID ? "SET" : "NOT SET");
-  console.log("[S3 Init] AWS_SECRET_ACCESS_KEY:", process.env.AWS_SECRET_ACCESS_KEY ? "SET" : "NOT SET");
-  console.log("[S3 Init] AWS_ENDPOINT:", process.env.AWS_ENDPOINT ?? "NOT SET");
-  console.log("[S3 Init] S3_BUCKET:", process.env.S3_BUCKET ?? "NOT SET");
-  console.log("[S3 Init] S3_PUBLIC_URL:", process.env.S3_PUBLIC_URL ?? "NOT SET");
-
-  const s3Config: {
-    region: string;
-    endpoint?: string;
-    forcePathStyle?: boolean;
-    credentials?: {
-      accessKeyId: string;
-      secretAccessKey: string;
-    };
-  } = {
-    region: process.env.AWS_REGION ?? "us-east-1",
-  };
-
-  if (process.env.AWS_ENDPOINT) {
-    s3Config.endpoint = process.env.AWS_ENDPOINT;
-    s3Config.forcePathStyle = true;
-
-    if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
-      s3Config.credentials = {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-      };
-    }
-  }
-
-  return new S3Client(s3Config);
-}
+import { getS3Client } from "@/lib/s3";
 
 const FileSchema = z.object({
   file: z

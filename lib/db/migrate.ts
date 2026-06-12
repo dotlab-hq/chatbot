@@ -21,7 +21,7 @@ const runMigrate = async () => {
   const start = Date.now();
   await migrate(db, {
     migrationsFolder: "./lib/db/migrations",
-    migrationsSchema: "drizzle",
+    migrationsSchema: "chatbot",
   });
   const end = Date.now();
 

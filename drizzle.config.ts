@@ -13,6 +13,7 @@ export default defineConfig({
     url: process.env.POSTGRES_URL ?? "",
   },
   migrations: {
-    schema: "drizzle",
+    schema: "chatbot",
+    table: "__drizzle_migrations",
   },
 });

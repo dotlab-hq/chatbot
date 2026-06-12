@@ -6,7 +6,7 @@ import {
   index,
   integer,
   json,
-  pgTable,
+  pgSchema,
   primaryKey,
   text,
   timestamp,
@@ -15,9 +15,15 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 
+// ─── Schema ─────────────────────────────────────────────────────────────────
+
+export const chatbot = pgSchema("chatbot");
+
+// ─── Tables ─────────────────────────────────────────────────────────────────
+
 export type User = InferSelectModel<typeof user>;
 
-export const chat = pgTable("Chat", {
+export const chat = chatbot.table("Chat", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   createdAt: timestamp("createdAt").notNull(),
   title: text("title").notNull(),
@@ -34,7 +40,7 @@ export const chat = pgTable("Chat", {
 
 export type Chat = InferSelectModel<typeof chat>;
 
-export const message = pgTable("Message_v2", {
+export const message = chatbot.table("Message_v2", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   chatId: uuid("chatId")
     .notNull()
@@ -47,7 +53,7 @@ export const message = pgTable("Message_v2", {
 
 export type DBMessage = InferSelectModel<typeof message>;
 
-export const vote = pgTable(
+export const vote = chatbot.table(
   "Vote_v2",
   {
     chatId: uuid("chatId")
@@ -65,7 +71,7 @@ export const vote = pgTable(
 
 export type Vote = InferSelectModel<typeof vote>;
 
-export const document = pgTable(
+export const document = chatbot.table(
   "Document",
   {
     id: uuid("id").notNull().defaultRandom(),
@@ -86,7 +92,7 @@ export const document = pgTable(
 
 export type Document = InferSelectModel<typeof document>;
 
-export const suggestion = pgTable(
+export const suggestion = chatbot.table(
   "Suggestion",
   {
     id: uuid("id").notNull().defaultRandom(),
@@ -112,7 +118,7 @@ export const suggestion = pgTable(
 
 export type Suggestion = InferSelectModel<typeof suggestion>;
 
-export const stream = pgTable(
+export const stream = chatbot.table(
   "Stream",
   {
     id: uuid("id").notNull().defaultRandom(),
@@ -130,7 +136,7 @@ export const stream = pgTable(
 
 export type Stream = InferSelectModel<typeof stream>;
 
-export const user = pgTable("user", {
+export const user = chatbot.table("user", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
@@ -144,7 +150,7 @@ export const user = pgTable("user", {
   type: text("type").default("regular"),
 });
 
-export const session = pgTable(
+export const session = chatbot.table(
   "session",
   {
     id: text("id").primaryKey(),
@@ -164,7 +170,7 @@ export const session = pgTable(
   (table) => [index("session_userId_idx").on(table.userId)]
 );
 
-export const account = pgTable(
+export const account = chatbot.table(
   "account",
   {
     id: text("id").primaryKey(),
@@ -188,7 +194,7 @@ export const account = pgTable(
   (table) => [index("account_userId_idx").on(table.userId)]
 );
 
-export const verification = pgTable(
+export const verification = chatbot.table(
   "verification",
   {
     id: text("id").primaryKey(),
@@ -204,7 +210,7 @@ export const verification = pgTable(
   (table) => [index("verification_identifier_idx").on(table.identifier)]
 );
 
-export const organization = pgTable(
+export const organization = chatbot.table(
   "organization",
   {
     id: text("id").primaryKey(),
@@ -217,7 +223,7 @@ export const organization = pgTable(
   (table) => [uniqueIndex("organization_slug_uidx").on(table.slug)]
 );
 
-export const member = pgTable(
+export const member = chatbot.table(
   "member",
   {
     id: text("id").primaryKey(),
@@ -236,7 +242,7 @@ export const member = pgTable(
   ]
 );
 
-export const invitation = pgTable(
+export const invitation = chatbot.table(
   "invitation",
   {
     id: text("id").primaryKey(),
@@ -258,7 +264,7 @@ export const invitation = pgTable(
   ]
 );
 
-export const ssoProvider = pgTable("sso_provider", {
+export const ssoProvider = chatbot.table("sso_provider", {
   id: text("id").primaryKey(),
   issuer: text("issuer").notNull(),
   oidcConfig: text("oidc_config"),
@@ -331,7 +337,7 @@ export const ssoProviderRelations = relations(ssoProvider, ({ one }) => ({
 
 // ─── Projects ───────────────────────────────────────────────────────────────
 
-export const project = pgTable(
+export const project = chatbot.table(
   "Project",
   {
     id: uuid("id").primaryKey().notNull().defaultRandom(),
@@ -353,7 +359,7 @@ export const project = pgTable(
 
 export type Project = InferSelectModel<typeof project>;
 
-export const projectFile = pgTable(
+export const projectFile = chatbot.table(
   "ProjectFile",
   {
     id: uuid("id").primaryKey().notNull().defaultRandom(),
@@ -395,7 +401,7 @@ export const projectFileRelations = relations(projectFile, ({ one }) => ({
 
 // ─── MCP Servers ────────────────────────────────────────────────────────────
 
-export const mcpServer = pgTable(
+export const mcpServer = chatbot.table(
   "McpServer",
   {
     id: uuid("id").primaryKey().notNull().defaultRandom(),

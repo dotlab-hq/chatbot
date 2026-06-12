@@ -1,0 +1,62 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e5]:
+      - list [ref=e7]:
+        - listitem [ref=e8]:
+          - generic [ref=e9]:
+            - link [ref=e10] [cursor=pointer]:
+              - /url: /
+              - img [ref=e11]
+            - button [ref=e13]:
+              - img [ref=e14]
+      - list [ref=e19]:
+        - listitem [ref=e20]:
+          - button "New chat" [ref=e21]:
+            - img [ref=e22]
+            - generic: New chat
+        - listitem [ref=e25]:
+          - button "Delete all" [ref=e26]:
+            - img [ref=e27]
+            - generic: Delete all
+        - listitem [ref=e30]:
+          - button "Settings" [ref=e31]:
+            - img [ref=e32]
+            - generic: Settings
+      - list [ref=e36]:
+        - listitem [ref=e37]:
+          - button "Loading..." [ref=e38]:
+            - generic [ref=e41]: Loading...
+            - img [ref=e43]
+      - generic [ref=e55]:
+        - button "Toggle Sidebar" [ref=e56]
+        - button "Toggle Sidebar" [ref=e57]
+        - button "Toggle Sidebar" [ref=e58]
+    - main [ref=e59]:
+      - region "Notifications alt+T"
+      - generic [ref=e62]:
+        - generic [ref=e63]:
+          - generic:
+            - generic:
+              - generic: What can I help with?
+              - generic: Ask a question, write code, or explore ideas.
+          - button "Scroll to bottom":
+            - img
+        - generic [ref=e68]:
+          - generic [ref=e69]:
+            - button "What are the advantages of using Next.js?" [ref=e71] [cursor=pointer]
+            - button "Write code to demonstrate Dijkstra's algorithm" [ref=e73] [cursor=pointer]
+            - button "Help me write an essay about Silicon Valley" [ref=e75] [cursor=pointer]
+            - button "What is the weather in San Francisco?" [ref=e77] [cursor=pointer]
+          - button "Choose File"
+          - group [ref=e79]:
+            - textbox "Ask anything..." [ref=e80]
+            - group [ref=e81]:
+              - generic [ref=e82]:
+                - button [disabled]:
+                  - img
+                - button "gpt-4.1-nano logo GPT 4.1 Nano" [ref=e83]:
+                  - img "gpt-4.1-nano logo" [ref=e84]
+                  - generic [ref=e85]: GPT 4.1 Nano
+              - button "Submit" [disabled]:
+                - img
+  - alert [ref=e86]

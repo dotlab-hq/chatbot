@@ -1,12 +1,12 @@
 {
-  "id": "e64d2be6-3d2d-4f89-b244-82d4115e5db6",
+  "id": "3781e11a-a4be-454b-b0a3-fa7037df1ccd",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.account": {
+    "chatbot.account": {
       "name": "account",
-      "schema": "",
+      "schema": "chatbot",
       "columns": {
         "id": {
           "name": "id",
@@ -110,6 +110,7 @@
           "name": "account_user_id_user_id_fk",
           "tableFrom": "account",
           "tableTo": "user",
+          "schemaTo": "chatbot",
           "columnsFrom": [
             "user_id"
           ],
@@ -126,9 +127,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.Chat": {
+    "chatbot.Chat": {
       "name": "Chat",
-      "schema": "",
+      "schema": "chatbot",
       "columns": {
         "id": {
           "name": "id",
@@ -175,6 +176,7 @@
           "name": "Chat_userId_user_id_fk",
           "tableFrom": "Chat",
           "tableTo": "user",
+          "schemaTo": "chatbot",
           "columnsFrom": [
             "userId"
           ],
@@ -188,6 +190,7 @@
           "name": "Chat_projectId_Project_id_fk",
           "tableFrom": "Chat",
           "tableTo": "Project",
+          "schemaTo": "chatbot",
           "columnsFrom": [
             "projectId"
           ],
@@ -204,9 +207,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.Document": {
+    "chatbot.Document": {
       "name": "Document",
-      "schema": "",
+      "schema": "chatbot",
       "columns": {
         "id": {
           "name": "id",
@@ -253,6 +256,7 @@
           "name": "Document_userId_user_id_fk",
           "tableFrom": "Document",
           "tableTo": "user",
+          "schemaTo": "chatbot",
           "columnsFrom": [
             "userId"
           ],
@@ -277,9 +281,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.invitation": {
+    "chatbot.invitation": {
       "name": "invitation",
-      "schema": "",
+      "schema": "chatbot",
       "columns": {
         "id": {
           "name": "id",
@@ -369,6 +373,7 @@
           "name": "invitation_organization_id_organization_id_fk",
           "tableFrom": "invitation",
           "tableTo": "organization",
+          "schemaTo": "chatbot",
           "columnsFrom": [
             "organization_id"
           ],
@@ -382,6 +387,7 @@
           "name": "invitation_inviter_id_user_id_fk",
           "tableFrom": "invitation",
           "tableTo": "user",
+          "schemaTo": "chatbot",
           "columnsFrom": [
             "inviter_id"
           ],
@@ -398,9 +404,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.McpServer": {
+    "chatbot.McpServer": {
       "name": "McpServer",
-      "schema": "",
+      "schema": "chatbot",
       "columns": {
         "id": {
           "name": "id",
@@ -508,6 +514,7 @@
           "name": "McpServer_userId_user_id_fk",
           "tableFrom": "McpServer",
           "tableTo": "user",
+          "schemaTo": "chatbot",
           "columnsFrom": [
             "userId"
           ],
@@ -524,9 +531,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.member": {
+    "chatbot.member": {
       "name": "member",
-      "schema": "",
+      "schema": "chatbot",
       "columns": {
         "id": {
           "name": "id",
@@ -597,6 +604,7 @@
           "name": "member_organization_id_organization_id_fk",
           "tableFrom": "member",
           "tableTo": "organization",
+          "schemaTo": "chatbot",
           "columnsFrom": [
             "organization_id"
           ],
@@ -610,6 +618,7 @@
           "name": "member_user_id_user_id_fk",
           "tableFrom": "member",
           "tableTo": "user",
+          "schemaTo": "chatbot",
           "columnsFrom": [
             "user_id"
           ],
@@ -626,9 +635,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.Message_v2": {
+    "chatbot.Message_v2": {
       "name": "Message_v2",
-      "schema": "",
+      "schema": "chatbot",
       "columns": {
         "id": {
           "name": "id",
@@ -674,6 +683,7 @@
           "name": "Message_v2_chatId_Chat_id_fk",
           "tableFrom": "Message_v2",
           "tableTo": "Chat",
+          "schemaTo": "chatbot",
           "columnsFrom": [
             "chatId"
           ],
@@ -690,9 +700,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.organization": {
+    "chatbot.organization": {
       "name": "organization",
-      "schema": "",
+      "schema": "chatbot",
       "columns": {
         "id": {
           "name": "id",
@@ -763,9 +773,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.Project": {
+    "chatbot.Project": {
       "name": "Project",
-      "schema": "",
+      "schema": "chatbot",
       "columns": {
         "id": {
           "name": "id",
@@ -842,6 +852,7 @@
           "name": "Project_userId_user_id_fk",
           "tableFrom": "Project",
           "tableTo": "user",
+          "schemaTo": "chatbot",
           "columnsFrom": [
             "userId"
           ],
@@ -858,9 +869,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.ProjectFile": {
+    "chatbot.ProjectFile": {
       "name": "ProjectFile",
-      "schema": "",
+      "schema": "chatbot",
       "columns": {
         "id": {
           "name": "id",
@@ -880,6 +891,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "vector_store_file_id": {
+          "name": "vector_store_file_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "file_name": {
           "name": "file_name",
@@ -936,6 +953,7 @@
           "name": "ProjectFile_projectId_Project_id_fk",
           "tableFrom": "ProjectFile",
           "tableTo": "Project",
+          "schemaTo": "chatbot",
           "columnsFrom": [
             "projectId"
           ],
@@ -952,9 +970,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.session": {
+    "chatbot.session": {
       "name": "session",
-      "schema": "",
+      "schema": "chatbot",
       "columns": {
         "id": {
           "name": "id",
@@ -1034,6 +1052,7 @@
           "name": "session_user_id_user_id_fk",
           "tableFrom": "session",
           "tableTo": "user",
+          "schemaTo": "chatbot",
           "columnsFrom": [
             "user_id"
           ],
@@ -1058,9 +1077,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.sso_provider": {
+    "chatbot.sso_provider": {
       "name": "sso_provider",
-      "schema": "",
+      "schema": "chatbot",
       "columns": {
         "id": {
           "name": "id",
@@ -1117,6 +1136,7 @@
           "name": "sso_provider_user_id_user_id_fk",
           "tableFrom": "sso_provider",
           "tableTo": "user",
+          "schemaTo": "chatbot",
           "columnsFrom": [
             "user_id"
           ],
@@ -1141,9 +1161,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.Stream": {
+    "chatbot.Stream": {
       "name": "Stream",
-      "schema": "",
+      "schema": "chatbot",
       "columns": {
         "id": {
           "name": "id",
@@ -1171,6 +1191,7 @@
           "name": "Stream_chatId_Chat_id_fk",
           "tableFrom": "Stream",
           "tableTo": "Chat",
+          "schemaTo": "chatbot",
           "columnsFrom": [
             "chatId"
           ],
@@ -1194,9 +1215,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.Suggestion": {
+    "chatbot.Suggestion": {
       "name": "Suggestion",
-      "schema": "",
+      "schema": "chatbot",
       "columns": {
         "id": {
           "name": "id",
@@ -1261,6 +1282,7 @@
           "name": "Suggestion_userId_user_id_fk",
           "tableFrom": "Suggestion",
           "tableTo": "user",
+          "schemaTo": "chatbot",
           "columnsFrom": [
             "userId"
           ],
@@ -1274,6 +1296,7 @@
           "name": "Suggestion_documentId_documentCreatedAt_Document_id_createdAt_fk",
           "tableFrom": "Suggestion",
           "tableTo": "Document",
+          "schemaTo": "chatbot",
           "columnsFrom": [
             "documentId",
             "documentCreatedAt"
@@ -1299,9 +1322,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.user": {
+    "chatbot.user": {
       "name": "user",
-      "schema": "",
+      "schema": "chatbot",
       "columns": {
         "id": {
           "name": "id",
@@ -1372,9 +1395,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.verification": {
+    "chatbot.verification": {
       "name": "verification",
-      "schema": "",
+      "schema": "chatbot",
       "columns": {
         "id": {
           "name": "id",
@@ -1439,9 +1462,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.Vote_v2": {
+    "chatbot.Vote_v2": {
       "name": "Vote_v2",
-      "schema": "",
+      "schema": "chatbot",
       "columns": {
         "chatId": {
           "name": "chatId",
@@ -1468,6 +1491,7 @@
           "name": "Vote_v2_chatId_Chat_id_fk",
           "tableFrom": "Vote_v2",
           "tableTo": "Chat",
+          "schemaTo": "chatbot",
           "columnsFrom": [
             "chatId"
           ],
@@ -1481,6 +1505,7 @@
           "name": "Vote_v2_messageId_Message_v2_id_fk",
           "tableFrom": "Vote_v2",
           "tableTo": "Message_v2",
+          "schemaTo": "chatbot",
           "columnsFrom": [
             "messageId"
           ],
@@ -1507,7 +1532,9 @@
     }
   },
   "enums": {},
-  "schemas": {},
+  "schemas": {
+    "chatbot": "chatbot"
+  },
   "sequences": {},
   "roles": {},
   "policies": {},

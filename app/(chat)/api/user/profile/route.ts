@@ -10,9 +10,13 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json();
-    const { name, email } = body as { name?: string; email?: string };
+    const { name, email, image } = body as {
+      name?: string;
+      email?: string;
+      image?: string | null;
+    };
 
-    const updateData: Record<string, string> = {};
+    const updateData: Record<string, string | null> = {};
 
     if (name !== undefined) {
       updateData.name = name;
@@ -20,6 +24,10 @@ export async function PATCH(request: Request) {
 
     if (email !== undefined) {
       updateData.email = email;
+    }
+
+    if (image !== undefined) {
+      updateData.image = image;
     }
 
     if (Object.keys(updateData).length === 0) {
@@ -35,12 +43,15 @@ export async function PATCH(request: Request) {
       update: updateData,
     });
 
+    const u = updatedUser as Record<string, unknown>;
+
     return NextResponse.json({
       success: true,
       user: {
         id: updatedUser.id,
         name: updatedUser.name,
         email: updatedUser.email,
+        image: (u.image as string) || null,
       },
     });
   } catch (error) {
