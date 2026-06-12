@@ -30,6 +30,7 @@ import { editDocument } from "@/lib/ai/tools/edit-document";
 import { getWeather } from "@/lib/ai/tools/get-weather";
 import { requestSuggestions } from "@/lib/ai/tools/request-suggestions";
 import { updateDocument } from "@/lib/ai/tools/update-document";
+import { verifyContent } from "@/lib/ai/tools/verify";
 import { isProductionEnvironment } from "@/lib/constants";
 import {
   createStreamId,
@@ -74,13 +75,22 @@ export async function POST(request: Request) {
     console.log("[chat-debug] 1. Parsing body done");
     const { id, message, messages, selectedChatModel, selectedVisibilityType } =
       requestBody;
-    console.log("[chat-debug] 2. Destructured, selectedChatModel:", selectedChatModel);
+    console.log(
+      "[chat-debug] 2. Destructured, selectedChatModel:",
+      selectedChatModel
+    );
 
     const [, session] = await Promise.all([
-      checkBotId().catch((e: any) => { console.log("[chat-debug] botId check failed:", e?.message); return null; }),
+      checkBotId().catch((e: any) => {
+        console.log("[chat-debug] botId check failed:", e?.message);
+        return null;
+      }),
       auth(),
     ]);
-    console.log("[chat-debug] 3. Auth done, session user:", session?.user?.id ?? "none");
+    console.log(
+      "[chat-debug] 3. Auth done, session user:",
+      session?.user?.id ?? "none"
+    );
 
     if (!session?.user) {
       return new ChatbotError("unauthorized:chat").toResponse();
@@ -211,6 +221,7 @@ export async function POST(request: Request) {
                   "editDocument",
                   "updateDocument",
                   "requestSuggestions",
+                  "verifyContent",
                 ],
           providerOptions: {
             ...(modelConfig?.reasoningEffort && {
@@ -235,6 +246,7 @@ export async function POST(request: Request) {
               dataStream,
               modelId: chatModel,
             }),
+            verifyContent,
           },
           experimental_telemetry: {
             isEnabled: isProductionEnvironment,
@@ -295,7 +307,10 @@ export async function POST(request: Request) {
         }
       },
       onError: (error) => {
-        console.error("Stream text error:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
+        console.error(
+          "Stream text error:",
+          JSON.stringify(error, Object.getOwnPropertyNames(error))
+        );
         if (error instanceof Error) {
           console.error("Error name:", error.name, "message:", error.message);
           if ("cause" in error) {

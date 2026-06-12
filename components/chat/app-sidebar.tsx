@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  ChevronRightIcon,
+  FolderIcon,
   MessageSquareIcon,
   PanelLeftIcon,
   PenSquareIcon,
@@ -9,7 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useSWRConfig } from "swr";
 import { unstable_serialize } from "swr/infinite";
@@ -30,6 +32,11 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
@@ -39,6 +46,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarRail,
   SidebarTrigger,
   useSidebar,
@@ -54,6 +64,43 @@ export function AppSidebar({ user }: { user: User | undefined }) {
   const { setOpenMobile, toggleSidebar } = useSidebar();
   const { mutate } = useSWRConfig();
   const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
+  const [projects, setProjects] = useState<
+    Array<{
+      id: string;
+      name: string;
+      description: string | null;
+      fileCount: number;
+    }>
+  >([]);
+  const [projectsOpen, setProjectsOpen] = useState(true);
+
+  const loadProjects = useCallback(async () => {
+    if (!user) {
+      return;
+    }
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/projects`
+      );
+      if (response.ok) {
+        const data = (await response.json()) as {
+          projects: Array<{
+            id: string;
+            name: string;
+            description: string | null;
+            fileCount: number;
+          }>;
+        };
+        setProjects(data.projects);
+      }
+    } catch {
+      // silent
+    }
+  }, [user]);
+
+  useEffect(() => {
+    loadProjects();
+  }, [loadProjects]);
 
   const handleDeleteAll = () => {
     setShowDeleteAllDialog(false);
@@ -78,7 +125,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
               <div className="group/logo relative flex items-center justify-center">
                 <SidebarMenuButton
                   asChild
-                  className="size-8 !px-0 items-center justify-center group-data-[collapsible=icon]:group-hover/logo:opacity-0"
+                  className="size-8 px-0! items-center justify-center group-data-[collapsible=icon]:group-hover/logo:opacity-0"
                   tooltip="Chatbot"
                 >
                   <Link href="/" onClick={() => setOpenMobile(false)}>
@@ -152,6 +199,46 @@ export function AppSidebar({ user }: { user: User | undefined }) {
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
+          {user && projects.length > 0 && (
+            <SidebarGroup>
+              <SidebarGroupContent>
+                <Collapsible onOpenChange={setProjectsOpen} open={projectsOpen}>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton
+                      className="text-[13px] text-sidebar-foreground/60"
+                      tooltip="Projects"
+                    >
+                      <FolderIcon className="size-4" />
+                      <span className="font-medium">Projects</span>
+                      <ChevronRightIcon
+                        className={`ml-auto size-3 transition-transform duration-200 ${projectsOpen ? "rotate-90" : ""}`}
+                      />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      {projects.map((project) => (
+                        <SidebarMenuSubItem key={project.id}>
+                          <SidebarMenuSubButton
+                            className="text-[12px] text-sidebar-foreground/60 transition-colors duration-150 hover:text-sidebar-foreground"
+                            onClick={() => {
+                              setOpenMobile(false);
+                              router.push(`/?projectId=${project.id}`);
+                            }}
+                          >
+                            <span className="truncate">{project.name}</span>
+                            <span className="ml-auto text-[10px] text-sidebar-foreground/30">
+                              {project.fileCount}
+                            </span>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))}
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </Collapsible>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )}
           <SidebarHistory user={user} />
         </SidebarContent>
         <SidebarFooter className="border-t border-sidebar-border pt-2 pb-3">

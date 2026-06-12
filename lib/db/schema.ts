@@ -1,18 +1,19 @@
 import type { InferSelectModel } from "drizzle-orm";
+import { relations } from "drizzle-orm";
 import {
   boolean,
   foreignKey,
+  index,
+  integer,
   json,
   pgTable,
   primaryKey,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-
-import { relations } from "drizzle-orm";
-import { index, uniqueIndex } from "drizzle-orm/pg-core";
 
 export type User = InferSelectModel<typeof user>;
 
@@ -20,9 +21,12 @@ export const chat = pgTable("Chat", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   createdAt: timestamp("createdAt").notNull(),
   title: text("title").notNull(),
-  userId: uuid("userId")
+  userId: text("userId")
     .notNull()
     .references(() => user.id),
+  projectId: uuid("projectId").references(() => project.id, {
+    onDelete: "set null",
+  }),
   visibility: varchar("visibility", { enum: ["public", "private"] })
     .notNull()
     .default("private"),
@@ -71,7 +75,7 @@ export const document = pgTable(
     kind: varchar("text", { enum: ["text", "code", "image", "sheet"] })
       .notNull()
       .default("text"),
-    userId: uuid("userId")
+    userId: text("userId")
       .notNull()
       .references(() => user.id),
   },
@@ -92,7 +96,7 @@ export const suggestion = pgTable(
     suggestedText: text("suggestedText").notNull(),
     description: text("description"),
     isResolved: boolean("isResolved").notNull().default(false),
-    userId: uuid("userId")
+    userId: text("userId")
       .notNull()
       .references(() => user.id),
     createdAt: timestamp("createdAt").notNull(),
@@ -125,7 +129,6 @@ export const stream = pgTable(
 );
 
 export type Stream = InferSelectModel<typeof stream>;
-
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -274,6 +277,8 @@ export const userRelations = relations(user, ({ many }) => ({
   members: many(member),
   invitations: many(invitation),
   ssoProviders: many(ssoProvider),
+  projects: many(project),
+  mcpServers: many(mcpServer),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -320,6 +325,118 @@ export const invitationRelations = relations(invitation, ({ one }) => ({
 export const ssoProviderRelations = relations(ssoProvider, ({ one }) => ({
   user: one(user, {
     fields: [ssoProvider.userId],
+    references: [user.id],
+  }),
+}));
+
+// ─── Projects ───────────────────────────────────────────────────────────────
+
+export const project = pgTable(
+  "Project",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    name: text("name").notNull(),
+    description: text("description"),
+    userId: text("userId")
+      .notNull()
+      .references(() => user.id),
+    vectorStoreId: text("vector_store_id"),
+    fileCount: integer("file_count").notNull().default(0),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt")
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [index("project_userId_idx").on(table.userId)]
+);
+
+export type Project = InferSelectModel<typeof project>;
+
+export const projectFile = pgTable(
+  "ProjectFile",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    projectId: uuid("projectId")
+      .notNull()
+      .references(() => project.id, { onDelete: "cascade" }),
+    openaiFileId: text("openai_file_id").notNull(),
+    fileName: text("file_name").notNull(),
+    fileSize: integer("file_size"),
+    mimeType: text("mime_type"),
+    status: varchar("status", {
+      enum: ["uploading", "processing", "ready", "failed"],
+    })
+      .notNull()
+      .default("uploading"),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+  },
+  (table) => [index("projectFile_projectId_idx").on(table.projectId)]
+);
+
+export type ProjectFile = InferSelectModel<typeof projectFile>;
+
+export const projectRelations = relations(project, ({ one, many }) => ({
+  user: one(user, {
+    fields: [project.userId],
+    references: [user.id],
+  }),
+  files: many(projectFile),
+  chats: many(chat),
+}));
+
+export const projectFileRelations = relations(projectFile, ({ one }) => ({
+  project: one(project, {
+    fields: [projectFile.projectId],
+    references: [project.id],
+  }),
+}));
+
+// ─── MCP Servers ────────────────────────────────────────────────────────────
+
+export const mcpServer = pgTable(
+  "McpServer",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    name: text("name").notNull(),
+    description: text("description"),
+    transport: varchar("transport", {
+      enum: ["stdio", "sse", "streamable-http"],
+    })
+      .notNull()
+      .default("sse"),
+    url: text("url"),
+    command: text("command"),
+    args: json("args").$type<string[]>(),
+    env: json("env").$type<Record<string, string>>(),
+    userId: text("userId")
+      .notNull()
+      .references(() => user.id),
+    enabled: boolean("enabled").notNull().default(true),
+    lastConnectedAt: timestamp("last_connected_at"),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt")
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [index("mcpServer_userId_idx").on(table.userId)]
+);
+
+export type McpServer = InferSelectModel<typeof mcpServer>;
+
+export const mcpServerRelations = relations(mcpServer, ({ one }) => ({
+  user: one(user, {
+    fields: [mcpServer.userId],
+    references: [user.id],
+  }),
+}));
+
+// ─── Update existing relations ──────────────────────────────────────────────
+
+export const chatRelations = relations(chat, ({ one }) => ({
+  user: one(user, {
+    fields: [chat.userId],
     references: [user.id],
   }),
 }));
