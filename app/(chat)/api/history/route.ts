@@ -1,7 +1,10 @@
+import { and, desc, eq, gt, isNull, lt, type SQL } from "drizzle-orm";
 import type { NextRequest } from "next/server";
 import { auth } from "@/app/(auth)/auth";
-import { deleteAllChatsByUserId, getChatsByUserId } from "@/lib/db/queries";
+import { deleteAllChatsByUserId } from "@/lib/db/queries";
+import { chat, type Chat } from "@/lib/db/schema";
 import { ChatbotError } from "@/lib/errors";
+import { db } from "@/lib/db/queries/db";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
@@ -12,6 +15,7 @@ export async function GET(request: NextRequest) {
   );
   const startingAfter = searchParams.get("starting_after");
   const endingBefore = searchParams.get("ending_before");
+  const pinnedOnly = searchParams.get("pinned") === "true";
 
   if (startingAfter && endingBefore) {
     return new ChatbotError(
@@ -26,14 +30,69 @@ export async function GET(request: NextRequest) {
     return new ChatbotError("unauthorized:chat").toResponse();
   }
 
-  const chats = await getChatsByUserId({
-    id: session.user.id,
-    limit,
-    startingAfter,
-    endingBefore,
-  });
+  // pinnedOnly → only pinned; otherwise → non-pinned, non-project chats
+  const baseCondition = pinnedOnly
+    ? and(
+        eq(chat.userId, session.user.id),
+        eq(chat.isPinned, true)
+      )
+    : and(
+        eq(chat.userId, session.user.id),
+        eq(chat.isPinned, false),
+        isNull(chat.projectId)
+      );
 
-  return Response.json(chats);
+  const extendedLimit = limit + 1;
+
+  const queryFn = (whereCondition?: SQL<unknown>) =>
+    db
+      .select()
+      .from(chat)
+      .where(
+        whereCondition
+          ? and(whereCondition, baseCondition)
+          : baseCondition
+      )
+      .orderBy(desc(chat.createdAt))
+      .limit(extendedLimit);
+
+  let filteredChats: Chat[] = [];
+
+  if (startingAfter) {
+    const [selectedChat] = await db
+      .select()
+      .from(chat)
+      .where(eq(chat.id, startingAfter))
+      .limit(1);
+    if (!selectedChat) {
+      return new ChatbotError(
+        "not_found:api",
+        "Chat not found"
+      ).toResponse();
+    }
+    filteredChats = await queryFn(gt(chat.createdAt, selectedChat.createdAt));
+  } else if (endingBefore) {
+    const [selectedChat] = await db
+      .select()
+      .from(chat)
+      .where(eq(chat.id, endingBefore))
+      .limit(1);
+    if (!selectedChat) {
+      return new ChatbotError(
+        "not_found:api",
+        "Chat not found"
+      ).toResponse();
+    }
+    filteredChats = await queryFn(lt(chat.createdAt, selectedChat.createdAt));
+  } else {
+    filteredChats = await queryFn();
+  }
+
+  const hasMore = filteredChats.length > limit;
+  return Response.json({
+    chats: hasMore ? filteredChats.slice(0, limit) : filteredChats,
+    hasMore,
+  });
 }
 
 export async function DELETE() {

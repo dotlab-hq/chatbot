@@ -4,7 +4,9 @@ import { createVectorStore, deleteVectorStore } from "@/lib/ai/vector-store";
 import {
   createProject,
   deleteProjectById,
+  getProjectById,
   getProjectsByUserId,
+  updateProject,
 } from "@/lib/db/queries";
 import { ChatbotError } from "@/lib/errors";
 
@@ -90,4 +92,37 @@ export async function DELETE(request: NextRequest) {
   await deleteProjectById({ id: projectId });
 
   return Response.json({ success: true });
+}
+
+export async function PATCH(request: NextRequest) {
+  const session = await auth();
+  if (!session?.user) {
+    return new ChatbotError("unauthorized:chat").toResponse();
+  }
+
+  const body = (await request.json()) as {
+    id: string;
+    name?: string;
+    description?: string;
+  };
+
+  if (!body.id) {
+    return new ChatbotError(
+      "bad_request:api",
+      "Project ID is required"
+    ).toResponse();
+  }
+
+  const project = await getProjectById({ id: body.id });
+  if (!project || project.userId !== session.user.id) {
+    return new ChatbotError("not_found:api", "Project not found").toResponse();
+  }
+
+  const updated = await updateProject({
+    id: body.id,
+    name: body.name?.trim(),
+    description: body.description?.trim(),
+  });
+
+  return Response.json({ project: updated });
 }

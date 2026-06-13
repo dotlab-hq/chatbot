@@ -73,6 +73,15 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
 
   const chatId = chatIdFromUrl ?? newChatIdRef.current;
 
+  const [projectId, setProjectId] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const pid = params.get("projectId") ?? undefined;
+    if (pid && !chatIdFromUrl) {
+      setProjectId(pid);
+    }
+  }, [chatIdFromUrl]);
+
   const [currentModelId, setCurrentModelId] = useState(DEFAULT_CHAT_MODEL);
   const currentModelIdRef = useRef(currentModelId);
   useEffect(() => {
@@ -146,6 +155,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
               : { message: lastMessage }),
             selectedChatModel: currentModelIdRef.current,
             selectedVisibilityType: visibility,
+            ...(projectId ? { projectId } : {}),
             ...request.body,
           },
         };

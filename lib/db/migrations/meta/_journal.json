@@ -8,6 +8,13 @@
       "when": 1781259830931,
       "tag": "0000_uneven_warbound",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1781327804604,
+      "tag": "0001_adorable_silvermane",
+      "breakpoints": true
     }
   ]
 }

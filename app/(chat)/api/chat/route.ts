@@ -38,6 +38,7 @@ import {
   getChatById,
   getMessageCountByUserId,
   getMessagesByChatId,
+  getProjectById,
   saveChat,
   saveMessages,
   updateChatTitleById,
@@ -73,7 +74,7 @@ export async function POST(request: Request) {
 
   try {
     console.log("[chat-debug] 1. Parsing body done");
-    const { id, message, messages, selectedChatModel, selectedVisibilityType } =
+    const { id, message, messages, selectedChatModel, selectedVisibilityType, projectId } =
       requestBody;
     console.log(
       "[chat-debug] 2. Destructured, selectedChatModel:",
@@ -125,11 +126,22 @@ export async function POST(request: Request) {
       }
       messagesFromDb = await getMessagesByChatId({ id });
     } else if (message?.role === "user") {
+      if (projectId) {
+        const project = await getProjectById({ id: projectId });
+        if (!project || project.userId !== session.user.id) {
+          return new ChatbotError(
+            "forbidden:chat",
+            "You don't have access to this project"
+          ).toResponse();
+        }
+      }
+
       await saveChat({
         id,
         userId: session.user.id,
         title: "New chat",
         visibility: selectedVisibilityType,
+        projectId,
       });
       titlePromise = generateTitleFromUserMessage({ message });
     }

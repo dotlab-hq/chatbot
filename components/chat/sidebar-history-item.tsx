@@ -1,3 +1,4 @@
+import { PinIcon } from "lucide-react";
 import Link from "next/link";
 import { memo } from "react";
 import {
@@ -30,12 +31,20 @@ const PureChatItem = ({
   chat,
   isActive,
   onDelete,
+  onPin,
   setOpenMobile,
+  index,
+  showIndex = false,
+  compact = false,
 }: {
   chat: Chat;
   isActive: boolean;
   onDelete: (chatId: string) => void;
+  onPin?: (chatId: string) => void;
   setOpenMobile: (open: boolean) => void;
+  index?: number;
+  showIndex?: boolean;
+  compact?: boolean;
 }) => {
   const { visibilityType, setVisibilityType } = useChatVisibility({
     chatId: chat.id,
@@ -46,11 +55,18 @@ const PureChatItem = ({
     <SidebarMenuItem>
       <SidebarMenuButton
         asChild
-        className="h-8 rounded-none text-[13px] text-sidebar-foreground/50 transition-all duration-150 hover:bg-transparent hover:text-sidebar-foreground data-active:bg-transparent data-active:font-normal data-active:text-sidebar-foreground/50 data-[active=true]:text-sidebar-foreground data-[active=true]:font-medium data-[active=true]:border-b data-[active=true]:border-dashed data-[active=true]:border-sidebar-foreground/50"
+        className={`h-8 rounded-none text-[13px] text-sidebar-foreground/50 transition-all duration-150 hover:bg-transparent hover:text-sidebar-foreground data-active:bg-transparent data-active:font-normal data-active:text-sidebar-foreground/50 data-[active=true]:text-sidebar-foreground data-[active=true]:font-medium data-[active=true]:border-b data-[active=true]:border-dashed data-[active=true]:border-sidebar-foreground/50 ${compact ? "pl-2" : ""}`}
         isActive={isActive}
       >
         <Link href={`/chat/${chat.id}`} onClick={() => setOpenMobile(false)}>
-          <span className="truncate">{chat.title}</span>
+          <span className="truncate">
+            {showIndex && index !== undefined && (
+              <span className="mr-1.5 inline-block w-4 text-right text-[11px] text-sidebar-foreground/30">
+                {index + 1}.
+              </span>
+            )}
+            {chat.title}
+          </span>
         </Link>
       </SidebarMenuButton>
 
@@ -66,6 +82,16 @@ const PureChatItem = ({
         </DropdownMenuTrigger>
 
         <DropdownMenuContent align="end" side="bottom">
+          {onPin && (
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onSelect={() => onPin(chat.id)}
+            >
+              <PinIcon className="size-3" />
+              <span>{chat.isPinned ? "Unpin" : "Pin"}</span>
+            </DropdownMenuItem>
+          )}
+
           <DropdownMenuSub>
             <DropdownMenuSubTrigger className="cursor-pointer">
               <ShareIcon />

@@ -10,6 +10,7 @@ import {
   deleteProjectFileById,
   getProjectById,
   getProjectFiles,
+  updateProject,
   updateProjectFile,
   updateProjectFileStatus,
 } from "@/lib/db/queries";
@@ -164,6 +165,12 @@ export async function POST(
     mimeType: file.type,
   });
 
+  // Increment file count immediately regardless of processing status
+  await updateProject({
+    id: projectId,
+    fileCount: (project.fileCount ?? 0) + 1,
+  });
+
   try {
     // Upload to OpenAI and add to vector store
     const { fileId, vectorStoreFileId } = await uploadFileToVectorStore({
@@ -243,6 +250,12 @@ export async function DELETE(
 
   // Remove from DB
   await deleteProjectFileById({ id: fileId });
+
+  // Decrement file count
+  await updateProject({
+    id: projectId,
+    fileCount: Math.max(0, (project.fileCount ?? 1) - 1),
+  });
 
   return Response.json({ success: true });
 }

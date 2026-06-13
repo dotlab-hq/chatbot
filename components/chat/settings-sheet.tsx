@@ -111,9 +111,10 @@ const navItems: { id: TabId; label: string; icon: typeof User }[] = [
 interface SettingsSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  tab?: TabId;
 }
 
-export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
+export function SettingsSheet({ open, onOpenChange, tab }: SettingsSheetProps) {
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
       <DialogContent
@@ -125,15 +126,15 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
           Manage your account, projects, and integrations.
         </DialogDescription>
         <SidebarProvider className="min-h-0 h-full items-stretch">
-          <InnerSettings onClose={() => onOpenChange(false)} />
+          <InnerSettings onClose={() => onOpenChange(false)} initialTab={tab} />
         </SidebarProvider>
       </DialogContent>
     </Dialog>
   );
 }
 
-function InnerSettings({ onClose }: { onClose: () => void }) {
-  const [activeTab, setActiveTab] = useState<TabId>("account");
+function InnerSettings({ onClose, initialTab }: { onClose: () => void; initialTab?: TabId }) {
+  const [activeTab, setActiveTab] = useState<TabId>(initialTab ?? "account");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const activeLabel =

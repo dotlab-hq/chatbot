@@ -36,6 +36,7 @@ export const chat = chatbot.table("Chat", {
   visibility: varchar("visibility", { enum: ["public", "private"] })
     .notNull()
     .default("private"),
+  isPinned: boolean("is_pinned").notNull().default(false),
 });
 
 export type Chat = InferSelectModel<typeof chat>;
@@ -366,6 +367,9 @@ export const projectFile = chatbot.table(
     projectId: uuid("projectId")
       .notNull()
       .references(() => project.id, { onDelete: "cascade" }),
+    chatId: uuid("chatId").references(() => chat.id, {
+      onDelete: "set null",
+    }),
     openaiFileId: text("openai_file_id").notNull(),
     vectorStoreFileId: text("vector_store_file_id"),
     fileName: text("file_name").notNull(),
@@ -445,5 +449,9 @@ export const chatRelations = relations(chat, ({ one }) => ({
   user: one(user, {
     fields: [chat.userId],
     references: [user.id],
+  }),
+  project: one(project, {
+    fields: [chat.projectId],
+    references: [project.id],
   }),
 }));

@@ -1,10 +1,12 @@
 "use client";
 
 import { isToday, isYesterday, subMonths, subWeeks } from "date-fns";
+import { PinIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import useSWR from "swr";
 import useSWRInfinite from "swr/infinite";
 import type { User } from "@/app/(auth)/auth";
 import { LoaderIcon } from "@/components/chat/icons";
@@ -115,6 +117,15 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
     { fallbackData: [], revalidateOnFocus: false }
   );
 
+  const pinnedKey = user
+    ? `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/history?limit=50&pinned=true`
+    : null;
+  const { data: pinnedData, mutate: pinnedMutate } = useSWR<{ chats: Chat[] }>(pinnedKey, fetcher, {
+    fallbackData: { chats: [] },
+    revalidateOnFocus: false,
+  });
+  const pinnedChats = pinnedData?.chats ?? [];
+
   const router = useRouter();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -154,6 +165,22 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
     toast.success("Chat deleted");
   };
 
+  const handlePin = async (chatId: string) => {
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/chat/${chatId}/pin`,
+        { method: "POST" }
+      );
+      if (!res.ok) throw new Error("Failed to toggle pin");
+      const { isPinned } = await res.json();
+      toast.success(isPinned ? "Chat pinned" : "Chat unpinned");
+      mutate();
+      pinnedMutate();
+    } catch {
+      toast.error("Failed to pin chat");
+    }
+  };
+
   if (!user) {
     return (
       <SidebarGroup className="group-data-[collapsible=icon]:hidden">
@@ -170,7 +197,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
     return (
       <SidebarGroup className="group-data-[collapsible=icon]:hidden">
         <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-[0.12em] text-sidebar-foreground/70">
-          History
+          Chats
         </SidebarGroupLabel>
         <SidebarGroupContent>
           <div className="flex flex-col gap-0.5 px-1">
@@ -195,11 +222,11 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
     );
   }
 
-  if (hasEmptyChatHistory) {
+  if (hasEmptyChatHistory && pinnedChats.length === 0) {
     return (
       <SidebarGroup className="group-data-[collapsible=icon]:hidden">
         <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-[0.12em] text-sidebar-foreground/70">
-          History
+          Chats
         </SidebarGroupLabel>
         <SidebarGroupContent>
           <div className="flex w-full flex-row items-center justify-center gap-2 px-2 text-[13px] text-sidebar-foreground/60">
@@ -214,10 +241,32 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
     <>
       <SidebarGroup className="group-data-[collapsible=icon]:hidden">
         <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-[0.12em] text-sidebar-foreground/70">
-          History
+          Chats
         </SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
+            {pinnedChats.length > 0 && (
+              <div className="mb-3">
+                <div className="flex items-center gap-1 px-2 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-sidebar-foreground/40">
+                  <PinIcon className="size-2.5" />
+                  Pinned
+                </div>
+                {pinnedChats.map((chat) => (
+                  <ChatItem
+                    chat={chat}
+                    isActive={chat.id === id}
+                    key={chat.id}
+                    onDelete={(chatId) => {
+                      setDeleteId(chatId);
+                      setShowDeleteDialog(true);
+                    }}
+                    onPin={handlePin}
+                    setOpenMobile={setOpenMobile}
+                  />
+                ))}
+              </div>
+            )}
+
             {paginatedChatHistories &&
               (() => {
                 const chatsFromHistory = paginatedChatHistories.flatMap(
@@ -242,6 +291,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                               setDeleteId(chatId);
                               setShowDeleteDialog(true);
                             }}
+                            onPin={handlePin}
                             setOpenMobile={setOpenMobile}
                           />
                         ))}
@@ -262,6 +312,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                               setDeleteId(chatId);
                               setShowDeleteDialog(true);
                             }}
+                            onPin={handlePin}
                             setOpenMobile={setOpenMobile}
                           />
                         ))}
@@ -282,6 +333,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                               setDeleteId(chatId);
                               setShowDeleteDialog(true);
                             }}
+                            onPin={handlePin}
                             setOpenMobile={setOpenMobile}
                           />
                         ))}
@@ -302,6 +354,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                               setDeleteId(chatId);
                               setShowDeleteDialog(true);
                             }}
+                            onPin={handlePin}
                             setOpenMobile={setOpenMobile}
                           />
                         ))}
@@ -322,6 +375,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                               setDeleteId(chatId);
                               setShowDeleteDialog(true);
                             }}
+                            onPin={handlePin}
                             setOpenMobile={setOpenMobile}
                           />
                         ))}

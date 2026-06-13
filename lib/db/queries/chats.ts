@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, inArray, lt, type SQL } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, isNull, lt, type SQL } from "drizzle-orm";
 import type { VisibilityType } from "@/components/chat/visibility-selector";
 import { type Chat, chat, message, stream, vote } from "@/lib/db/schema";
 import { ChatbotError } from "@/lib/errors";
@@ -9,11 +9,13 @@ export async function saveChat({
   userId,
   title,
   visibility,
+  projectId,
 }: {
   id: string;
   userId: string;
   title: string;
   visibility: VisibilityType;
+  projectId?: string;
 }) {
   try {
     return await db.insert(chat).values({
@@ -22,6 +24,7 @@ export async function saveChat({
       userId,
       title,
       visibility,
+      projectId,
     });
   } catch (error: any) {
     console.error("[saveChat] Actual error:", error?.message ?? error);
@@ -153,6 +156,118 @@ export async function getChatsByUserId({
     throw new ChatbotError(
       "bad_request:database",
       "Failed to get chats by user id"
+    );
+  }
+}
+
+export async function getChatsByProjectId({
+  projectId,
+  limit,
+  startingAfter,
+  endingBefore,
+}: {
+  projectId: string;
+  limit: number;
+  startingAfter: string | null;
+  endingBefore: string | null;
+}) {
+  try {
+    const extendedLimit = limit + 1;
+
+    const query = (whereCondition?: SQL<unknown>) =>
+      db
+        .select()
+        .from(chat)
+        .where(
+          whereCondition
+            ? and(
+                whereCondition,
+                eq(chat.projectId, projectId)
+              )
+            : eq(chat.projectId, projectId)
+        )
+        .orderBy(desc(chat.createdAt))
+        .limit(extendedLimit);
+
+    let filteredChats: Chat[] = [];
+
+    if (startingAfter) {
+      const [selectedChat] = await db
+        .select()
+        .from(chat)
+        .where(eq(chat.id, startingAfter))
+        .limit(1);
+
+      if (!selectedChat) {
+        throw new ChatbotError(
+          "not_found:database",
+          `Chat with id ${startingAfter} not found`
+        );
+      }
+
+      filteredChats = await query(gt(chat.createdAt, selectedChat.createdAt));
+    } else if (endingBefore) {
+      const [selectedChat] = await db
+        .select()
+        .from(chat)
+        .where(eq(chat.id, endingBefore))
+        .limit(1);
+
+      if (!selectedChat) {
+        throw new ChatbotError(
+          "not_found:database",
+          `Chat with id ${endingBefore} not found`
+        );
+      }
+
+      filteredChats = await query(lt(chat.createdAt, selectedChat.createdAt));
+    } else {
+      filteredChats = await query();
+    }
+
+    const hasMore = filteredChats.length > limit;
+
+    return {
+      chats: hasMore ? filteredChats.slice(0, limit) : filteredChats,
+      hasMore,
+    };
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to get chats by project id"
+    );
+  }
+}
+
+export async function toggleChatPin({
+  chatId,
+  userId,
+}: {
+  chatId: string;
+  userId: string;
+}): Promise<boolean> {
+  try {
+    const [existing] = await db
+      .select({ isPinned: chat.isPinned })
+      .from(chat)
+      .where(and(eq(chat.id, chatId), eq(chat.userId, userId)))
+      .limit(1);
+
+    if (!existing) {
+      throw new ChatbotError("not_found:database", "Chat not found");
+    }
+
+    const newPinned = !existing.isPinned;
+    await db
+      .update(chat)
+      .set({ isPinned: newPinned })
+      .where(eq(chat.id, chatId));
+
+    return newPinned;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to toggle chat pin"
     );
   }
 }
