@@ -15,6 +15,20 @@
       "when": 1781327804604,
       "tag": "0001_adorable_silvermane",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783167372818,
+      "tag": "0002_ambiguous_talos",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1751712000000,
+      "tag": "0003_add_speech_key",
+      "breakpoints": true
     }
   ]
 }

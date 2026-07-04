@@ -7,7 +7,10 @@ import {
   GlobeIcon,
   LinkIcon,
   LoaderIcon,
+  LogOutIcon,
   MessageSquareIcon,
+  MonitorSmartphoneIcon,
+  PaletteIcon,
   PlusIcon,
   ServerIcon,
   TerminalIcon,
@@ -43,10 +46,11 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { authClient, useSession } from "@/lib/auth-client";
+import { PersonalizeTab } from "@/components/chat/personalize-tab";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-type TabId = "account" | "projects" | "mcp";
+type TabId = "account" | "projects" | "mcp" | "personalize";
 
 type Project = {
   id: string;
@@ -91,10 +95,11 @@ type McpServer = {
 
 // ─── Tab Definition ─────────────────────────────────────────────────────────
 
-const tabs: { id: TabId; label: string; icon: typeof UserIcon }[] = [
+const tabs: { id: TabId; label: string; icon: typeof UserIcon | null }[] = [
   { id: "account", label: "Account", icon: UserIcon },
   { id: "projects", label: "Projects", icon: FolderIcon },
   { id: "mcp", label: "MCP Servers", icon: ServerIcon },
+  { id: "personalize", label: "Personalize", icon: PaletteIcon },
 ];
 
 // ─── Main Page ──────────────────────────────────────────────────────────────
@@ -140,7 +145,7 @@ export default function SettingsPage() {
               onClick={() => setActiveTab(tab.id)}
               type="button"
             >
-              <Icon className="size-4" />
+              {Icon && <Icon className="size-4" />}
               {tab.label}
             </button>
           );
@@ -151,6 +156,7 @@ export default function SettingsPage() {
       {activeTab === "account" && <AccountTab />}
       {activeTab === "projects" && <ProjectsTab />}
       {activeTab === "mcp" && <McpTab />}
+      {activeTab === "personalize" && <PersonalizeTab />}
     </div>
   );
 }
@@ -275,28 +281,36 @@ function AccountTab() {
         </form>
       </section>
 
-      {/* Danger Zone */}
-      <section className="rounded-xl border border-destructive/20 bg-card p-6">
-        <h2 className="mb-2 text-sm font-medium text-destructive">
-          Danger Zone
-        </h2>
-        <p className="mb-4 text-xs text-muted-foreground">
-          Sign out of your account. You can sign back in at any time.
-        </p>
-        <Button
-          onClick={() => {
-            authClient.signOut({
-              fetchOptions: {
-                onSuccess: () => {
-                  router.push("/login");
+      {/* Sign out of this device */}
+      <section className="rounded-xl border border-border/50 bg-card p-6">
+        <div className="flex items-start gap-4">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted/60">
+            <MonitorSmartphoneIcon className="size-5 text-muted-foreground" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-sm font-medium">Sign out of this device</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              You will be redirected to the login page. You can sign back in at any time.
+            </p>
+          </div>
+          <Button
+            className="shrink-0 gap-1.5"
+            onClick={() => {
+              authClient.signOut({
+                fetchOptions: {
+                  onSuccess: () => {
+                    router.push("/login");
+                  },
                 },
-              },
-            });
-          }}
-          variant="destructive"
-        >
-          Sign Out
-        </Button>
+              });
+            }}
+            size="sm"
+            variant="outline"
+          >
+            <LogOutIcon className="size-3.5" />
+            Sign Out
+          </Button>
+        </div>
       </section>
     </div>
   );

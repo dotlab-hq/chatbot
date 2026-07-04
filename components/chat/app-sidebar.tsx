@@ -12,10 +12,11 @@ import {
   PlusIcon,
   SettingsIcon,
   TrashIcon,
+  UploadIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useSWRConfig } from "swr";
 import { unstable_serialize } from "swr/infinite";
@@ -117,6 +118,9 @@ export function AppSidebar({ user }: { user: User | undefined }) {
     Record<string, Chat[]>
   >({});
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadProjectId, setUploadProjectId] = useState<string | null>(null);
+
   const loadProjects = useCallback(async () => {
     if (!user) {
       return;
@@ -158,6 +162,13 @@ export function AppSidebar({ user }: { user: User | undefined }) {
     window.addEventListener("open-settings", handler);
     return () => window.removeEventListener("open-settings", handler);
   }, []);
+
+  // Reload projects list when files change from elsewhere (e.g. settings)
+  useEffect(() => {
+    const handler = () => loadProjects();
+    window.addEventListener("project-files-changed", handler);
+    return () => window.removeEventListener("project-files-changed", handler);
+  }, [loadProjects]);
 
   const toggleProject = async (projectId: string) => {
     if (expandedProjectId === projectId) {
@@ -222,6 +233,27 @@ export function AppSidebar({ user }: { user: User | undefined }) {
       loadProjects();
     } catch {
       toast.error("Failed to delete project");
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !uploadProjectId) return;
+    const fd = new FormData();
+    fd.append("file", file);
+    try {
+      const r = await fetch(
+        `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/projects/${uploadProjectId}/files`,
+        { method: "POST", body: fd }
+      );
+      if (!r.ok) throw new Error("Upload failed");
+      toast.success(`Uploaded "${file.name}"`);
+      loadProjects();
+    } catch {
+      toast.error("Failed to upload file");
+    } finally {
+      e.target.value = "";
+      setUploadProjectId(null);
     }
   };
 
@@ -412,6 +444,16 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                                     <DropdownMenuItem
                                       className="cursor-pointer gap-2 text-[12px]"
                                       onClick={() => {
+                                        setUploadProjectId(project.id);
+                                        setTimeout(() => fileInputRef.current?.click(), 0);
+                                      }}
+                                    >
+                                      <UploadIcon className="size-3.5" />
+                                      Upload file
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      className="cursor-pointer gap-2 text-[12px]"
+                                      onClick={() => {
                                         setRenameName(project.name);
                                         setRenameTarget({ id: project.id, name: project.name });
                                       }}
@@ -561,6 +603,14 @@ export function AppSidebar({ user }: { user: User | undefined }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <input
+        accept=".txt,.md,.pdf,.csv,.json,.docx"
+        className="hidden"
+        onChange={handleFileUpload}
+        ref={fileInputRef}
+        type="file"
+      />
 
       <CreateProjectDialog
         open={createProjectOpen}

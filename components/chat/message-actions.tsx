@@ -1,5 +1,6 @@
 import equal from "fast-deep-equal";
-import { memo } from "react";
+import { memo, useCallback, useRef, useState } from "react";
+import { Volume2Icon } from "lucide-react";
 import { toast } from "sonner";
 import { useSWRConfig } from "swr";
 import { useCopyToClipboard } from "usehooks-ts";
@@ -16,6 +17,9 @@ import {
 import type { Vote } from "@/lib/db/schema";
 import type { ChatMessage } from "@/lib/types";
 
+let currentAudio: HTMLAudioElement | null = null;
+let currentMessageId: string | null = null;
+
 export function PureMessageActions({
   chatId,
   message,
@@ -31,10 +35,9 @@ export function PureMessageActions({
 }) {
   const { mutate } = useSWRConfig();
   const [_, copyToClipboard] = useCopyToClipboard();
-
-  if (isLoading) {
-    return null;
-  }
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const audioCacheRef = useRef<Map<string, string>>(new Map());
 
   const textFromParts = message.parts
     ?.filter((part) => part.type === "text")
@@ -51,6 +54,84 @@ export function PureMessageActions({
     await copyToClipboard(textFromParts);
     toast.success("Copied to clipboard!");
   };
+
+  const handleToggleSpeech = useCallback(async () => {
+    const id = message.id;
+
+    // If this message is playing, stop it
+    if (playingId === id && currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+      currentAudio = null;
+      currentMessageId = null;
+      setPlayingId(null);
+      return;
+    }
+
+    // Stop any previously playing audio
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+      currentAudio = null;
+      currentMessageId = null;
+      setPlayingId(null);
+    }
+
+    // Check cache first
+    const cachedUrl = audioCacheRef.current.get(id);
+    if (cachedUrl) {
+      const audio = new Audio(cachedUrl);
+      currentAudio = audio;
+      currentMessageId = id;
+      setPlayingId(id);
+      audio.onended = () => {
+        setPlayingId(null);
+        currentAudio = null;
+        currentMessageId = null;
+      };
+      audio.play();
+      return;
+    }
+
+    // Generate speech via API
+    setLoadingId(id);
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/speech`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messageId: id, chatId, text: textFromParts }),
+        }
+      );
+
+      if (!res.ok) throw new Error("Speech generation failed");
+      const { url } = await res.json();
+
+      audioCacheRef.current.set(id, url);
+
+      const audio = new Audio(url);
+      currentAudio = audio;
+      currentMessageId = id;
+      setPlayingId(id);
+      setLoadingId(null);
+
+      audio.onended = () => {
+        setPlayingId(null);
+        currentAudio = null;
+        currentMessageId = null;
+      };
+
+      audio.play();
+    } catch {
+      setLoadingId(null);
+      toast.error("Failed to generate speech");
+    }
+  }, [message.id, chatId, textFromParts, playingId]);
+
+  if (isLoading) {
+    return null;
+  }
 
   if (message.role === "user") {
     return (
@@ -86,6 +167,21 @@ export function PureMessageActions({
         tooltip="Copy"
       >
         <CopyIcon />
+      </Action>
+
+      <Action
+        className={playingId === message.id ? "size-7 rounded-md bg-foreground text-background" : "text-muted-foreground/50 hover:text-foreground"}
+        disabled={loadingId === message.id}
+        onClick={handleToggleSpeech}
+        tooltip={playingId === message.id ? "Stop" : "Read Aloud"}
+      >
+        {playingId === message.id ? (
+          <span className="block size-2 rounded-sm bg-background" />
+        ) : loadingId === message.id ? (
+          <span className="block size-3.5 animate-pulse rounded-full bg-current" />
+        ) : (
+          <Volume2Icon className="size-4" />
+        )}
       </Action>
 
       <Action

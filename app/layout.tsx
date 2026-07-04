@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Sora, Onest, Reddit_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { PersonalizationApplier } from "@/components/personalization-applier";
 
 import "./globals.css";
 
@@ -27,6 +28,24 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
 });
 
+const sora = Sora({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-sora",
+});
+
+const onest = Onest({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-onest",
+});
+
+const redditMono = Reddit_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-reddit-mono",
+});
+
 const LIGHT_THEME_COLOR = "hsl(0 0% 100%)";
 const DARK_THEME_COLOR = "hsl(240deg 10% 3.92%)";
 const THEME_COLOR_SCRIPT = `\
@@ -47,6 +66,20 @@ const THEME_COLOR_SCRIPT = `\
   updateThemeColor();
 })();`;
 
+const PERSONALIZE_SCRIPT = `(function(){
+  try {
+    var t=localStorage.getItem('personalize-theme')||'modern';
+    var f=localStorage.getItem('personalize-font')||'sora';
+    var fs=localStorage.getItem('personalize-font-size')||'m';
+    var sp=localStorage.getItem('personalize-spacing')||'compact';
+    var av=localStorage.getItem('personalize-avatars')!=='0';
+    var h=document.documentElement;
+    h.classList.add('theme-'+t,'font-'+f);
+    var w=document.getElementById('personalize-root');
+    if(w){w.classList.add('text-size-'+fs,'spacing-'+sp);if(!av)w.classList.add('hide-avatars');}
+  }catch(e){}
+})();`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -54,7 +87,7 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      className={`${geist.variable} ${geistMono.variable}`}
+      className={`${geist.variable} ${geistMono.variable} ${sora.variable} ${onest.variable} ${redditMono.variable}`}
       lang="en"
       suppressHydrationWarning
     >
@@ -65,6 +98,12 @@ export default function RootLayout({
             __html: THEME_COLOR_SCRIPT,
           }}
         />
+        <script
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: "Required"
+          dangerouslySetInnerHTML={{
+            __html: PERSONALIZE_SCRIPT,
+          }}
+        />
       </head>
       <body className="antialiased">
         <ThemeProvider
@@ -73,7 +112,12 @@ export default function RootLayout({
           disableTransitionOnChange
           enableSystem
         >
-          <TooltipProvider>{children}</TooltipProvider>
+          <TooltipProvider>
+            <div id="personalize-root">
+              <PersonalizationApplier />
+              {children}
+            </div>
+          </TooltipProvider>
         </ThemeProvider>
       </body>
     </html>

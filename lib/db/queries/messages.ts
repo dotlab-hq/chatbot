@@ -6,7 +6,8 @@ import { db } from "./db";
 export async function saveMessages({ messages }: { messages: DBMessage[] }) {
   try {
     return await db.insert(message).values(messages);
-  } catch (_error) {
+  } catch (error) {
+    console.error("[db] saveMessages failed:", error);
     throw new ChatbotError("bad_request:database", "Failed to save messages");
   }
 }
@@ -20,7 +21,8 @@ export async function updateMessage({
 }) {
   try {
     return await db.update(message).set({ parts }).where(eq(message.id, id));
-  } catch (_error) {
+  } catch (error) {
+    console.error("[db] updateMessage failed:", error);
     throw new ChatbotError("bad_request:database", "Failed to update message");
   }
 }
@@ -32,7 +34,8 @@ export async function getMessagesByChatId({ id }: { id: string }) {
       .from(message)
       .where(eq(message.chatId, id))
       .orderBy(asc(message.createdAt));
-  } catch (_error) {
+  } catch (error) {
+    console.error("[db] getMessagesByChatId failed:", error);
     throw new ChatbotError(
       "bad_request:database",
       "Failed to get messages by chat id"
@@ -43,7 +46,8 @@ export async function getMessagesByChatId({ id }: { id: string }) {
 export async function getMessageById({ id }: { id: string }) {
   try {
     return await db.select().from(message).where(eq(message.id, id));
-  } catch (_error) {
+  } catch (error) {
+    console.error("[db] getMessageById failed:", error);
     throw new ChatbotError(
       "bad_request:database",
       "Failed to get message by id"
@@ -83,7 +87,8 @@ export async function deleteMessagesByChatIdAfterTimestamp({
           and(eq(message.chatId, chatId), inArray(message.id, messageIds))
         );
     }
-  } catch (_error) {
+  } catch (error) {
+    console.error("[db] deleteMessagesByChatIdAfterTimestamp failed:", error);
     throw new ChatbotError(
       "bad_request:database",
       "Failed to delete messages by chat id after timestamp"
@@ -117,7 +122,8 @@ export async function getMessageCountByUserId({
       .execute();
 
     return stats?.count ?? 0;
-  } catch (_error) {
+  } catch (error) {
+    console.error("[db] getMessageCountByUserId failed:", error);
     throw new ChatbotError(
       "bad_request:database",
       "Failed to get message count by user id"

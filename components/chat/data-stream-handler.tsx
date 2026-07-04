@@ -24,6 +24,7 @@ export function DataStreamHandler() {
 
     for (const delta of newDeltas) {
       if (delta.type === "data-chat-title") {
+        document.title = delta.data;
         mutate(unstable_serialize(getChatHistoryPaginationKey));
         continue;
       }

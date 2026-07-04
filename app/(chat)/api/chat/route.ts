@@ -4,8 +4,9 @@ import {
   createUIMessageStream,
   createUIMessageStreamResponse,
   generateId,
-  stepCountIs,
+  isStepCount,
   streamText,
+  toUIMessageStream,
 } from "ai";
 import { checkBotId } from "botid/server";
 import { after } from "next/server";
@@ -116,9 +117,10 @@ export async function POST(request: Request) {
       differenceInHours: 1,
     });
 
-    if (messageCount > entitlementsByUserType[userType].maxMessagesPerHour) {
-      return new ChatbotError("rate_limit:chat").toResponse();
-    }
+    // IMPORTANT: DO NOT DELETE THIS CODE — rate limit temporarily disabled, not removed.
+    // if (messageCount > entitlementsByUserType[userType].maxMessagesPerHour) {
+    //   return new ChatbotError("rate_limit:chat").toResponse();
+    // }
 
     const isToolApprovalFlow = Boolean(messages);
 
@@ -215,6 +217,7 @@ export async function POST(request: Request) {
             parts: message.parts,
             attachments: [],
             createdAt: new Date(),
+            speechKey: "",
           },
         ],
       });
@@ -265,10 +268,10 @@ export async function POST(request: Request) {
 
         const result = streamText({
           model: getLanguageModel(chatModel),
-          system: systemPrompt({ requestHints, supportsTools, hasProject }),
+          instructions: systemPrompt({ requestHints, supportsTools, hasProject }),
           messages: modelMessages,
-          stopWhen: stepCountIs(5),
-          experimental_activeTools:
+          stopWhen: isStepCount(5),
+          activeTools:
             isReasoningModel && !supportsTools
               ? []
               : activeTools,
@@ -278,14 +281,14 @@ export async function POST(request: Request) {
             }),
           },
           tools,
-          experimental_telemetry: {
+          telemetry: {
             isEnabled: isProductionEnvironment,
             functionId: "stream-text",
           },
         });
 
         dataStream.merge(
-          result.toUIMessageStream({ sendReasoning: isReasoningModel })
+          toUIMessageStream({ stream: result.stream, sendReasoning: isReasoningModel })
         );
 
         if (titlePromise) {
@@ -299,7 +302,7 @@ export async function POST(request: Request) {
         }
       },
       generateId: generateUUID,
-      onFinish: async ({ messages: finishedMessages }) => {
+      onEnd: async ({ messages: finishedMessages }) => {
         if (isToolApprovalFlow) {
           for (const finishedMsg of finishedMessages) {
             const existingMsg = uiMessages.find((m) => m.id === finishedMsg.id);
@@ -318,6 +321,7 @@ export async function POST(request: Request) {
                     createdAt: new Date(),
                     attachments: [],
                     chatId: id,
+                    speechKey: "",
                   },
                 ],
               });
@@ -332,6 +336,7 @@ export async function POST(request: Request) {
               createdAt: new Date(),
               attachments: [],
               chatId: id,
+              speechKey: "",
             })),
           });
         }

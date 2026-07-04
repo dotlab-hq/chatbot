@@ -50,6 +50,7 @@ export const message = chatbot.table("Message_v2", {
   parts: json("parts").notNull(),
   attachments: json("attachments").notNull(),
   createdAt: timestamp("createdAt").notNull(),
+  speechKey: text("speechKey").default("").notNull(),
 });
 
 export type DBMessage = InferSelectModel<typeof message>;
@@ -265,6 +266,32 @@ export const invitation = chatbot.table(
   ]
 );
 
+export const personalization = chatbot.table("Personalization", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  userId: text("userId")
+    .notNull()
+    .unique()
+    .references(() => user.id),
+  theme: varchar("theme", { enum: ["modern", "company"] })
+    .notNull()
+    .default("modern"),
+  font: varchar("font", { enum: ["sora", "onest", "reddit-mono"] })
+    .notNull()
+    .default("sora"),
+  fontSize: varchar("font_size", { enum: ["s", "m", "l", "xl"] })
+    .notNull()
+    .default("m"),
+  spacing: varchar("spacing", { enum: ["compact", "cozy", "roomy"] })
+    .notNull()
+    .default("cozy"),
+  showAvatars: boolean("show_avatars").notNull().default(true),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt")
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+});
+
 export const ssoProvider = chatbot.table("sso_provider", {
   id: text("id").primaryKey(),
   issuer: text("issuer").notNull(),
@@ -278,7 +305,14 @@ export const ssoProvider = chatbot.table("sso_provider", {
   domain: text("domain").notNull(),
 });
 
-export const userRelations = relations(user, ({ many }) => ({
+export const personalizationRelations = relations(personalization, ({ one }) => ({
+  user: one(user, {
+    fields: [personalization.userId],
+    references: [user.id],
+  }),
+}));
+
+export const userRelations = relations(user, ({ many, one }) => ({
   sessions: many(session),
   accounts: many(account),
   members: many(member),
@@ -286,6 +320,7 @@ export const userRelations = relations(user, ({ many }) => ({
   ssoProviders: many(ssoProvider),
   projects: many(project),
   mcpServers: many(mcpServer),
+  personalization: one(personalization),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({

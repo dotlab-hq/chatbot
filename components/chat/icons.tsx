@@ -584,6 +584,27 @@ export const PaperclipIcon = ({
   );
 };
 
+export const MicIcon = ({ size = 16 }: { size?: number }) => {
+  return (
+    <svg
+      height={size}
+      strokeLinejoin="round"
+      style={{ color: "currentcolor" }}
+      viewBox="0 0 16 16"
+      width={size}
+    >
+      <path
+        d="M8 1C6.89543 1 6 1.89543 6 3V7C6 8.10457 6.89543 9 8 9C9.10457 9 10 8.10457 10 7V3C10 1.89543 9.10457 1 8 1Z"
+        fill="currentColor"
+      />
+      <path
+        d="M4 6.5V7C4 9.20914 5.79086 11 8 11C10.2091 11 12 9.20914 12 7V6.5H13.5V7C13.5 9.90594 11.3684 12.2686 8.5 12.933V14.5H10.5V15.5H5.5V14.5H7.5V12.933C4.63162 12.2686 2.5 9.90594 2.5 7V6.5H4Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+};
+
 export const MoreHorizontalIcon = ({ size = 16 }: { size?: number }) => {
   return (
     <svg

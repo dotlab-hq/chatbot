@@ -261,6 +261,24 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
 
   const isReadonly = isNewChat ? false : (chatData?.isReadonly ?? false);
 
+  // Track chat title for document.title
+  const [chatTitle, setChatTitle] = useState<string | null>(() => {
+    if (!isNewChat) return null;
+    return "New Chat";
+  });
+
+  useEffect(() => {
+    if (chatData?.title) {
+      setChatTitle(chatData.title);
+    }
+  }, [chatData?.title]);
+
+  useEffect(() => {
+    if (chatTitle) {
+      document.title = chatTitle;
+    }
+  }, [chatTitle]);
+
   const { data: votes } = useSWR<Vote[]>(
     !isReadonly && messages.length >= 2
       ? `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/vote?chatId=${chatId}`

@@ -7,7 +7,10 @@ import {
   FolderIcon,
   LinkIcon,
   LoaderIcon,
+  LogOutIcon,
   MenuIcon,
+  MonitorSmartphoneIcon,
+  PaletteIcon,
   PlusIcon,
   Server,
   TerminalIcon,
@@ -41,6 +44,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -62,10 +66,11 @@ import {
 } from "@/components/ui/sidebar";
 import { Textarea } from "@/components/ui/textarea";
 import { authClient, useSession } from "@/lib/auth-client";
+import { PersonalizeTab } from "@/components/chat/personalize-tab";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-type TabId = "account" | "projects" | "mcp";
+type TabId = "account" | "projects" | "mcp" | "personalize";
 
 type Project = {
   id: string;
@@ -102,10 +107,11 @@ type McpServer = {
   createdAt: string;
 };
 
-const navItems: { id: TabId; label: string; icon: typeof User }[] = [
+const navItems: { id: TabId; label: string; icon: typeof User | null }[] = [
   { id: "account", label: "Account", icon: User },
   { id: "projects", label: "Projects", icon: FolderIcon },
   { id: "mcp", label: "MCP Servers", icon: Server },
+  { id: "personalize", label: "Personalize", icon: PaletteIcon },
 ];
 
 interface SettingsSheetProps {
@@ -166,7 +172,7 @@ function InnerSettings({ onClose, initialTab }: { onClose: () => void; initialTa
                   }}
                   type="button"
                 >
-                  <Icon className="size-4 shrink-0" />
+                  {Icon ? <Icon className="size-4 shrink-0" /> : null}
                   {item.label}
                 </button>
               );
@@ -200,7 +206,7 @@ function InnerSettings({ onClose, initialTab }: { onClose: () => void; initialTa
                         onClick={() => setActiveTab(item.id)}
                       >
                         <button type="button">
-                          <Icon className="size-4" />
+                          {Icon ? <Icon className="size-4" /> : null}
                           <span className="text-[13px]">{item.label}</span>
                         </button>
                       </SidebarMenuButton>
@@ -241,6 +247,7 @@ function InnerSettings({ onClose, initialTab }: { onClose: () => void; initialTa
           {activeTab === "account" && <AccountTab />}
           {activeTab === "projects" && <ProjectsTab />}
           {activeTab === "mcp" && <McpTab />}
+          {activeTab === "personalize" && <PersonalizeTab />}
         </div>
       </main>
     </>
@@ -298,6 +305,7 @@ function AccountTab() {
   const user = session?.data?.user;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [showEdit, setShowEdit] = useState(false);
   const [name, setName] = useState(user?.name ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
   const [saving, setSaving] = useState(false);
@@ -309,6 +317,12 @@ function AccountTab() {
       setEmail(user.email ?? "");
     }
   }, [user]);
+
+  const openEdit = () => {
+    setName(user?.name ?? "");
+    setEmail(user?.email ?? "");
+    setShowEdit(true);
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -324,6 +338,7 @@ function AccountTab() {
       }
       toast.success("Profile updated");
       await session?.refetch();
+      setShowEdit(false);
     } catch {
       toast.error("Failed to update profile");
     } finally {
@@ -384,123 +399,145 @@ function AccountTab() {
               {new Date(user?.createdAt ?? Date.now()).toLocaleDateString()}
             </p>
           </div>
+          <Button className="shrink-0 h-7 text-xs gap-1" onClick={openEdit} size="sm" variant="outline">
+            Edit Profile
+          </Button>
         </div>
       </section>
 
-      {/* Edit profile */}
-      <section className="rounded-lg border border-border bg-card p-3 md:p-4">
-        <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Edit Profile
-        </p>
-        <form className="space-y-3" onSubmit={handleSave}>
-          {/* Avatar section */}
-          <div className="flex items-center gap-3">
-            <div className="relative group">
-              <UserAvatar user={user} size="lg" />
-              <button
-                className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 transition-opacity group-hover:opacity-100"
-                onClick={() => fileInputRef.current?.click()}
-                type="button"
-                disabled={uploadingAvatar}
-              >
-                {uploadingAvatar ? (
-                  <LoaderIcon className="size-5 text-white animate-spin" />
-                ) : (
-                  <CameraIcon className="size-5 text-white" />
-                )}
-              </button>
-            </div>
-            <div className="flex flex-col gap-1">
-              <input
-                accept="image/jpeg,image/png,image/webp,image/gif"
-                className="hidden"
-                onChange={handleAvatarUpload}
-                ref={fileInputRef}
-                type="file"
-              />
-              <Button
-                className="h-7 text-xs gap-1"
-                onClick={() => fileInputRef.current?.click()}
-                size="sm"
-                type="button"
-                variant="outline"
-                disabled={uploadingAvatar}
-              >
-                {uploadingAvatar ? (
-                  <LoaderIcon className="size-3 animate-spin" />
-                ) : (
-                  <UploadIcon className="size-3" />
-                )}
-                {user?.image ? "Change Avatar" : "Upload Avatar"}
-              </Button>
-              {user?.image && (
+      {/* Sign out of this device */}
+      <section className="rounded-lg border border-border bg-card p-3">
+        <div className="flex items-center gap-3">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted/60">
+            <MonitorSmartphoneIcon className="size-4 text-muted-foreground" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium">Sign out of this device</p>
+            <p className="text-[10px] text-muted-foreground">
+              You can sign back in at any time.
+            </p>
+          </div>
+          <Button
+            className="shrink-0 h-7 text-xs gap-1"
+            onClick={() => {
+              authClient.signOut({
+                fetchOptions: {
+                  onSuccess: () => router.push("/login"),
+                },
+              });
+            }}
+            size="sm"
+            variant="outline"
+          >
+            <LogOutIcon className="size-3" />
+            Sign Out
+          </Button>
+        </div>
+      </section>
+
+      {/* Edit profile dialog */}
+      <Dialog onOpenChange={setShowEdit} open={showEdit}>
+        <CreateDialogContent>
+          <CreateDialogHeader>
+            <CreateDialogTitle>Edit Profile</CreateDialogTitle>
+            <CreateDialogDescription>
+              Update your name, email, or avatar.
+            </CreateDialogDescription>
+          </CreateDialogHeader>
+          <form className="space-y-4" onSubmit={handleSave}>
+            {/* Avatar section */}
+            <div className="flex items-center gap-3">
+              <div className="relative group">
+                <UserAvatar user={user} size="lg" />
+                <button
+                  className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 transition-opacity group-hover:opacity-100"
+                  onClick={() => fileInputRef.current?.click()}
+                  type="button"
+                  disabled={uploadingAvatar}
+                >
+                  {uploadingAvatar ? (
+                    <LoaderIcon className="size-5 text-white animate-spin" />
+                  ) : (
+                    <CameraIcon className="size-5 text-white" />
+                  )}
+                </button>
+              </div>
+              <div className="flex flex-col gap-1">
+                <input
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="hidden"
+                  onChange={handleAvatarUpload}
+                  ref={fileInputRef}
+                  type="file"
+                />
                 <Button
                   className="h-7 text-xs gap-1"
-                  onClick={handleRemoveAvatar}
+                  onClick={() => fileInputRef.current?.click()}
                   size="sm"
                   type="button"
-                  variant="ghost"
+                  variant="outline"
+                  disabled={uploadingAvatar}
                 >
-                  Remove
+                  {uploadingAvatar ? (
+                    <LoaderIcon className="size-3 animate-spin" />
+                  ) : (
+                    <UploadIcon className="size-3" />
+                  )}
+                  {user?.image ? "Change Avatar" : "Upload Avatar"}
                 </Button>
-              )}
+                {user?.image && (
+                  <Button
+                    className="h-7 text-xs gap-1"
+                    onClick={handleRemoveAvatar}
+                    size="sm"
+                    type="button"
+                    variant="ghost"
+                  >
+                    Remove
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
 
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium" htmlFor="dialog-name">
-              Name
-            </label>
-            <Input
-              id="dialog-name"
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Your name"
-              value={name}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium" htmlFor="dialog-email">
-              Email
-            </label>
-            <Input
-              id="dialog-email"
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="your@email.com"
-              type="email"
-              value={email}
-            />
-          </div>
-          <Button className="w-full" disabled={saving} size="sm" type="submit">
-            {saving ? (
-              <LoaderIcon className="size-4 animate-spin" />
-            ) : (
-              <Check className="size-4" />
-            )}
-            Save Changes
-          </Button>
-        </form>
-      </section>
-
-      {/* Danger zone — more prominent */}
-      <section className="rounded-lg border-2 border-destructive/40 bg-destructive/5 p-3 md:p-4 mt-3">
-        <p className="mb-1 text-sm font-semibold text-destructive">Sign Out</p>
-        <p className="mb-3 text-xs text-muted-foreground">
-          You will be redirected to the login page.
-        </p>
-        <Button
-          onClick={() => {
-            authClient.signOut({
-              fetchOptions: {
-                onSuccess: () => router.push("/login"),
-              },
-            });
-          }}
-          size="sm"
-          variant="destructive"
-        >
-          Sign Out
-        </Button>
-      </section>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium" htmlFor="dialog-name">
+                Name
+              </label>
+              <Input
+                id="dialog-name"
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Your name"
+                value={name}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium" htmlFor="dialog-email">
+                Email
+              </label>
+              <Input
+                id="dialog-email"
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="your@email.com"
+                type="email"
+                value={email}
+              />
+            </div>
+            <CreateDialogFooter>
+              <Button onClick={() => setShowEdit(false)} type="button" variant="ghost">
+                Cancel
+              </Button>
+              <Button disabled={saving} type="submit">
+                {saving ? (
+                  <LoaderIcon className="size-4 animate-spin" />
+                ) : (
+                  <Check className="size-4" />
+                )}
+                Save Changes
+              </Button>
+            </CreateDialogFooter>
+          </form>
+        </CreateDialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -625,6 +662,7 @@ function ProjectsTab() {
         throw new Error("File upload failed");
       }
       toast.success(`Uploaded "${file.name}"`);
+      window.dispatchEvent(new CustomEvent("project-files-changed"));
       await loadFiles(selectedProject.id);
       await loadProjects();
     } catch {
@@ -648,6 +686,7 @@ function ProjectsTab() {
         throw new Error("File deletion failed");
       }
       toast.success(`"${file.fileName}" removed`);
+      window.dispatchEvent(new CustomEvent("project-files-changed"));
       await loadFiles(selectedProject.id);
       await loadProjects();
     } catch {
@@ -750,10 +789,27 @@ function ProjectsTab() {
         </>
       )}
 
-      {selectedProject && (
-        <section className="rounded-lg border border-border bg-card p-3 md:p-4">
-          <div className="mb-2 flex items-center justify-between">
-            <p className="text-sm font-medium">{selectedProject.name}</p>
+      <Dialog
+        onOpenChange={(o) => {
+          if (!o) {
+            setSelectedProject(null);
+            setProjectFiles([]);
+          }
+        }}
+        open={!!selectedProject}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{selectedProject?.name}</DialogTitle>
+            <DialogDescription>
+              {selectedProject?.description || "Project files"}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              {projectFiles.length} file{projectFiles.length !== 1 ? "s" : ""}
+            </p>
             <label>
               <input
                 accept=".txt,.md,.pdf,.csv,.json,.docx"
@@ -780,51 +836,53 @@ function ProjectsTab() {
             </label>
           </div>
 
-          {loadingFiles ? (
-            <div className="flex items-center justify-center py-4">
-              <LoaderIcon className="size-4 animate-spin text-muted-foreground" />
-            </div>
-          ) : projectFiles.length === 0 ? (
-            <p className="py-3 text-center text-xs text-muted-foreground">
-              No files uploaded yet.
-            </p>
-          ) : (
-            <div className="space-y-1.5">
-              {projectFiles.map((file) => (
-                <div
-                  className="flex items-center justify-between rounded-lg border border-border/50 bg-muted/20 px-3 py-2"
-                  key={file.id}
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <FileIcon className="size-3.5 shrink-0 text-muted-foreground" />
-                    <div className="min-w-0">
-                      <p className="text-xs font-medium truncate">
-                        {file.fileName}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {file.fileSize
-                          ? `${(file.fileSize / 1024).toFixed(1)} KB`
-                          : "—"}
-                      </p>
+          <div className="max-h-72 overflow-y-auto">
+            {loadingFiles ? (
+              <div className="flex items-center justify-center py-6">
+                <LoaderIcon className="size-4 animate-spin text-muted-foreground" />
+              </div>
+            ) : projectFiles.length === 0 ? (
+              <p className="py-6 text-center text-xs text-muted-foreground">
+                No files uploaded yet.
+              </p>
+            ) : (
+              <div className="space-y-1">
+                {projectFiles.map((file) => (
+                  <div
+                    className="flex items-center justify-between rounded-lg border border-border/50 bg-muted/20 px-3 py-2"
+                    key={file.id}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium truncate">
+                          {file.fileName}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {file.fileSize
+                            ? `${(file.fileSize / 1024).toFixed(1)} KB`
+                            : "—"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <StatusBadge status={file.liveStatus ?? file.status} />
+                      <button
+                        aria-label="Delete file"
+                        className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                        onClick={() => handleDeleteFile(file)}
+                        type="button"
+                      >
+                        <XIcon className="size-3" />
+                      </button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <StatusBadge status={file.liveStatus ?? file.status} />
-                    <button
-                      aria-label="Delete file"
-                      className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                      onClick={() => handleDeleteFile(file)}
-                      type="button"
-                    >
-                      <XIcon className="size-3" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <CreateDialog onOpenChange={setShowCreate} open={showCreate}>
         <CreateDialogContent>
