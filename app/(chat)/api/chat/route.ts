@@ -29,6 +29,12 @@ import { getLanguageModel } from "@/lib/ai/providers";
 import { createDocument } from "@/lib/ai/tools/create-document";
 import { editDocument } from "@/lib/ai/tools/edit-document";
 import { getWeather } from "@/lib/ai/tools/get-weather";
+import {
+  webSearch,
+  webSearchExtract,
+  webExtract,
+  rankTracker,
+} from "@/lib/ai/tools/web-search";
 import { requestSuggestions } from "@/lib/ai/tools/request-suggestions";
 import { updateDocument } from "@/lib/ai/tools/update-document";
 import { verifyContent } from "@/lib/ai/tools/verify";
@@ -44,6 +50,7 @@ import {
   deleteChatById,
   getChatById,
   getMessageCountByUserId,
+  getMcpServersByUserId,
   getMessagesByChatId,
   getProjectById,
   saveChat,
@@ -52,6 +59,11 @@ import {
   updateMessage,
 } from "@/lib/db/queries";
 import type { DBMessage } from "@/lib/db/schema";
+import {
+  connectToMcpServer,
+  disconnectAll,
+  getToolSets,
+} from "@/lib/mcp/client";
 import { ChatbotError } from "@/lib/errors";
 import { checkIpRateLimit } from "@/lib/ratelimit";
 import type { ChatMessage } from "@/lib/types";
@@ -243,6 +255,9 @@ export async function POST(request: Request) {
           updateDocument: updateDocument({ session, dataStream, modelId: chatModel }),
           requestSuggestions: requestSuggestions({ session, dataStream, modelId: chatModel }),
           verifyContent,
+          ...(process.env.OPENSERP_API_KEY || process.env.OPENSERP_BASE_URL
+            ? { webSearch, webSearchExtract, webExtract, rankTracker }
+            : {}),
         };
 
         const activeTools: string[] = [
@@ -252,7 +267,9 @@ export async function POST(request: Request) {
           "updateDocument",
           "requestSuggestions",
           "verifyContent",
-          "web_search",
+          ...(process.env.OPENSERP_API_KEY || process.env.OPENSERP_BASE_URL
+            ? ["webSearch", "webSearchExtract", "webExtract", "rankTracker"]
+            : []),
         ];
 
         if (projectVectorStoreId) {
@@ -266,20 +283,28 @@ export async function POST(request: Request) {
           );
         }
 
+        // Load tools from enabled MCP servers
+        const mcpServers = await getMcpServersByUserId({
+          userId: session.user.id,
+        });
+        const enabledServers = mcpServers.filter((s) => s.enabled);
+
+        await Promise.all(
+          enabledServers.map((s) => connectToMcpServer(s)),
+        );
+        const mcpTools = getToolSets();
+        for (const [toolName, toolDef] of Object.entries(mcpTools)) {
+          tools[toolName] = toolDef;
+          activeTools.push(toolName);
+        }
+
         const result = streamText({
           model: getLanguageModel(chatModel),
           instructions: systemPrompt({ requestHints, supportsTools, hasProject }),
           messages: modelMessages,
+          reasoning: modelConfig?.reasoningEffort ?? "medium",
           stopWhen: isStepCount(5),
-          activeTools:
-            isReasoningModel && !supportsTools
-              ? []
-              : activeTools,
-          providerOptions: {
-            ...(modelConfig?.reasoningEffort && {
-              openai: { reasoningEffort: modelConfig.reasoningEffort },
-            }),
-          },
+          activeTools: isReasoningModel && !supportsTools ? [] : activeTools,
           tools,
           telemetry: {
             isEnabled: isProductionEnvironment,
@@ -288,7 +313,7 @@ export async function POST(request: Request) {
         });
 
         dataStream.merge(
-          toUIMessageStream({ stream: result.stream, sendReasoning: isReasoningModel })
+          toUIMessageStream({ stream: result.stream, sendReasoning: true })
         );
 
         if (titlePromise) {
@@ -303,6 +328,7 @@ export async function POST(request: Request) {
       },
       generateId: generateUUID,
       onEnd: async ({ messages: finishedMessages }) => {
+        await disconnectAll();
         if (isToolApprovalFlow) {
           for (const finishedMsg of finishedMessages) {
             const existingMsg = uiMessages.find((m) => m.id === finishedMsg.id);

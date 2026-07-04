@@ -9,12 +9,12 @@ import { createPortal } from "react-dom";
 import { SuggestionDialog } from "@/components/chat/suggestion";
 import type { Suggestion } from "@/lib/db/schema";
 import {
+  buildContentFromDocument,
   documentSchema,
   handleTransaction,
   headingRule,
 } from "@/lib/editor/config";
 import {
-  buildContentFromDocument,
   buildDocumentFromContent,
   createDecorations,
 } from "@/lib/editor/functions";

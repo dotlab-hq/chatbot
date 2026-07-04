@@ -1,6 +1,5 @@
 "use client";
 
-import { defaultMarkdownSerializer } from "prosemirror-markdown";
 import { DOMParser, type Node } from "prosemirror-model";
 import { Decoration, DecorationSet, type EditorView } from "prosemirror-view";
 import { renderToString } from "react-dom/server";
@@ -18,10 +17,6 @@ export const buildDocumentFromContent = (content: string) => {
   const tempContainer = document.createElement("div");
   tempContainer.innerHTML = stringFromMarkdown;
   return parser.parse(tempContainer);
-};
-
-export const buildContentFromDocument = (document: Node) => {
-  return defaultMarkdownSerializer.serialize(document);
 };
 
 export const createDecorations = (

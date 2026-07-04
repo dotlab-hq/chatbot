@@ -19,8 +19,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  let messageId: string | undefined;
+  let chatId: string | undefined;
+  let text: string | undefined;
+
   try {
-    const { messageId, chatId, text } = await request.json();
+    ({ messageId, chatId, text } = await request.json() as { messageId: string; chatId: string; text: string });
 
     if (!messageId || !chatId || !text) {
       return NextResponse.json(
@@ -104,7 +108,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ url });
   } catch (error) {
-    console.error("Speech generation error:", error);
+    console.error("[speech] Error for messageId=%s chatId=%s:", messageId, chatId, error);
     return NextResponse.json(
       { error: "Speech generation failed" },
       { status: 500 }

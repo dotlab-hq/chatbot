@@ -105,7 +105,11 @@ export function PureMessageActions({
         }
       );
 
-      if (!res.ok) throw new Error("Speech generation failed");
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        console.error("[speech] %d from /api/speech: %s", res.status, body);
+        throw new Error("Speech generation failed");
+      }
       const { url } = await res.json();
 
       audioCacheRef.current.set(id, url);

@@ -57,11 +57,10 @@ export const chatModels: ChatModel[] = [
 export function getCapabilities(): Record<string, ModelCapabilities> {
   const capabilities: Record<string, ModelCapabilities> = {};
   for (const model of chatModels) {
-    const isReasoning = model.id.startsWith("o");
     capabilities[model.id] = {
       tools: true,
       vision: true,
-      reasoning: isReasoning,
+      reasoning: true,
     };
   }
   return capabilities;
