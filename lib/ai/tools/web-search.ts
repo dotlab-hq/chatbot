@@ -1,3 +1,4 @@
+import type { ImageEnvelope } from "@openserp/sdk";
 import { OpenSERP } from "@openserp/sdk";
 import { tool } from "ai";
 import { z } from "zod";
@@ -37,9 +38,15 @@ export const webSearch = tool({
   }),
   execute: async ({ query, engine, limit, region, lang }) => {
     const client = getClient();
+    const now = new Date();
+    const monthYear = now.toLocaleDateString("en-US", {
+      month: "long",
+      year: "numeric",
+    });
+    const searchQuery = `${query} ${monthYear}`;
     const { results } = await client.search({
       engine,
-      text: query,
+      text: searchQuery,
       limit,
       region,
       lang,
@@ -73,9 +80,15 @@ export const webSearchExtract = tool({
   }),
   execute: async ({ query, engine, extract, region, lang }) => {
     const client = getClient();
+    const now = new Date();
+    const monthYear = now.toLocaleDateString("en-US", {
+      month: "long",
+      year: "numeric",
+    });
+    const searchQuery = `${query} ${monthYear}`;
     const { results } = await client.search({
       engine,
-      text: query,
+      text: searchQuery,
       extract,
       extractMode: "auto",
       region,
@@ -92,7 +105,69 @@ export const webSearchExtract = tool({
   },
 });
 
-// ── 3. webExtract — Pull clean markdown from a single URL ─────────────────────
+// ── 3. webImageSearch — Search for images ────────────────────────────────────
+
+type WebImageResult = {
+  id: string;
+  rank: number;
+  title: string;
+  imageUrl: string;
+  thumbnail?: string;
+  width?: number;
+  height?: number;
+  pageUrl: string;
+  domain: string;
+  engine: string;
+};
+
+export const webImageSearch = tool({
+  description:
+    "Search for images related to a query. Returns image URLs, thumbnails, dimensions, and source pages. Use this when the user wants to find images, pictures, photos, or visual content related to a topic. Works best when run alongside webSearch to complement text results with visual results.",
+  inputSchema: z.object({
+    query: z.string().describe("The image search query"),
+    engine: ENGINE.default("google"),
+    limit: z
+      .number()
+      .min(1)
+      .max(20)
+      .default(10)
+      .describe("Number of image results"),
+    region: REGION,
+    lang: LANG,
+  }),
+  execute: async ({ query, engine, limit, region, lang }) => {
+    const client = getClient();
+    const now = new Date();
+    const monthYear = now.toLocaleDateString("en-US", {
+      month: "long",
+      year: "numeric",
+    });
+    const searchQuery = `${query} ${monthYear}`;
+    const envelope: ImageEnvelope = await client.image({
+      engine,
+      text: searchQuery,
+      limit,
+      region,
+      lang,
+    });
+    return envelope.results.map(
+      (r): WebImageResult => ({
+        id: r.id,
+        rank: r.rank,
+        title: r.title,
+        imageUrl: r.image.url,
+        thumbnail: r.image.thumbnail,
+        width: r.image.width,
+        height: r.image.height,
+        pageUrl: r.source.page_url,
+        domain: r.source.domain,
+        engine: r.engine,
+      })
+    );
+  },
+});
+
+// ── 4. webExtract — Pull clean markdown from a single URL ─────────────────────
 
 export const webExtract = tool({
   description:
@@ -118,7 +193,7 @@ export const webExtract = tool({
   },
 });
 
-// ── 4. rankTracker — Check a domain's rank for a keyword set ──────────────────
+// ── 5. rankTracker — Check a domain's rank for a keyword set ──────────────────
 
 export const rankTracker = tool({
   description:
@@ -164,7 +239,7 @@ export const rankTracker = tool({
           url: hit?.url ?? null,
           title: hit?.title ?? null,
         };
-      }),
+      })
     );
 
     return { domain, results };

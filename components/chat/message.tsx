@@ -4,7 +4,6 @@ import {
   MessageContent,
   MessageResponse,
 } from "@/components/ai-elements/message";
-import { ShimmeringText } from "@/components/ui/shimmering-text";
 import {
   Tool,
   ToolContent,
@@ -12,21 +11,30 @@ import {
   ToolInput,
   ToolOutput,
 } from "@/components/ai-elements/tool";
+import { Calculator } from "@/components/chat/calculator";
+import { CurrencyConverter } from "@/components/chat/currency-converter";
 import { useDataStream } from "@/components/chat/data-stream-provider";
 import { DocumentToolResult } from "@/components/chat/document";
 import { DocumentPreview } from "@/components/chat/document-preview";
 import { SparklesIcon } from "@/components/chat/icons";
+import { ImageCarousel } from "@/components/chat/image-carousel";
+import { LocalTime } from "@/components/chat/local-time";
 import { MessageActions } from "@/components/chat/message-actions";
 import { MessageReasoning } from "@/components/chat/message-reasoning";
 import { PreviewAttachment } from "@/components/chat/preview-attachment";
-import { SearchSourcesBar, extractSearchResults } from "@/components/chat/search-sources";
-import { getDomain, useSearchSourcesPanel } from "@/components/chat/search-sources-context";
-import { Calculator } from "@/components/chat/calculator";
-import { CurrencyConverter } from "@/components/chat/currency-converter";
-import { LocalTime } from "@/components/chat/local-time";
+import {
+  extractImageSearchResults,
+  extractSearchResults,
+  SearchSourcesBar,
+} from "@/components/chat/search-sources";
+import {
+  getDomain,
+  useSearchSourcesPanel,
+} from "@/components/chat/search-sources-context";
 import { Timer } from "@/components/chat/timer";
 import { UnitConverter } from "@/components/chat/unit-converter";
 import { Weather } from "@/components/chat/weather";
+import { ShimmeringText } from "@/components/ui/shimmering-text";
 import type { Vote } from "@/lib/db/schema";
 import type { ChatMessage } from "@/lib/types";
 import { cn, sanitizeText } from "@/lib/utils";
@@ -73,10 +81,16 @@ const PurePreviewMessage = ({
   );
   const isThinking = isAssistant && isLoading && !hasAnyContent;
 
-  const { messageId: activeMessageId, openPanel, closePanel } = useSearchSourcesPanel();
+  const {
+    messageId: activeMessageId,
+    openPanel,
+    closePanel,
+  } = useSearchSourcesPanel();
   const isActive = activeMessageId === message.id;
   const searchResults = extractSearchResults(message);
+  const imageResults = extractImageSearchResults(message);
   const hasSources = searchResults.length > 0;
+  const hasImages = imageResults.length > 0;
   const searchDomains = [
     ...new Set(searchResults.map((r) => r.domain ?? getDomain(r.url))),
   ];
@@ -114,9 +128,10 @@ const PurePreviewMessage = ({
   ) ?? { text: "", isStreaming: false, rendered: false };
 
   // Deduplicate: only show the last createDocument tool call
-  const lastCreateDocIndex = message.parts?.reduce<number>((acc, part, i) => {
-    return part.type === "tool-createDocument" ? i : acc;
-  }, -1) ?? -1;
+  const lastCreateDocIndex =
+    message.parts?.reduce<number>((acc, part, i) => {
+      return part.type === "tool-createDocument" ? i : acc;
+    }, -1) ?? -1;
 
   const parts = message.parts?.map((part, index) => {
     const { type } = part;
@@ -151,7 +166,14 @@ const PurePreviewMessage = ({
       );
     }
 
-    if (type === "tool-getWeather" || type === "tool-calculator" || type === "tool-timer" || type === "tool-currencyConverter" || type === "tool-unitConverter" || type === "tool-localTime") {
+    if (
+      type === "tool-getWeather" ||
+      type === "tool-calculator" ||
+      type === "tool-timer" ||
+      type === "tool-currencyConverter" ||
+      type === "tool-unitConverter" ||
+      type === "tool-localTime"
+    ) {
       const { toolCallId, state } = part;
       const approvalId = (part as { approval?: { id: string } }).approval?.id;
       const isDenied =
@@ -166,15 +188,32 @@ const PurePreviewMessage = ({
         const output = part.output;
         let content;
         switch (toolName) {
-          case "getWeather": content = <Weather weatherAtLocation={output} />; break;
-          case "calculator": content = <Calculator result={output} />; break;
-          case "timer": content = <Timer data={output} />; break;
-          case "currencyConverter": content = <CurrencyConverter result={output} />; break;
-          case "unitConverter": content = <UnitConverter result={output} />; break;
-          case "localTime": content = <LocalTime result={output} />; break;
-          default: content = null;
+          case "getWeather":
+            content = <Weather weatherAtLocation={output} />;
+            break;
+          case "calculator":
+            content = <Calculator result={output} />;
+            break;
+          case "timer":
+            content = <Timer data={output} />;
+            break;
+          case "currencyConverter":
+            content = <CurrencyConverter result={output} />;
+            break;
+          case "unitConverter":
+            content = <UnitConverter result={output} />;
+            break;
+          case "localTime":
+            content = <LocalTime result={output} />;
+            break;
+          default:
+            content = null;
         }
-        return <div className={widthClass} key={toolCallId}>{content}</div>;
+        return (
+          <div className={widthClass} key={toolCallId}>
+            {content}
+          </div>
+        );
       }
 
       if (isDenied) {
@@ -352,18 +391,23 @@ const PurePreviewMessage = ({
 
   const content = isThinking ? (
     <div className="flex h-[calc(13px*1.65)] items-center text-sm leading-[1.65]">
-      <ShimmeringText text="Thinking..." className="font-medium" duration={2} />
+      <ShimmeringText className="font-medium" duration={2} text="Thinking..." />
     </div>
   ) : (
     <>
       {attachments}
+      {isAssistant && hasImages && <ImageCarousel images={imageResults} />}
       {parts}
       {isAssistant && hasSources && (
         <SearchSourcesBar
           active={isActive}
           count={searchResults.length}
           domains={searchDomains}
-          onToggle={() => (isActive ? closePanel() : openPanel(searchResults, message.id))}
+          onToggle={() =>
+            isActive
+              ? closePanel()
+              : openPanel(searchResults, imageResults, message.id)
+          }
         />
       )}
       {actions}
@@ -385,7 +429,10 @@ const PurePreviewMessage = ({
         )}
       >
         {isAssistant && (
-          <div data-personalize-avatar className="flex h-[calc(13px*1.65)] shrink-0 items-center">
+          <div
+            className="flex h-[calc(13px*1.65)] shrink-0 items-center"
+            data-personalize-avatar
+          >
             <div className="flex size-7 items-center justify-center rounded-full bg-muted/60 text-muted-foreground ring-1 ring-border/50">
               <SparklesIcon size={13} />
             </div>
@@ -411,14 +458,21 @@ export const ThinkingMessage = () => {
       data-testid="message-assistant-loading"
     >
       <div className="flex items-start gap-3">
-        <div data-personalize-avatar className="flex h-[calc(13px*1.65)] shrink-0 items-center">
+        <div
+          className="flex h-[calc(13px*1.65)] shrink-0 items-center"
+          data-personalize-avatar
+        >
           <div className="flex size-7 items-center justify-center rounded-full bg-muted/60 text-muted-foreground ring-1 ring-border/50">
             <SparklesIcon size={13} />
           </div>
         </div>
 
         <div className="flex h-[calc(13px*1.65)] items-center text-sm leading-[1.65]">
-          <ShimmeringText text="Thinking..." className="font-medium" duration={2} />
+          <ShimmeringText
+            className="font-medium"
+            duration={2}
+            text="Thinking..."
+          />
         </div>
       </div>
     </div>

@@ -4,11 +4,11 @@ import { useEffect, useRef } from "react";
 import { useDataStream } from "@/components/chat/data-stream-provider";
 import { Greeting } from "@/components/chat/greeting";
 import { PreviewMessage, ThinkingMessage } from "@/components/chat/message";
-import { SearchSourcesPanel } from "@/components/chat/search-sources-panel";
 import {
   SearchSourcesProvider,
   useSearchSourcesPanel,
 } from "@/components/chat/search-sources-context";
+import { SearchSourcesPanel } from "@/components/chat/search-sources-panel";
 import { useMessages } from "@/hooks/use-messages";
 import type { Vote } from "@/lib/db/schema";
 import type { ChatMessage } from "@/lib/types";
@@ -106,9 +106,8 @@ function PureMessages({
               />
             ))}
 
-            {status === "submitted" && messages.at(-1)?.role !== "assistant" && (
-              <ThinkingMessage />
-            )}
+            {status === "submitted" &&
+              messages.at(-1)?.role !== "assistant" && <ThinkingMessage />}
 
             <div
               className="min-h-[24px] min-w-[24px] shrink-0"
@@ -138,9 +137,17 @@ function PureMessages({
 }
 
 function SourcesPanelSlot() {
-  const { open, results, closePanel } = useSearchSourcesPanel();
-  if (!open || results.length === 0) return null;
-  return <SearchSourcesPanel onClose={closePanel} results={results} />;
+  const { open, results, imageResults, closePanel } = useSearchSourcesPanel();
+  if (!open || (results.length === 0 && imageResults.length === 0)) {
+    return null;
+  }
+  return (
+    <SearchSourcesPanel
+      imageResults={imageResults}
+      onClose={closePanel}
+      results={results}
+    />
+  );
 }
 
 function WrappedMessages(props: MessagesProps) {

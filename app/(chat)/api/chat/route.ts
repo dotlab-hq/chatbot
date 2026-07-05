@@ -51,6 +51,7 @@ import { verifyContent } from "@/lib/ai/tools/verify";
 import {
   rankTracker,
   webExtract,
+  webImageSearch,
   webSearch,
   webSearchExtract,
 } from "@/lib/ai/tools/web-search";
@@ -378,7 +379,13 @@ export async function POST(request: Request) {
           verifyContent,
           readArtifact: readArtifact(),
           ...(process.env.OPENSERP_API_KEY || process.env.OPENSERP_BASE_URL
-            ? { webSearch, webSearchExtract, webExtract, rankTracker }
+            ? {
+                webSearch,
+                webSearchExtract,
+                webImageSearch,
+                webExtract,
+                rankTracker,
+              }
             : {}),
         };
 
@@ -396,7 +403,13 @@ export async function POST(request: Request) {
           "verifyContent",
           "readArtifact",
           ...(process.env.OPENSERP_API_KEY || process.env.OPENSERP_BASE_URL
-            ? ["webSearch", "webSearchExtract", "webExtract", "rankTracker"]
+            ? [
+                "webSearch",
+                "webSearchExtract",
+                "webImageSearch",
+                "webExtract",
+                "rankTracker",
+              ]
             : []),
         ];
 

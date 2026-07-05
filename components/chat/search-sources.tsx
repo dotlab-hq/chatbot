@@ -8,14 +8,82 @@ const SEARCH_TOOL_TYPES = new Set(["tool-webSearch", "tool-webSearchExtract"]);
 
 export function extractSearchResults(message: ChatMessage) {
   if (!message.parts) return [];
-  const results: { rank: number; title: string; url: string; domain?: string; snippet?: string }[] = [];
+  const results: {
+    rank: number;
+    title: string;
+    url: string;
+    domain?: string;
+    snippet?: string;
+  }[] = [];
   for (const part of message.parts) {
     if (SEARCH_TOOL_TYPES.has(part.type) && "output" in part) {
       const output = part.output;
       if (Array.isArray(output)) {
         for (const item of output) {
-          if (item && typeof item === "object" && "url" in item && "title" in item) {
-            results.push(item as { rank: number; title: string; url: string; domain?: string; snippet?: string });
+          if (
+            item &&
+            typeof item === "object" &&
+            "url" in item &&
+            "title" in item
+          ) {
+            results.push(
+              item as {
+                rank: number;
+                title: string;
+                url: string;
+                domain?: string;
+                snippet?: string;
+              }
+            );
+          }
+        }
+      }
+    }
+  }
+  return results;
+}
+
+const IMAGE_SEARCH_TOOL_TYPES = new Set(["tool-webImageSearch"]);
+
+export function extractImageSearchResults(message: ChatMessage) {
+  if (!message.parts) return [];
+  const results: {
+    id: string;
+    rank: number;
+    title: string;
+    imageUrl: string;
+    thumbnail?: string;
+    width?: number;
+    height?: number;
+    pageUrl: string;
+    domain: string;
+    engine: string;
+  }[] = [];
+  for (const part of message.parts) {
+    if (IMAGE_SEARCH_TOOL_TYPES.has(part.type) && "output" in part) {
+      const output = part.output;
+      if (Array.isArray(output)) {
+        for (const item of output) {
+          if (
+            item &&
+            typeof item === "object" &&
+            "imageUrl" in item &&
+            "title" in item
+          ) {
+            results.push(
+              item as {
+                id: string;
+                rank: number;
+                title: string;
+                imageUrl: string;
+                thumbnail?: string;
+                width?: number;
+                height?: number;
+                pageUrl: string;
+                domain: string;
+                engine: string;
+              }
+            );
           }
         }
       }
