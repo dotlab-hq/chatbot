@@ -1,9 +1,9 @@
-export const DEFAULT_CHAT_MODEL = "claude-sonnet-4-20250514";
+export const DEFAULT_CHAT_MODEL = "claude-edge";
 
 export const titleModel = {
-  id: "auto-edge",
+  id: "claude-edge",
   name: "Auto Edge",
-  provider: "openai",
+  provider: "anthropic",
   description: "Fast model for title generation",
 };
 
@@ -23,9 +23,9 @@ export type ChatModel = {
 
 export const chatModels: ChatModel[] = [
   {
-    id: "auto-edge",
+    id: "claude-edge",
     name: "Auto Edge",
-    provider: "openai",
+    provider: "anthropic",
     description: "Flagship model with tool use and vision",
   },
   // {
