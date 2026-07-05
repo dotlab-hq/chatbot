@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { CodeDiffView } from "@/components/chat/code-diffview";
 import { CodeEditor } from "@/components/chat/code-editor";
 import {
   Console,
@@ -90,11 +91,43 @@ export const codeArtifact = new Artifact<"code", Metadata>({
       }));
     }
   },
-  content: ({ metadata, setMetadata, ...props }) => {
+  content: ({
+    metadata,
+    setMetadata,
+    mode,
+    getDocumentContentById,
+    currentVersionIndex,
+    ...props
+  }) => {
+    if (mode === "diff") {
+      const selectedContent = getDocumentContentById(currentVersionIndex);
+      const prevContent =
+        currentVersionIndex > 0
+          ? getDocumentContentById(currentVersionIndex - 1)
+          : selectedContent;
+
+      return (
+        <div className="flex h-full flex-col">
+          <CodeDiffView newContent={selectedContent} oldContent={prevContent} />
+          {metadata?.outputs && (
+            <Console
+              consoleOutputs={metadata.outputs}
+              setConsoleOutputs={() => {
+                setMetadata({
+                  ...metadata,
+                  outputs: [],
+                });
+              }}
+            />
+          )}
+        </div>
+      );
+    }
+
     return (
       <>
         <div className="relative min-h-[200px]">
-          <CodeEditor {...props} />
+          <CodeEditor {...props} currentVersionIndex={currentVersionIndex} />
         </div>
 
         {metadata?.outputs && (

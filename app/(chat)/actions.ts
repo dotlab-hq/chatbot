@@ -9,8 +9,8 @@ import { getTitleModel } from "@/lib/ai/providers";
 import {
   deleteMessagesByChatIdAfterTimestamp,
   getChatById,
-  getMessagesByChatId,
   getMessageById,
+  getMessagesByChatId,
   updateChatTitleById,
   updateChatVisibilityById,
 } from "@/lib/db/queries";
@@ -27,6 +27,7 @@ export async function generateTitleFromUserMessage({
   message: UIMessage;
 }) {
   const { text } = await generateText({
+    maxOutputTokens: 32_000,
     model: getTitleModel(),
     instructions: titlePrompt,
     prompt: getTextFromMessage(message),

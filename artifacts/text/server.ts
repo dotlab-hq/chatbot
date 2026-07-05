@@ -9,6 +9,7 @@ export const textDocumentHandler = createDocumentHandler<"text">({
     let draftContent = "";
 
     const { stream } = streamText({
+      maxOutputTokens: 32_000,
       model: getLanguageModel(modelId),
       instructions:
         "Write about the given topic. Markdown is supported. Use headings wherever appropriate.",
@@ -33,6 +34,7 @@ export const textDocumentHandler = createDocumentHandler<"text">({
     let draftContent = "";
 
     const { stream } = streamText({
+      maxOutputTokens: 32_000,
       model: getLanguageModel(modelId),
       instructions: updateDocumentPrompt(document.content, "text"),
       experimental_transform: smoothStream({ chunking: "word" }),

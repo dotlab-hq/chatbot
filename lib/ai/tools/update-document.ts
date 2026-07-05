@@ -1,6 +1,6 @@
 import { tool, type UIMessageStreamWriter } from "ai";
-import type { Session } from "@/app/(auth)/auth";
 import { z } from "zod";
+import type { Session } from "@/app/(auth)/auth";
 import { documentHandlersByArtifactKind } from "@/lib/artifacts/server";
 import { getDocumentById } from "@/lib/db/queries";
 import type { ChatMessage } from "@/lib/types";
@@ -18,7 +18,7 @@ export const updateDocument = ({
 }: UpdateDocumentProps) =>
   tool({
     description:
-      "Full rewrite of an existing artifact. Only use for major changes where most content needs replacing. Prefer editDocument for targeted changes.",
+      "Full rewrite of an existing artifact that creates a NEW version. Only use for major changes where most content needs replacing. Prefer editDocument for targeted changes as it updates in-place without creating a new version.",
     inputSchema: z.object({
       id: z.string().describe("The ID of the artifact to rewrite"),
       description: z

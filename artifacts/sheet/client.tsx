@@ -26,12 +26,18 @@ export const sheetArtifact = new Artifact<"sheet", Metadata>({
       }));
     }
   },
-  content: ({ content, currentVersionIndex, onSaveContent, status }) => {
+  content: ({
+    content,
+    currentVersionIndex,
+    onSaveContent,
+    status,
+    isCurrentVersion,
+  }) => {
     return (
       <SpreadsheetEditor
         content={content}
         currentVersionIndex={currentVersionIndex}
-        isCurrentVersion={true}
+        isCurrentVersion={isCurrentVersion}
         saveContent={onSaveContent}
         status={status}
       />

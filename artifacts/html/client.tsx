@@ -1,8 +1,9 @@
-import { Sparkles, Palette } from "lucide-react";
+import { Palette, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { CodeDiffView } from "@/components/chat/code-diffview";
 import { Artifact } from "@/components/chat/create-artifact";
-import { CopyIcon, RedoIcon, UndoIcon } from "@/components/chat/icons";
 import { HtmlEditor } from "@/components/chat/html-editor";
+import { CopyIcon, RedoIcon, UndoIcon } from "@/components/chat/icons";
 
 export const htmlArtifact = new Artifact({
   kind: "html",
@@ -23,7 +24,26 @@ export const htmlArtifact = new Artifact({
       }));
     }
   },
-  content: HtmlEditor,
+  content: ({
+    mode,
+    getDocumentContentById,
+    currentVersionIndex,
+    ...props
+  }) => {
+    if (mode === "diff") {
+      const selectedContent = getDocumentContentById(currentVersionIndex);
+      const prevContent =
+        currentVersionIndex > 0
+          ? getDocumentContentById(currentVersionIndex - 1)
+          : selectedContent;
+
+      return (
+        <CodeDiffView newContent={selectedContent} oldContent={prevContent} />
+      );
+    }
+
+    return <HtmlEditor {...props} currentVersionIndex={currentVersionIndex} />;
+  },
   actions: [
     {
       icon: <UndoIcon size={18} />,

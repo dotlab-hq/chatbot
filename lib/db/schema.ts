@@ -15,6 +15,16 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 
+// ─── Token Usage Type ───────────────────────────────────────────────────────
+export type TokenUsage = {
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  cacheReadTokens?: number;
+  cacheWriteTokens?: number;
+  reasoningTokens?: number;
+};
+
 // ─── Schema ─────────────────────────────────────────────────────────────────
 
 export const chatbot = pgSchema("chatbot");
@@ -37,6 +47,9 @@ export const chat = chatbot.table("Chat", {
     .notNull()
     .default("private"),
   isPinned: boolean("is_pinned").notNull().default(false),
+  compactionSummary: text("compaction_summary"),
+  totalInputTokens: integer("total_input_tokens").notNull().default(0),
+  totalOutputTokens: integer("total_output_tokens").notNull().default(0),
 });
 
 export type Chat = InferSelectModel<typeof chat>;
@@ -51,6 +64,7 @@ export const message = chatbot.table("Message_v2", {
   attachments: json("attachments").notNull(),
   createdAt: timestamp("createdAt").notNull(),
   speechKey: text("speechKey").default("").notNull(),
+  usage: json("usage").default(null),
 });
 
 export type DBMessage = InferSelectModel<typeof message>;

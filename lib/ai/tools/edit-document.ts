@@ -1,7 +1,7 @@
 import { tool, type UIMessageStreamWriter } from "ai";
-import type { Session } from "@/app/(auth)/auth";
 import { z } from "zod";
-import { getDocumentById, saveDocument } from "@/lib/db/queries";
+import type { Session } from "@/app/(auth)/auth";
+import { getDocumentById, updateDocumentContent } from "@/lib/db/queries";
 import type { ChatMessage } from "@/lib/types";
 
 type EditDocumentProps = {
@@ -12,7 +12,7 @@ type EditDocumentProps = {
 export const editDocument = ({ session, dataStream }: EditDocumentProps) =>
   tool({
     description:
-      "Make a targeted edit to an existing artifact by finding and replacing an exact string. Preferred over updateDocument for small changes. The old_string must match exactly.",
+      "Make a targeted edit to an existing artifact by finding and replacing an exact string. This updates the current version IN-PLACE without creating a new version. Preferred over updateDocument for small changes. The old_string must match exactly.",
     inputSchema: z.object({
       id: z.string().describe("The ID of the artifact to edit"),
       old_string: z
@@ -51,12 +51,10 @@ export const editDocument = ({ session, dataStream }: EditDocumentProps) =>
         ? document.content.replaceAll(old_string, new_string)
         : document.content.replace(old_string, new_string);
 
-      await saveDocument({
+      // Update in-place — does NOT create a new version
+      await updateDocumentContent({
         id: document.id,
-        title: document.title,
-        kind: document.kind,
         content: updated,
-        userId: document.userId,
       });
 
       dataStream.write({

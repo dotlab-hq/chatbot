@@ -1,7 +1,13 @@
 "use client";
 
+import {
+  CodeIcon,
+  FileIcon,
+  MaximizeIcon,
+  MinimizeIcon,
+  PlayIcon,
+} from "lucide-react";
 import { useCallback, useState } from "react";
-import { CodeIcon, PlayIcon, MaximizeIcon, MinimizeIcon, FileIcon } from "lucide-react";
 import { CodeBlockContent } from "@/components/ai-elements/code-block";
 import { LoaderIcon } from "@/components/chat/icons";
 import { cn } from "@/lib/utils";
@@ -14,10 +20,12 @@ type HtmlEditorProps = {
   status: string;
   isInline: boolean;
   metadata?: Record<string, unknown>;
-  setMetadata?: (updater: (prev: Record<string, unknown>) => Record<string, unknown>) => void;
+  setMetadata?: (
+    updater: (prev: Record<string, unknown>) => Record<string, unknown>
+  ) => void;
 };
 
-const TAILWIND_CDN = `https://cdn.tailwindcss.com`;
+const TAILWIND_CDN = "https://cdn.tailwindcss.com";
 const TAILWIND_SETUP = `<script src="${TAILWIND_CDN}"></script>`;
 
 function buildPreviewHtml(raw: string): string {
@@ -31,7 +39,10 @@ function buildPreviewHtml(raw: string): string {
     if (hasHead) {
       return raw.replace(/<head(\s[^>]*)?>/, `<head$1>${TAILWIND_SETUP}`);
     }
-    return raw.replace(/<html(\s[^>]*)?>/, `<html$1><head>${TAILWIND_SETUP}</head>`);
+    return raw.replace(
+      /<html(\s[^>]*)?>/,
+      `<html$1><head>${TAILWIND_SETUP}</head>`
+    );
   }
 
   if (hasHead) {
@@ -72,7 +83,12 @@ export function HtmlEditor({
   }
 
   return (
-    <div className={cn("flex h-full flex-col", isFullscreen && "fixed inset-0 z-[100] bg-background")}>
+    <div
+      className={cn(
+        "flex h-full flex-col",
+        isFullscreen && "fixed inset-0 z-[100] bg-background"
+      )}
+    >
       {/* Header bar */}
       <div className="flex items-center justify-between border-b border-border/50 px-4 py-2">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -112,7 +128,11 @@ export function HtmlEditor({
             title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
             type="button"
           >
-            {isFullscreen ? <MinimizeIcon size={14} /> : <MaximizeIcon size={14} />}
+            {isFullscreen ? (
+              <MinimizeIcon size={14} />
+            ) : (
+              <MaximizeIcon size={14} />
+            )}
           </button>
         </div>
       </div>
@@ -126,10 +146,10 @@ export function HtmlEditor({
         <div className="flex h-full flex-1 items-center justify-center">
           {content ? (
             <iframe
+              className="h-full w-full border-0"
+              sandbox="allow-scripts allow-popups allow-forms allow-modals allow-downloads"
               srcDoc={buildPreviewHtml(content)}
               title={title}
-              className="h-full w-full border-0"
-              sandbox="allow-scripts"
             />
           ) : (
             <div className="text-sm text-muted-foreground">No HTML content</div>

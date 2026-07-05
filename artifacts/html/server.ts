@@ -37,6 +37,7 @@ export const htmlDocumentHandler = createDocumentHandler<"html">({
     let draftContent = "";
 
     const { stream } = streamText({
+      maxOutputTokens: 32_000,
       model: getLanguageModel(modelId),
       instructions: HTML_CREATE_INSTRUCTIONS,
       prompt: title,
@@ -64,6 +65,7 @@ export const htmlDocumentHandler = createDocumentHandler<"html">({
     let draftContent = "";
 
     const { stream } = streamText({
+      maxOutputTokens: 32_000,
       model: getLanguageModel(modelId),
       instructions: `${updateDocumentPrompt(document.content, "html")}\n\nCRITICAL: You MUST use Tailwind CSS utility classes for ALL styling. NEVER write custom CSS in <style> tags or use inline style attributes. Output ONLY the complete updated HTML document. No explanations, no markdown fences.`,
       prompt: description,

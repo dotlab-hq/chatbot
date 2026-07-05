@@ -1,6 +1,6 @@
 import { tool, type UIMessageStreamWriter } from "ai";
-import type { Session } from "@/app/(auth)/auth";
 import { z } from "zod";
+import type { Session } from "@/app/(auth)/auth";
 import {
   artifactKinds,
   documentHandlersByArtifactKind,
@@ -21,7 +21,7 @@ export const createDocument = ({
 }: CreateDocumentProps) =>
   tool({
     description:
-      "Create an artifact. You MUST specify kind: use 'code' for any programming/algorithm request (creates a script), 'text' for essays/writing (creates a document), 'sheet' for spreadsheets/data, 'svg' for graphics/icons/logos, 'html' for HTML pages/landing pages/web components/forms/UI using Tailwind CSS, 'diagram' for flowcharts, architecture diagrams, wireframes, mind maps, ER diagrams, sequence diagrams, or any structured visual diagram.",
+      "Create a NEW artifact with complete content in one go. You MUST include ALL the content in this single call — do NOT create then edit. Specify kind: 'code' for programming/algorithm requests (creates a script), 'text' for essays/writing (creates a document), 'sheet' for spreadsheets/data, 'svg' for graphics/icons/logos, 'html' for HTML pages/landing pages/web components/forms/UI using Tailwind CSS, 'diagram' for flowcharts, architecture diagrams, wireframes, mind maps, ER diagrams, sequence diagrams, or any structured visual diagram.",
     inputSchema: z.object({
       title: z.string().describe("The title of the artifact"),
       kind: z

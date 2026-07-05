@@ -53,6 +53,7 @@ export const diagramDocumentHandler = createDocumentHandler<"diagram">({
 
     try {
       const { stream } = streamText({
+        maxOutputTokens: 32_000,
         model: getLanguageModel(modelId),
         instructions: DIAGRAM_CREATE_INSTRUCTIONS,
         prompt: title,
@@ -93,6 +94,7 @@ export const diagramDocumentHandler = createDocumentHandler<"diagram">({
 
     try {
       const { stream } = streamText({
+        maxOutputTokens: 32_000,
         model: getLanguageModel(modelId),
         instructions: `${updateDocumentPrompt(document.content, "diagram")}\n\nYou MUST output a complete Excalidraw JSON file. Follow the same format as the current content. Output ONLY the JSON, no markdown fences, no explanations.`,
         prompt: description,

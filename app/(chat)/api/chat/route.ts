@@ -19,6 +19,11 @@ import {
   postRequestBodySchema,
 } from "@/app/(chat)/api/chat/schema";
 import {
+  compactConversation,
+  extractTokenUsage,
+  needsCompaction,
+} from "@/lib/ai/compaction";
+import {
   allowedModelIds,
   chatModels,
   DEFAULT_CHAT_MODEL,
@@ -36,6 +41,7 @@ import { currencyConverter } from "@/lib/ai/tools/currency-converter";
 import { editDocument } from "@/lib/ai/tools/edit-document";
 import { getWeather } from "@/lib/ai/tools/get-weather";
 import { localTime } from "@/lib/ai/tools/local-time";
+import { createMemoryTools } from "@/lib/ai/tools/memory";
 import { readArtifact } from "@/lib/ai/tools/read-artifact";
 import { requestSuggestions } from "@/lib/ai/tools/request-suggestions";
 import { timer } from "@/lib/ai/tools/timer";
@@ -63,10 +69,12 @@ import {
   getMessageCountByUserId,
   getMessagesByChatId,
   getProjectById,
+  incrementChatTokenUsage,
   saveChat,
   saveMessages,
   updateChatTitleById,
   updateMessage,
+  updateMessageUsage,
 } from "@/lib/db/queries";
 import { type DBMessage, personalization } from "@/lib/db/schema";
 import { ChatbotError } from "@/lib/errors";
@@ -162,6 +170,28 @@ export async function POST(request: Request) {
         return new ChatbotError("forbidden:chat").toResponse();
       }
       messagesFromDb = await getMessagesByChatId({ id });
+
+      // Check if conversation needs compaction
+      if (needsCompaction(messagesFromDb, chatModel)) {
+        try {
+          const compactResult = await compactConversation({
+            messages: messagesFromDb,
+            modelId: chatModel,
+            chatId: id,
+          });
+          if (compactResult.messageCount > 0) {
+            console.log(
+              `[compaction] Compacted ${compactResult.messageCount} messages, saved ~${compactResult.tokensSaved} tokens`
+            );
+            // Reload messages after compaction
+            messagesFromDb = await getMessagesByChatId({ id });
+          }
+        } catch (err) {
+          console.error("[compaction] Compaction failed (non-fatal):", err);
+          // Continue without compaction
+        }
+      }
+
       if (chat.projectId) {
         const project = await getProjectById({ id: chat.projectId });
         projectVectorStoreId = project?.vectorStoreId ?? null;
@@ -246,6 +276,7 @@ export async function POST(request: Request) {
             attachments: [],
             createdAt: new Date(),
             speechKey: "",
+            usage: null,
           },
         ],
       });
@@ -314,6 +345,10 @@ export async function POST(request: Request) {
       }
     }
 
+    // Mutable reference shared between execute and onEnd for token usage capture
+    let capturedUsagePromise: Promise<ReturnType<typeof extractTokenUsage>> =
+      Promise.resolve(null);
+
     const stream = createUIMessageStream({
       originalMessages: isToolApprovalFlow ? uiMessages : undefined,
       execute: async ({ writer: dataStream }) => {
@@ -378,6 +413,22 @@ export async function POST(request: Request) {
           );
         }
 
+        // Load MongoDB memory tools when configured
+        if (process.env.MONGODB_URI) {
+          const memoryTools = createMemoryTools({
+            userId: session.user.id,
+            chatId: id,
+          });
+          Object.assign(tools, memoryTools);
+          activeTools.push(
+            "saveMemory",
+            "recallMemory",
+            "listMemories",
+            "deleteMemory",
+            "clearMemories"
+          );
+        }
+
         // Load tools from enabled MCP servers
         const mcpServers = await getMcpServersByUserId({
           userId: session.user.id,
@@ -392,11 +443,13 @@ export async function POST(request: Request) {
         }
 
         const result = streamText({
+          maxOutputTokens: 32_000,
           model: getLanguageModel(chatModel),
           instructions: systemPrompt({
             requestHints,
             supportsTools,
             hasProject,
+            hasMemory: Boolean(process.env.MONGODB_URI),
             personalization: personalizationData,
           }),
           messages: modelMessages,
@@ -409,6 +462,11 @@ export async function POST(request: Request) {
             functionId: "stream-text",
           },
         });
+
+        // Capture token usage from the stream
+        capturedUsagePromise = Promise.resolve(result.usage)
+          .then((usage) => extractTokenUsage(usage))
+          .catch(() => null);
 
         dataStream.merge(
           toUIMessageStream({ stream: result.stream, sendReasoning: true })
@@ -446,6 +504,7 @@ export async function POST(request: Request) {
                     attachments: [],
                     chatId: id,
                     speechKey: "",
+                    usage: null,
                   },
                 ],
               });
@@ -461,8 +520,36 @@ export async function POST(request: Request) {
               attachments: [],
               chatId: id,
               speechKey: "",
+              usage: null,
             })),
           });
+        }
+
+        // Persist token usage to messages and chat totals
+        try {
+          const usage = await capturedUsagePromise;
+          if (usage) {
+            // Save usage to assistant messages
+            const assistantMessages = finishedMessages.filter(
+              (m) => m.role === "assistant"
+            );
+            for (const msg of assistantMessages) {
+              await updateMessageUsage({
+                id: msg.id,
+                usage,
+              });
+            }
+
+            // Increment chat-level token counters
+            await incrementChatTokenUsage({
+              chatId: id,
+              inputTokens: usage.inputTokens,
+              outputTokens: usage.outputTokens,
+            });
+          }
+        } catch (err) {
+          console.error("[usage] Failed to persist token usage:", err);
+          // Non-fatal, don't break the response
         }
       },
       onError: (error) => {

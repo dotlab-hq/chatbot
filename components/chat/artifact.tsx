@@ -258,9 +258,17 @@ function PureArtifact({
     if (type === "prev") {
       if (currentVersionIndex > 0) {
         setCurrentVersionIndex((index) => index - 1);
+        // Auto-switch to diff mode when navigating to older versions
+        setMode("diff");
       }
     } else if (type === "next" && currentVersionIndex < documents.length - 1) {
       setCurrentVersionIndex((index) => index + 1);
+      // If going to latest, switch to edit mode; otherwise diff
+      if (currentVersionIndex + 1 === documents.length - 1) {
+        setMode("edit");
+      } else {
+        setMode("diff");
+      }
     }
   };
 
@@ -348,6 +356,12 @@ function PureArtifact({
                     documents={documents}
                     onVersionChange={(index: number) => {
                       setCurrentVersionIndex(index);
+                      // Auto-switch to diff mode when navigating to an older version
+                      if (index < documents.length - 1) {
+                        setMode("diff");
+                      } else {
+                        setMode("edit");
+                      }
                     }}
                   />
                 )}

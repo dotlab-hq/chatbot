@@ -27,11 +27,15 @@ export {
 // ─── Messages ───────────────────────────────────────────────────────────────
 export {
   deleteMessagesByChatIdAfterTimestamp,
+  getChatTokenUsage,
   getMessageById,
   getMessageCountByUserId,
   getMessagesByChatId,
+  getUserTokenUsage,
+  incrementChatTokenUsage,
   saveMessages,
   updateMessage,
+  updateMessageUsage,
 } from "./messages";
 // ─── Project Files ──────────────────────────────────────────────────────────
 export {
