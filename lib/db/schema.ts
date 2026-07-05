@@ -51,7 +51,6 @@ export const message = chatbot.table("Message_v2", {
   attachments: json("attachments").notNull(),
   createdAt: timestamp("createdAt").notNull(),
   speechKey: text("speechKey").default("").notNull(),
-  piiMap: text("pii_map"),
 });
 
 export type DBMessage = InferSelectModel<typeof message>;
@@ -81,7 +80,7 @@ export const document = chatbot.table(
     createdAt: timestamp("createdAt").notNull(),
     title: text("title").notNull(),
     content: text("content"),
-    kind: varchar("text", { enum: ["text", "code", "image", "sheet", "svg", "html"] })
+    kind: varchar("text", { enum: ["text", "code", "image", "sheet", "svg", "html", "diagram"] })
       .notNull()
       .default("text"),
     userId: text("userId")
@@ -503,33 +502,6 @@ export const chatRelations = relations(chat, ({ one }) => ({
   }),
 }));
 
-// ─── User Key Pair (PII encryption) ────────────────────────────────────────
-
-export const userKeyPair = chatbot.table("UserKeyPair", {
-  id: uuid("id").primaryKey().notNull().defaultRandom(),
-  userId: text("userId")
-    .notNull()
-    .unique()
-    .references(() => user.id, { onDelete: "cascade" }),
-  publicKey: text("public_key").notNull(),
-  encryptedPrivateKey: text("encrypted_private_key").notNull(),
-  keyVersion: integer("key_version").notNull().default(1),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at")
-    .notNull()
-    .defaultNow()
-    .$onUpdate(() => new Date()),
-});
-
-export type UserKeyPair = InferSelectModel<typeof userKeyPair>;
-
-export const userKeyPairRelations = relations(userKeyPair, ({ one }) => ({
-  user: one(user, {
-    fields: [userKeyPair.userId],
-    references: [user.id],
-  }),
-}));
-
 export const userRelations = relations(user, ({ many, one }) => ({
   sessions: many(session),
   accounts: many(account),
@@ -539,5 +511,4 @@ export const userRelations = relations(user, ({ many, one }) => ({
   projects: many(project),
   mcpServers: many(mcpServer),
   personalization: one(personalization),
-  keyPair: one(userKeyPair),
 }));

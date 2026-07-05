@@ -5,6 +5,7 @@ import { sheetDocumentHandler } from "@/artifacts/sheet/server";
 import { htmlDocumentHandler } from "@/artifacts/html/server";
 import { svgDocumentHandler } from "@/artifacts/svg/server";
 import { textDocumentHandler } from "@/artifacts/text/server";
+import { diagramDocumentHandler } from "@/artifacts/diagram/server";
 import type { ArtifactKind } from "@/components/chat/artifact";
 import { saveDocument } from "@/lib/db/queries";
 import type { Document } from "@/lib/db/schema";
@@ -98,6 +99,7 @@ export const documentHandlersByArtifactKind: DocumentHandler[] = [
   sheetDocumentHandler,
   svgDocumentHandler,
   htmlDocumentHandler,
+  diagramDocumentHandler,
 ];
 
-export const artifactKinds = ["text", "code", "sheet", "svg", "html"] as const;
+export const artifactKinds = ["text", "code", "sheet", "svg", "html", "diagram"] as const;

@@ -9,7 +9,6 @@ import {
   type Dispatch,
   type ReactNode,
   type SetStateAction,
-  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -27,7 +26,6 @@ import { DEFAULT_CHAT_MODEL } from "@/lib/ai/models";
 import type { Vote } from "@/lib/db/schema";
 import { ChatbotError } from "@/lib/errors";
 import type { ChatMessage } from "@/lib/types";
-import { getGuard, initGuard } from "@/lib/rampart";
 import { fetcher, fetchWithErrorHandlers, generateUUID } from "@/lib/utils";
 
 type ActiveChatContextValue = {
@@ -41,8 +39,6 @@ type ActiveChatContextValue = {
   addToolApprovalResponse: UseChatHelpers<ChatMessage>["addToolApprovalResponse"];
   input: string;
   setInput: Dispatch<SetStateAction<string>>;
-  setPendingPiiMap: (map: Record<string, string>) => void;
-  emailVerified: boolean;
   visibilityType: VisibilityType;
   isReadonly: boolean;
   isLoading: boolean;
@@ -63,10 +59,8 @@ function extractChatId(pathname: string): string | null {
 
 export function ActiveChatProvider({
   children,
-  emailVerified = false,
 }: {
   children: ReactNode;
-  emailVerified?: boolean;
 }) {
   const pathname = usePathname();
   const { setDataStream } = useDataStream();
@@ -93,8 +87,6 @@ export function ActiveChatProvider({
   const [input, setInput] = useState("");
   const [showCreditCardAlert, setShowCreditCardAlert] = useState(false);
 
-  const pendingPiiMapRef = useRef<Record<string, string> | null>(null);
-
   const [projectId, setProjectId] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
       return new URLSearchParams(window.location.search).get("projectId");
@@ -105,10 +97,6 @@ export function ActiveChatProvider({
   useEffect(() => {
     projectIdRef.current = projectId;
   }, [projectId]);
-  // Eager-load rampart guard so it's ready before the first message
-  useEffect(() => {
-    initGuard(!emailVerified);
-  }, [emailVerified]);
   useEffect(() => {
     if (isNewChat) {
       const params = new URLSearchParams(window.location.search);
@@ -184,11 +172,7 @@ export function ActiveChatProvider({
             id: request.id,
             ...(isToolApprovalContinuation
               ? { messages: request.messages }
-              : {
-                  message: pendingPiiMapRef.current
-                    ? { ...lastMessage, piiMap: pendingPiiMapRef.current }
-                    : lastMessage,
-                }),
+              : { message: lastMessage }),
             selectedChatModel: currentModelIdRef.current,
             selectedVisibilityType: visibility,
             ...(projectIdRef.current ? { projectId: projectIdRef.current } : {}),
@@ -265,20 +249,9 @@ export function ActiveChatProvider({
         "",
         `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/chat/${chatId}`
       );
-      getGuard().then((guard) => {
-        if (!guard) {
-          sendMessage({
-            role: "user" as const,
-            parts: [{ type: "text", text: query }],
-          });
-          return;
-        }
-        guard.protect(query).then((safe) => {
-          sendMessage({
-            role: "user" as const,
-            parts: [{ type: "text", text: safe.text }],
-          });
-        });
+      sendMessage({
+        role: "user" as const,
+        parts: [{ type: "text", text: query }],
       });
     }
   }, [sendMessage, chatId]);
@@ -318,13 +291,6 @@ export function ActiveChatProvider({
     { revalidateOnFocus: false }
   );
 
-  const setPendingPiiMap = useCallback(
-    (map: Record<string, string>) => {
-      pendingPiiMapRef.current = map;
-    },
-    []
-  );
-
   const value = useMemo<ActiveChatContextValue>(
     () => ({
       chatId,
@@ -337,8 +303,6 @@ export function ActiveChatProvider({
       addToolApprovalResponse,
       input,
       setInput,
-      setPendingPiiMap,
-      emailVerified,
       visibilityType: visibility,
       isReadonly,
       isLoading: !isNewChat && isLoading,
@@ -359,7 +323,6 @@ export function ActiveChatProvider({
       regenerate,
       addToolApprovalResponse,
       input,
-      setPendingPiiMap,
       visibility,
       isReadonly,
       isNewChat,

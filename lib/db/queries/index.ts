@@ -1,6 +1,3 @@
-// ─── Users ──────────────────────────────────────────────────────────────────
-export { getUserKeyPair, upsertUserKeyPair } from "./keypair";
-
 // ─── Chats ──────────────────────────────────────────────────────────────────
 export {
   deleteAllChatsByUserId,

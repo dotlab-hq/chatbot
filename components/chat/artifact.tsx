@@ -19,6 +19,7 @@ import { sheetArtifact } from "@/artifacts/sheet/client";
 import { htmlArtifact } from "@/artifacts/html/client";
 import { svgArtifact } from "@/artifacts/svg/client";
 import { textArtifact } from "@/artifacts/text/client";
+import { diagramArtifact } from "@/artifacts/diagram/client";
 import { ArtifactActions } from "@/components/chat/artifact-actions";
 import { ArtifactCloseButton } from "@/components/chat/artifact-close-button";
 import { LoaderIcon } from "@/components/chat/icons";
@@ -38,6 +39,7 @@ export const artifactDefinitions = [
   sheetArtifact,
   svgArtifact,
   htmlArtifact,
+  diagramArtifact,
 ];
 export type ArtifactKind = (typeof artifactDefinitions)[number]["kind"];
 

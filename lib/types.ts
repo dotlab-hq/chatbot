@@ -49,6 +49,7 @@ export type CustomUIDataTypes = {
   codeDelta: string;
   svgDelta: string;
   htmlDelta: string;
+  diagramDelta: string;
   suggestion: Suggestion;
   appendMessage: string;
   id: string;

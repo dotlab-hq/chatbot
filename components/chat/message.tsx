@@ -27,9 +27,6 @@ import { LocalTime } from "@/components/chat/local-time";
 import { Timer } from "@/components/chat/timer";
 import { UnitConverter } from "@/components/chat/unit-converter";
 import { Weather } from "@/components/chat/weather";
-import { getGuardSync } from "@/lib/rampart";
-import { getPiiMap } from "@/lib/pii-store";
-import { PLACEHOLDER_PATTERN } from "@nationaldesignstudio/rampart";
 import type { Vote } from "@/lib/db/schema";
 import type { ChatMessage } from "@/lib/types";
 import { cn, sanitizeText } from "@/lib/utils";
@@ -144,18 +141,7 @@ const PurePreviewMessage = ({
           data-testid="message-content"
           key={key}
         >
-          <MessageResponse>{(() => {
-            const cleaned = sanitizeText(part.text);
-            // First try the guard's session table (newly sent messages)
-            const g = getGuardSync();
-            const text = g ? g.reveal(cleaned) : cleaned;
-            // If placeholders remain, resolve from the PII store (loaded messages)
-            const pii = getPiiMap();
-            if (Object.keys(pii).length > 0) {
-              return text.replace(PLACEHOLDER_PATTERN, (match) => pii[match] ?? match);
-            }
-            return text;
-          })()}</MessageResponse>
+          <MessageResponse>{sanitizeText(part.text)}</MessageResponse>
         </MessageContent>
       );
     }

@@ -50,6 +50,13 @@
       "when": 1783230610102,
       "tag": "0006_tiny_morlocks",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1783245899037,
+      "tag": "0007_bumpy_maddog",
+      "breakpoints": true
     }
   ]
 }

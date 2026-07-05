@@ -1,7 +1,5 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { encryptPiiMap, importPublicKey } from "@/lib/crypto";
-import { getUserKeyPair } from "@/lib/db/queries/keypair";
 import { geolocation, ipAddress } from "@vercel/functions";
 import {
   convertToModelMessages,
@@ -233,19 +231,6 @@ export async function POST(request: Request) {
     };
 
     if (message?.role === "user") {
-      let encryptedPiiMap: string | null = null;
-      if (message.piiMap && Object.keys(message.piiMap).length > 0) {
-        try {
-          const kp = await getUserKeyPair({ userId: session.user.id });
-          if (kp) {
-            const publicKey = await importPublicKey(kp.publicKey);
-            encryptedPiiMap = await encryptPiiMap(message.piiMap, publicKey);
-          }
-        } catch {
-          // non-critical: message still saves, just without encrypted piiMap
-        }
-      }
-
       await saveMessages({
         messages: [
           {
@@ -256,7 +241,6 @@ export async function POST(request: Request) {
             attachments: [],
             createdAt: new Date(),
             speechKey: "",
-            piiMap: encryptedPiiMap,
           },
         ],
       });
@@ -438,7 +422,6 @@ export async function POST(request: Request) {
                     attachments: [],
                     chatId: id,
                     speechKey: "",
-                    piiMap: null,
                   },
                 ],
               });
@@ -454,7 +437,6 @@ export async function POST(request: Request) {
               attachments: [],
               chatId: id,
               speechKey: "",
-              piiMap: null,
             })),
           });
         }

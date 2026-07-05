@@ -68,8 +68,6 @@ export function sanitizeText(text: string) {
   return text.replace('<has_function_call>', '');
 }
 
-type ChatMessageWithPii = ChatMessage & { piiMap?: Record<string, string> | null };
-
 export function convertToUIMessages(messages: DBMessage[]): ChatMessage[] {
   return messages.map((message) => ({
     id: message.id,
@@ -78,8 +76,7 @@ export function convertToUIMessages(messages: DBMessage[]): ChatMessage[] {
     metadata: {
       createdAt: formatISO(message.createdAt),
     },
-    piiMap: (message.piiMap as Record<string, string> | null) ?? null,
-  })) as ChatMessageWithPii[];
+    })) as ChatMessage[];
 }
 
 export function getTextFromMessage(message: ChatMessage | UIMessage): string {

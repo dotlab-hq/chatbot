@@ -23,18 +23,6 @@ import {
   useArtifact,
   useArtifactSelector,
 } from "@/hooks/use-artifact";
-import { PiiDecryptor } from "@/components/chat/pii-decryptor";
-import {
-  CreateKeyPairDialog,
-  UnlockKeyPairDialog,
-} from "@/components/chat/keypair-dialog";
-import {
-  checkKeypair,
-  createKeyPair,
-  unlockKeyPair,
-  getKeystate,
-  subscribeKeystate,
-} from "@/lib/keypair-state";
 import type { Attachment, ChatMessage } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -50,8 +38,6 @@ export function ChatShell() {
     addToolApprovalResponse,
     input,
     setInput,
-    setPendingPiiMap,
-    emailVerified,
     visibilityType,
     isReadonly,
     isLoading,
@@ -67,14 +53,6 @@ export function ChatShell() {
   );
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const isArtifactVisible = useArtifactSelector((state) => state.isVisible);
-  const [keyPairState, setKeyPairState] = useState(getKeystate);
-
-  useEffect(() => {
-    if (emailVerified) {
-      checkKeypair();
-    }
-    return subscribeKeystate(() => setKeyPairState(getKeystate()));
-  }, [emailVerified]);
   const { setArtifact, metadata } = useArtifact();
 
   const stopRef = useRef(stop);
@@ -165,7 +143,6 @@ export function ChatShell() {
                   setAttachments={setAttachments}
                   setInput={setInput}
                   setMessages={setMessages}
-                  setPendingPiiMap={setPendingPiiMap}
                   status={status}
                   stop={stop}
                 />
@@ -195,7 +172,6 @@ export function ChatShell() {
       </div>
 
       <DataStreamHandler />
-      <PiiDecryptor messages={messages} />
 
       <AlertDialog
         onOpenChange={setShowCreditCardAlert}
@@ -227,18 +203,6 @@ export function ChatShell() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {emailVerified && (
-        <>
-          <CreateKeyPairDialog
-            open={keyPairState === "none"}
-            onSubmit={createKeyPair}
-          />
-          <UnlockKeyPairDialog
-            open={keyPairState === "locked"}
-            onSubmit={unlockKeyPair}
-          />
-        </>
-      )}
     </>
   );
 }
