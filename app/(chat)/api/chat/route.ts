@@ -79,7 +79,7 @@ import { checkIpRateLimit } from "@/lib/ratelimit";
 import type { ChatMessage } from "@/lib/types";
 import { convertToUIMessages, generateUUID } from "@/lib/utils";
 
-export const maxDuration = 60;
+export const maxDuration = 1800;
 
 function getStreamContext() {
   try {
