@@ -185,19 +185,17 @@ export async function searchMemories(params: {
 }): Promise<MemorySearchResult[]> {
   await ensureIndexes();
 
-  const { userId, chatId, tier, query, embedding, maxResults = 10, projectId } = params;
+  const { userId, tier, query, embedding, maxResults = 10, projectId } = params;
   const coll = getCollection(tier);
 
-  // For session and scratchpad, scope to the current chat
-  // For semantic, procedural, episodic, scope to the user (cross-chat)
-  const isUserScoped = ["semantic", "procedural", "episodic"].includes(tier);
+  // All tiers are now user-scoped for search — only filter by userId + tier.
+  // chatId is stored on save for organizational/TTL purposes but does not
+  // gate retrieval so that session/scratchpad memories from other chats
+  // can still be recalled.
+  const matchStage: Document = { userId, tier };
 
-  const matchStage: Document = isUserScoped
-    ? { userId, tier }
-    : { userId, chatId, tier };
-
-  // If projectId is provided and tier is user-scoped, also filter by projectId
-  if (isUserScoped && projectId) {
+  // If projectId is provided, also filter by projectId
+  if (projectId) {
     matchStage.projectId = projectId;
   }
 
@@ -294,23 +292,16 @@ export async function listMemories(params: {
 }): Promise<MemoryEntry[]> {
   await ensureIndexes();
 
-  const { userId, chatId, tier, limit = 50, projectId } = params;
+  const { userId, tier, limit = 50, projectId } = params;
   const coll = getCollection(tier || "semantic");
 
-  // listMemories: only use userId for user-scoped tiers (semantic, procedural, episodic)
-  // Chat-scoped tiers (session, scratchpad) need chatId filtering
-  const isUserScoped = ["semantic", "procedural", "episodic"].includes(
-    tier || "semantic"
-  );
-
+  // All tiers are user-scoped for listing — only filter by userId.
+  // chatId is stored on the document for provenance but does not restrict listing.
   const filter: Document = { userId };
-  if (!isUserScoped && chatId) {
-    filter.chatId = chatId;
-  }
   if (tier) {
     filter.tier = tier;
   }
-  if (isUserScoped && projectId) {
+  if (projectId) {
     filter.projectId = projectId;
   }
 
@@ -383,7 +374,7 @@ export async function clearMemories(params: {
 }): Promise<number> {
   await ensureIndexes();
 
-  const { userId, chatId, tier, projectId } = params;
+  const { userId, tier, projectId } = params;
 
   const tiers: MemoryTier[] = tier
     ? [tier]
@@ -393,13 +384,9 @@ export async function clearMemories(params: {
   for (const t of tiers) {
     const coll = getCollection(t);
 
-    // User-scoped tiers are cross-chat — only scope by userId
-    const isUserScoped = ["semantic", "procedural", "episodic"].includes(t);
+    // All tiers are user-scoped for clearing — only scope by userId.
     const filter: Document = { userId };
-    if (!isUserScoped && chatId) {
-      filter.chatId = chatId;
-    }
-    if (isUserScoped && projectId) {
+    if (projectId) {
       filter.projectId = projectId;
     }
 
