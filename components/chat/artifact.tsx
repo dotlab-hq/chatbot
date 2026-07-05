@@ -58,7 +58,7 @@ export type UIArtifact = {
 
 function PureArtifact({
   addToolApprovalResponse: _addToolApprovalResponse,
-  chatId: _chatId,
+  chatId,
   input: _input,
   setInput: _setInput,
   status,
@@ -99,7 +99,7 @@ function PureArtifact({
     mutate: mutateDocuments,
   } = useSWR<Document[]>(
     artifact.documentId !== "init" && artifact.status !== "streaming"
-      ? `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/document?id=${artifact.documentId}`
+      ? `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/document?id=${artifact.documentId}&chatId=${chatId}`
       : null,
     fetcher
   );
@@ -158,7 +158,7 @@ function PureArtifact({
       }
 
       mutate<Document[]>(
-        `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/document?id=${artifact.documentId}`,
+        `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/document?id=${artifact.documentId}&chatId=${chatId}`,
         async (currentDocuments) => {
           if (!currentDocuments) {
             return [];
@@ -177,7 +177,7 @@ function PureArtifact({
           }
 
           await fetch(
-            `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/document?id=${artifact.documentId}`,
+            `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/document?id=${artifact.documentId}&chatId=${chatId}`,
             {
               method: "POST",
               body: JSON.stringify({
@@ -382,36 +382,36 @@ function PureArtifact({
           suggestions={[]}
           title={artifact.title}
         />
-        <AnimatePresence>
-          {isCurrentVersion && (
-            <Toolbar
-              artifactActions={
-                <ArtifactActions
-                  artifact={artifact}
-                  currentVersionIndex={currentVersionIndex}
-                  handleVersionChange={handleVersionChange}
-                  isCurrentVersion={isCurrentVersion}
-                  metadata={metadata}
-                  mode={mode}
-                  setMetadata={setMetadata}
-                />
-              }
-              artifactKind={artifact.kind}
-              consoleError={consoleError}
-              documentId={artifact.documentId}
-              isToolbarVisible={isToolbarVisible}
-              onClose={() => {
-                setArtifact((prev) => ({ ...prev, isVisible: false }));
-              }}
-              sendMessage={sendMessage}
-              setIsToolbarVisible={setIsToolbarVisible}
-              setMessages={setMessages}
-              status={status}
-              stop={stop}
-            />
-          )}
-        </AnimatePresence>
       </div>
+      <AnimatePresence>
+        {isCurrentVersion && (
+          <Toolbar
+            artifactActions={
+              <ArtifactActions
+                artifact={artifact}
+                currentVersionIndex={currentVersionIndex}
+                handleVersionChange={handleVersionChange}
+                isCurrentVersion={isCurrentVersion}
+                metadata={metadata}
+                mode={mode}
+                setMetadata={setMetadata}
+              />
+            }
+            artifactKind={artifact.kind}
+            consoleError={consoleError}
+            documentId={artifact.documentId}
+            isToolbarVisible={isToolbarVisible}
+            onClose={() => {
+              setArtifact((prev) => ({ ...prev, isVisible: false }));
+            }}
+            sendMessage={sendMessage}
+            setIsToolbarVisible={setIsToolbarVisible}
+            setMessages={setMessages}
+            status={status}
+            stop={stop}
+          />
+        )}
+      </AnimatePresence>
       <AnimatePresence>
         {!isCurrentVersion && (
           <VersionFooter

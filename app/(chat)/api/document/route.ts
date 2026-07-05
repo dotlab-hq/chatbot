@@ -7,18 +7,20 @@ import {
   saveDocument,
   updateDocumentContent,
 } from "@/lib/db/queries";
+import { getChatById } from "@/lib/db/queries/chats";
 import { ChatbotError } from "@/lib/errors";
 
 const documentSchema = z.object({
   content: z.string(),
   title: z.string(),
-  kind: z.enum(["text", "code", "image", "sheet"]),
+  kind: z.enum(["text", "code", "image", "sheet", "svg", "html"]),
   isManualEdit: z.boolean().optional(),
 });
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
+  const chatId = searchParams.get("chatId");
 
   if (!id) {
     return new ChatbotError(
@@ -42,6 +44,12 @@ export async function GET(request: Request) {
   }
 
   if (document.userId !== session.user.id) {
+    if (chatId) {
+      const chat = await getChatById({ id: chatId });
+      if (chat && chat.visibility === "public") {
+        return Response.json(documents, { status: 200 });
+      }
+    }
     return new ChatbotError("forbidden:document").toResponse();
   }
 
