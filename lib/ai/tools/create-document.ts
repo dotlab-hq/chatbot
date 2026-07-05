@@ -21,7 +21,7 @@ export const createDocument = ({
 }: CreateDocumentProps) =>
   tool({
     description:
-      "Create an artifact. You MUST specify kind: use 'code' for any programming/algorithm request (creates a script), 'text' for essays/writing (creates a document), 'sheet' for spreadsheets/data, 'svg' for graphics/diagrams/icons/logos.",
+      "Create an artifact. You MUST specify kind: use 'code' for any programming/algorithm request (creates a script), 'text' for essays/writing (creates a document), 'sheet' for spreadsheets/data, 'svg' for graphics/diagrams/icons/logos, 'html' for HTML pages/landing pages/web components/forms/UI using Tailwind CSS.",
     inputSchema: z.object({
       title: z.string().describe("The title of the artifact"),
       kind: z

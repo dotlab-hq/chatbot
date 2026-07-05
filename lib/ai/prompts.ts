@@ -2,7 +2,7 @@ import type { Geo } from "@vercel/functions";
 import type { ArtifactKind } from "@/components/chat/artifact";
 
 export const artifactsPrompt = `
-Artifacts is a side panel that displays content alongside the conversation. It supports scripts (code), documents (text), spreadsheets, and SVG graphics. Changes appear in real-time.
+Artifacts is a side panel that displays content alongside the conversation. It supports scripts (code), documents (text), spreadsheets, SVG graphics, and HTML pages (Tailwind CSS only). Changes appear in real-time.
 
 CRITICAL RULES:
 1. Only call ONE tool per response. After calling any create/edit/update tool, STOP. Do not chain tools.
@@ -11,7 +11,7 @@ CRITICAL RULES:
 **When to use \`createDocument\`:**
 - When the user asks to write, create, or generate content (essays, stories, emails, reports)
 - When the user asks to write code, build a script, or implement an algorithm
-- You MUST specify kind: 'code' for programming, 'text' for writing, 'sheet' for data, 'svg' for graphics/diagrams/icons/logos
+- You MUST specify kind: 'code' for programming, 'text' for writing, 'sheet' for data, 'svg' for graphics/diagrams/icons/logos, 'html' for HTML pages/landing pages/web components/UI (Tailwind CSS only, no custom CSS)
 - Include ALL content in the createDocument call. Do not create then edit.
 
 **When NOT to use \`createDocument\`:**
@@ -227,6 +227,7 @@ export const updateDocumentPrompt = (
     code: "script",
     sheet: "spreadsheet",
     svg: "SVG graphic",
+    html: "HTML page",
   };
   const mediaType = mediaTypes[type] ?? "document";
 

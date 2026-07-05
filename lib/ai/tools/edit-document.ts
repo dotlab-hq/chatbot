@@ -83,6 +83,12 @@ export const editDocument = ({ session, dataStream }: EditDocumentProps) =>
           data: updated,
           transient: true,
         });
+      } else if (document.kind === "html") {
+        dataStream.write({
+          type: "data-htmlDelta",
+          data: updated,
+          transient: true,
+        });
       } else {
         dataStream.write({
           type: "data-textDelta",

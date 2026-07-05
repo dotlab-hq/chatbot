@@ -1,28 +1,64 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { CodeIcon, PlayIcon, MaximizeIcon, MinimizeIcon, FileIcon } from "lucide-react";
 import { CodeBlockContent } from "@/components/ai-elements/code-block";
 import { LoaderIcon } from "@/components/chat/icons";
 import { cn } from "@/lib/utils";
 
-type SvgEditorProps = {
+type HtmlEditorProps = {
   title: string;
   content: string;
   isCurrentVersion: boolean;
   currentVersionIndex: number;
   status: string;
   isInline: boolean;
+  metadata?: Record<string, unknown>;
+  setMetadata?: (updater: (prev: Record<string, unknown>) => Record<string, unknown>) => void;
 };
 
-export function SvgEditor({
+const TAILWIND_CDN = `https://cdn.tailwindcss.com`;
+const TAILWIND_SETUP = `<script src="${TAILWIND_CDN}"></script>`;
+
+function buildPreviewHtml(raw: string): string {
+  const hasDoctype = /^\s*<!doctype/i.test(raw);
+  const hasHtmlTag = /<html[\s>]/i.test(raw);
+  const hasHead = /<head[\s>]/i.test(raw);
+  const hasTailwind = /cdn\.tailwindcss\.com/.test(raw);
+
+  if (hasDoctype && hasHtmlTag) {
+    if (hasTailwind) return raw;
+    if (hasHead) {
+      return raw.replace(/<head(\s[^>]*)?>/, `<head$1>${TAILWIND_SETUP}`);
+    }
+    return raw.replace(/<html(\s[^>]*)?>/, `<html$1><head>${TAILWIND_SETUP}</head>`);
+  }
+
+  if (hasHead) {
+    const withTailwind = hasTailwind
+      ? raw
+      : raw.replace(/<head(\s[^>]*)?>/, `<head$1>${TAILWIND_SETUP}`);
+    return `<!DOCTYPE html><html lang="en">${withTailwind}</html>`;
+  }
+
+  const tailwind = hasTailwind ? "" : TAILWIND_SETUP;
+  return `<!DOCTYPE html><html lang="en"><head>${tailwind}<meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body class="min-h-screen p-4">${raw}</body></html>`;
+}
+
+export function HtmlEditor({
   title,
   content,
   status,
-  isInline,
-}: SvgEditorProps) {
+  metadata,
+  setMetadata,
+}: HtmlEditorProps) {
   const [view, setView] = useState<"preview" | "code">("preview");
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const isFullscreen = metadata?.htmlFullscreen === true;
+
+  const toggleFullscreen = useCallback(() => {
+    if (!setMetadata) return;
+    setMetadata((prev) => ({ ...prev, htmlFullscreen: !prev?.htmlFullscreen }));
+  }, [setMetadata]);
 
   if (status === "streaming" && !content) {
     return (
@@ -30,18 +66,18 @@ export function SvgEditor({
         <div className="animate-spin">
           <LoaderIcon />
         </div>
-        <div>Generating SVG...</div>
+        <div>Generating HTML...</div>
       </div>
     );
   }
 
   return (
-    <div className={cn("flex flex-col", isFullscreen && "fixed inset-0 z-50 bg-background")}>
+    <div className={cn("flex h-full flex-col", isFullscreen && "fixed inset-0 z-[100] bg-background")}>
       {/* Header bar */}
       <div className="flex items-center justify-between border-b border-border/50 px-4 py-2">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <FileIcon size={14} />
-          <span className="font-medium">SVG</span>
+          <span className="font-medium">HTML</span>
         </div>
         <div className="flex items-center gap-1">
           <button
@@ -72,7 +108,7 @@ export function SvgEditor({
           </button>
           <button
             className="rounded-md p-1.5 text-muted-foreground transition-colors hover:text-foreground"
-            onClick={() => setIsFullscreen(!isFullscreen)}
+            onClick={toggleFullscreen}
             title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
             type="button"
           >
@@ -84,17 +120,19 @@ export function SvgEditor({
       {/* Content */}
       {view === "code" ? (
         <div className="flex-1 overflow-auto">
-          <CodeBlockContent code={content} language="xml" showLineNumbers />
+          <CodeBlockContent code={content} language="html" showLineNumbers />
         </div>
       ) : (
-        <div className="flex flex-1 items-center justify-center p-8">
+        <div className="flex h-full flex-1 items-center justify-center">
           {content ? (
-            <div
-              className="h-full w-full [&>svg]:h-full [&>svg]:w-full"
-              dangerouslySetInnerHTML={{ __html: content }}
+            <iframe
+              srcDoc={buildPreviewHtml(content)}
+              title={title}
+              className="h-full w-full border-0"
+              sandbox="allow-scripts"
             />
           ) : (
-            <div className="text-sm text-muted-foreground">No SVG content</div>
+            <div className="text-sm text-muted-foreground">No HTML content</div>
           )}
         </div>
       )}

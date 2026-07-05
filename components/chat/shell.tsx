@@ -75,7 +75,7 @@ export function ChatShell() {
     }
     return subscribeKeystate(() => setKeyPairState(getKeystate()));
   }, [emailVerified]);
-  const { setArtifact } = useArtifact();
+  const { setArtifact, metadata } = useArtifact();
 
   const stopRef = useRef(stop);
   stopRef.current = stop;
@@ -97,7 +97,8 @@ export function ChatShell() {
         <div
           className={cn(
             "flex min-w-0 flex-col bg-sidebar transition-[width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
-            isArtifactVisible ? "w-[40%]" : "w-full"
+            isArtifactVisible && !metadata?.htmlFullscreen ? "w-[40%]" : "w-full",
+            metadata?.htmlFullscreen && "hidden"
           )}
         >
           <ChatHeader

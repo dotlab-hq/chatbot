@@ -16,6 +16,7 @@ import { useWindowSize } from "usehooks-ts";
 import { codeArtifact } from "@/artifacts/code/client";
 import { imageArtifact } from "@/artifacts/image/client";
 import { sheetArtifact } from "@/artifacts/sheet/client";
+import { htmlArtifact } from "@/artifacts/html/client";
 import { svgArtifact } from "@/artifacts/svg/client";
 import { textArtifact } from "@/artifacts/text/client";
 import { ArtifactActions } from "@/components/chat/artifact-actions";
@@ -28,7 +29,7 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { useArtifact } from "@/hooks/use-artifact";
 import type { Document, Vote } from "@/lib/db/schema";
 import type { Attachment, ChatMessage } from "@/lib/types";
-import { fetcher } from "@/lib/utils";
+import { cn, fetcher } from "@/lib/utils";
 
 export const artifactDefinitions = [
   textArtifact,
@@ -36,6 +37,7 @@ export const artifactDefinitions = [
   imageArtifact,
   sheetArtifact,
   svgArtifact,
+  htmlArtifact,
 ];
 export type ArtifactKind = (typeof artifactDefinitions)[number]["kind"];
 
@@ -455,7 +457,10 @@ function PureArtifact({
 
   return (
     <div
-      className="flex h-dvh w-[60%] shrink-0 flex-col overflow-hidden border-l border-border/50 bg-sidebar transition-[width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]"
+      className={cn(
+        "flex h-dvh shrink-0 flex-col overflow-hidden border-l border-border/50 bg-sidebar transition-[width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
+        metadata?.htmlFullscreen ? "w-full" : "w-[60%]"
+      )}
       data-testid="artifact"
     >
       {artifactPanel}
