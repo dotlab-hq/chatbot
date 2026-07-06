@@ -7,7 +7,25 @@ import { nextCookies } from "better-auth/next-js";
 import { admin, organization } from "better-auth/plugins";
 import { headers } from "next/headers";
 import { db } from "@/lib/db";
-import * as schema from "@/lib/db/schema";
+import {
+  account,
+  invitation,
+  member,
+  organization as orgTable,
+  session,
+  user,
+  verification,
+} from "@/lib/db/schema";
+
+const schema = {
+  user,
+  session,
+  account,
+  verification,
+  organization: orgTable,
+  member,
+  invitation,
+};
 
 export type UserType = "guest" | "regular";
 

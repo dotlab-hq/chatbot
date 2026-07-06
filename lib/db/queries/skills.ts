@@ -216,7 +216,7 @@ export async function toggleUserSkill({
 }: {
   userId: string;
   skillId: string;
-  isEnabled: boolean;
+  isEnabled?: boolean;
 }): Promise<UserSkill> {
   try {
     // Check if the user-skill record already exists
@@ -225,10 +225,12 @@ export async function toggleUserSkill({
       .from(userSkill)
       .where(and(eq(userSkill.userId, userId), eq(userSkill.skillId, skillId)));
 
+    const newValue = isEnabled ?? !existing?.isEnabled;
+
     if (existing) {
       const [updated] = await db
         .update(userSkill)
-        .set({ isEnabled, updatedAt: new Date() })
+        .set({ isEnabled: newValue, updatedAt: new Date() })
         .where(
           and(eq(userSkill.userId, userId), eq(userSkill.skillId, skillId))
         )
@@ -238,7 +240,7 @@ export async function toggleUserSkill({
 
     const [created] = await db
       .insert(userSkill)
-      .values({ userId, skillId, isEnabled })
+      .values({ userId, skillId, isEnabled: newValue })
       .returning();
     return created;
   } catch (_error) {

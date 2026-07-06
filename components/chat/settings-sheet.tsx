@@ -20,9 +20,12 @@ import {
   UserRoundPenIcon,
   XIcon,
 } from "lucide-react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { GeneralTab } from "@/components/chat/general-tab";
+import { PersonalizationTab } from "@/components/chat/personalize-tab";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -67,8 +70,6 @@ import {
 } from "@/components/ui/sidebar";
 import { Textarea } from "@/components/ui/textarea";
 import { authClient, useSession } from "@/lib/auth-client";
-import { GeneralTab } from "@/components/chat/general-tab";
-import { PersonalizationTab } from "@/components/chat/personalize-tab";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -135,14 +136,20 @@ export function SettingsSheet({ open, onOpenChange, tab }: SettingsSheetProps) {
           Manage your account, projects, and integrations.
         </DialogDescription>
         <SidebarProvider className="min-h-0 h-full items-stretch">
-          <InnerSettings onClose={() => onOpenChange(false)} initialTab={tab} />
+          <InnerSettings initialTab={tab} onClose={() => onOpenChange(false)} />
         </SidebarProvider>
       </DialogContent>
     </Dialog>
   );
 }
 
-function InnerSettings({ onClose, initialTab }: { onClose: () => void; initialTab?: TabId }) {
+function InnerSettings({
+  onClose,
+  initialTab,
+}: {
+  onClose: () => void;
+  initialTab?: TabId;
+}) {
   const [activeTab, setActiveTab] = useState<TabId>(initialTab ?? "account");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
@@ -265,7 +272,11 @@ function UserAvatar({
   size = "md",
   className = "",
 }: {
-  user?: { name?: string | null; email?: string | null; image?: string | null } | null;
+  user?: {
+    name?: string | null;
+    email?: string | null;
+    image?: string | null;
+  } | null;
   size?: "sm" | "md" | "lg";
   className?: string;
 }) {
@@ -284,19 +295,28 @@ function UserAvatar({
 
   if (user?.image) {
     return (
-      <img
+      <Image
         alt="Avatar"
         className={`${sizeClasses[size]} rounded-full object-cover ring-1 ring-border/50 shrink-0 ${className}`}
+        height={80}
         src={user.image}
+        unoptimized
+        width={80}
       />
     );
   }
 
-  const textSize = size === "sm" ? "text-xs" : size === "lg" ? "text-2xl" : "text-sm";
+  const textSize =
+    size === "sm" ? "text-xs" : size === "lg" ? "text-2xl" : "text-sm";
   return (
     <div
-      className={`${sizeClasses[size]} flex items-center justify-center rounded-full ${textSize} font-semibold text-white shrink-0 ${className}`}
-      style={{ background: `linear-gradient(135deg, hsl(${hue},70%,50%), hsl(${(hue + 30) % 360},60%,40%))` }}
+      className={`${sizeClasses[size]} flex items-center justify-center rounded-full ${textSize} font-semibold text-white shrink-0 ${className} avatar-gradient`}
+      style={
+        {
+          "--avatar-hue": hue,
+          "--avatar-hue-offset": (hue + 30) % 360,
+        } as React.CSSProperties
+      }
     >
       {initials}
     </div>
@@ -352,7 +372,9 @@ function AccountTab() {
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      return;
+    }
 
     setUploadingAvatar(true);
     try {
@@ -368,7 +390,9 @@ function AccountTab() {
       toast.error("Failed to upload avatar");
     } finally {
       setUploadingAvatar(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   };
 
@@ -379,7 +403,9 @@ function AccountTab() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ image: null }),
       });
-      if (!r.ok) throw new Error("Failed to remove avatar");
+      if (!r.ok) {
+        throw new Error("Failed to remove avatar");
+      }
       toast.success("Avatar removed");
       await session?.refetch();
     } catch {
@@ -392,18 +418,25 @@ function AccountTab() {
       {/* Profile card */}
       <section className="rounded-lg border border-border bg-card p-3 md:p-4">
         <div className="flex items-center gap-3">
-          <UserAvatar user={user} size="md" />
+          <UserAvatar size="md" user={user} />
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium leading-tight truncate">
               {user?.name ?? "Unnamed"}
             </p>
-            <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+            <p className="text-xs text-muted-foreground truncate">
+              {user?.email}
+            </p>
             <p className="text-[10px] text-muted-foreground/70 mt-0.5">
               Member since{" "}
               {new Date(user?.createdAt ?? Date.now()).toLocaleDateString()}
             </p>
           </div>
-          <Button className="shrink-0 h-7 text-xs gap-1" onClick={openEdit} size="sm" variant="outline">
+          <Button
+            className="shrink-0 h-7 text-xs gap-1"
+            onClick={openEdit}
+            size="sm"
+            variant="outline"
+          >
             Edit Profile
           </Button>
         </div>
@@ -452,12 +485,12 @@ function AccountTab() {
             {/* Avatar section */}
             <div className="flex items-center gap-3">
               <div className="relative group">
-                <UserAvatar user={user} size="lg" />
+                <UserAvatar size="lg" user={user} />
                 <button
                   className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 transition-opacity group-hover:opacity-100"
+                  disabled={uploadingAvatar}
                   onClick={() => fileInputRef.current?.click()}
                   type="button"
-                  disabled={uploadingAvatar}
                 >
                   {uploadingAvatar ? (
                     <LoaderIcon className="size-5 text-white animate-spin" />
@@ -469,6 +502,7 @@ function AccountTab() {
               <div className="flex flex-col gap-1">
                 <input
                   accept="image/jpeg,image/png,image/webp,image/gif"
+                  aria-label="Upload avatar image"
                   className="hidden"
                   onChange={handleAvatarUpload}
                   ref={fileInputRef}
@@ -476,11 +510,11 @@ function AccountTab() {
                 />
                 <Button
                   className="h-7 text-xs gap-1"
+                  disabled={uploadingAvatar}
                   onClick={() => fileInputRef.current?.click()}
                   size="sm"
                   type="button"
                   variant="outline"
-                  disabled={uploadingAvatar}
                 >
                   {uploadingAvatar ? (
                     <LoaderIcon className="size-3 animate-spin" />
@@ -527,7 +561,11 @@ function AccountTab() {
               />
             </div>
             <CreateDialogFooter>
-              <Button onClick={() => setShowEdit(false)} type="button" variant="ghost">
+              <Button
+                onClick={() => setShowEdit(false)}
+                type="button"
+                variant="ghost"
+              >
                 Cancel
               </Button>
               <Button disabled={saving} type="submit">

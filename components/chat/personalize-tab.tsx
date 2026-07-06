@@ -35,12 +35,20 @@ const KEYS = {
 } as const;
 
 function readLocal(): Settings {
-  if (typeof window === "undefined") return DEFAULTS;
+  if (typeof window === "undefined") {
+    return DEFAULTS;
+  }
   return {
-    theme: localStorage.getItem(KEYS.theme) as Settings["theme"] || DEFAULTS.theme,
-    font: localStorage.getItem(KEYS.font) as Settings["font"] || DEFAULTS.font,
-    fontSize: localStorage.getItem(KEYS.fontSize) as Settings["fontSize"] || DEFAULTS.fontSize,
-    spacing: localStorage.getItem(KEYS.spacing) as Settings["spacing"] || DEFAULTS.spacing,
+    theme:
+      (localStorage.getItem(KEYS.theme) as Settings["theme"]) || DEFAULTS.theme,
+    font:
+      (localStorage.getItem(KEYS.font) as Settings["font"]) || DEFAULTS.font,
+    fontSize:
+      (localStorage.getItem(KEYS.fontSize) as Settings["fontSize"]) ||
+      DEFAULTS.fontSize,
+    spacing:
+      (localStorage.getItem(KEYS.spacing) as Settings["spacing"]) ||
+      DEFAULTS.spacing,
     showAvatars: localStorage.getItem(KEYS.showAvatars) === "1",
   };
 }
@@ -54,7 +62,9 @@ function writeLocal(s: Settings) {
 }
 
 function clearLocal() {
-  Object.values(KEYS).forEach((k) => localStorage.removeItem(k));
+  for (const k of Object.values(KEYS)) {
+    localStorage.removeItem(k);
+  }
 }
 
 // ─── Apply settings to DOM ──────────────────────────────────────────────────
@@ -73,10 +83,19 @@ function applyToDOM(s: Settings) {
 
   // Font size, spacing, avatars — on wrapper so dialogs stay unaffected
   if (wrapper) {
-    wrapper.classList.remove("text-size-s", "text-size-m", "text-size-l", "text-size-xl");
+    wrapper.classList.remove(
+      "text-size-s",
+      "text-size-m",
+      "text-size-l",
+      "text-size-xl"
+    );
     wrapper.classList.add(`text-size-${s.fontSize}`);
 
-    wrapper.classList.remove("spacing-compact", "spacing-cozy", "spacing-roomy");
+    wrapper.classList.remove(
+      "spacing-compact",
+      "spacing-cozy",
+      "spacing-roomy"
+    );
     wrapper.classList.add(`spacing-${s.spacing}`);
 
     wrapper.classList.toggle("hide-avatars", !s.showAvatars);
@@ -87,14 +106,25 @@ function clearDOM() {
   const root = document.documentElement;
   const wrapper = document.getElementById("personalize-root");
 
-  root.classList.remove("theme-modern", "theme-company", "font-sora", "font-onest", "font-reddit-mono");
+  root.classList.remove(
+    "theme-modern",
+    "theme-company",
+    "font-sora",
+    "font-onest",
+    "font-reddit-mono"
+  );
   root.classList.add("theme-modern", "font-sora");
 
   if (wrapper) {
     wrapper.classList.remove(
-      "text-size-s", "text-size-m", "text-size-l", "text-size-xl",
-      "spacing-compact", "spacing-cozy", "spacing-roomy",
-      "hide-avatars",
+      "text-size-s",
+      "text-size-m",
+      "text-size-l",
+      "text-size-xl",
+      "spacing-compact",
+      "spacing-cozy",
+      "spacing-roomy",
+      "hide-avatars"
     );
     wrapper.classList.add("text-size-m", "spacing-compact");
   }
@@ -104,7 +134,9 @@ function clearDOM() {
 
 async function fetchSettings(): Promise<Settings> {
   const r = await fetch("/api/user/personalization");
-  if (!r.ok) return DEFAULTS;
+  if (!r.ok) {
+    return DEFAULTS;
+  }
   const data = (await r.json()) as { settings: Settings };
   return { ...DEFAULTS, ...data.settings };
 }
@@ -119,7 +151,9 @@ async function saveSettings(s: Settings): Promise<void> {
 
 async function resetSettings(): Promise<Settings> {
   const r = await fetch("/api/user/personalization", { method: "DELETE" });
-  if (!r.ok) return DEFAULTS;
+  if (!r.ok) {
+    return DEFAULTS;
+  }
   const data = (await r.json()) as { settings: Settings };
   return { ...DEFAULTS, ...data.settings };
 }
@@ -166,16 +200,19 @@ export function PersonalizationTab() {
     let cancelled = false;
     (async () => {
       const dbSettings = await fetchSettings();
-      if (cancelled) return;
+      if (cancelled) {
+        return;
+      }
 
       // Merge: if DB has defaults, check if localStorage has non-default values
       const local = readLocal();
       const hasLocalOverride = Object.keys(DEFAULTS).some(
-        (k) => local[k as keyof Settings] !== DEFAULTS[k as keyof Settings],
+        (k) => local[k as keyof Settings] !== DEFAULTS[k as keyof Settings]
       );
-      const merged = hasLocalOverride && dbSettings.theme === DEFAULTS.theme
-        ? { ...dbSettings, ...local }
-        : dbSettings;
+      const merged =
+        hasLocalOverride && dbSettings.theme === DEFAULTS.theme
+          ? { ...dbSettings, ...local }
+          : dbSettings;
 
       setSettings(merged);
       applyToDOM(merged);
@@ -183,14 +220,20 @@ export function PersonalizationTab() {
       setMode("light"); // reset to light so the mode toggle is accurate
       setLoaded(true);
     })();
-    return () => { cancelled = true; };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => {
+      cancelled = true;
+    };
+  }, [setMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Debounced save to DB
   const scheduleSave = useCallback((next: Settings) => {
-    if (saveTimer.current) clearTimeout(saveTimer.current);
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+    }
     saveTimer.current = setTimeout(() => {
-      saveSettings(next).catch(() => {});
+      saveSettings(next).catch(() => {
+        // save failed silently
+      });
     }, 500);
   }, []);
 
@@ -205,7 +248,7 @@ export function PersonalizationTab() {
         return next;
       });
     },
-    [scheduleSave],
+    [scheduleSave]
   );
 
   // Reset all
@@ -224,7 +267,7 @@ export function PersonalizationTab() {
     } finally {
       setResetting(false);
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [setMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!loaded) {
     return (
@@ -239,7 +282,9 @@ export function PersonalizationTab() {
       {/* ── Theme ── */}
       <section className="rounded-lg border border-border/50 bg-card p-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-medium text-muted-foreground">Theme</span>
+          <span className="text-xs font-medium text-muted-foreground">
+            Theme
+          </span>
           <button
             className="flex items-center gap-2 rounded-lg border border-primary/50 bg-primary/10 px-3 py-1.5 text-xs font-medium text-foreground shadow-sm cursor-pointer"
             type="button"
@@ -256,23 +301,25 @@ export function PersonalizationTab() {
       {/* ── Typography ── */}
       <section className="rounded-lg border border-border/50 bg-card p-3">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-medium text-muted-foreground shrink-0">Font</span>
+          <span className="text-xs font-medium text-muted-foreground shrink-0">
+            Font
+          </span>
           <div className="flex items-center gap-1 flex-wrap justify-end">
             <FontOption
               active={settings.font === "sora"}
-              font="var(--font-sora)"
+              fontClass="font-sora"
               label="Sora"
               onClick={() => update("font", "sora")}
             />
             <FontOption
               active={settings.font === "onest"}
-              font="var(--font-onest)"
+              fontClass="font-onest"
               label="Onest"
               onClick={() => update("font", "onest")}
             />
             <FontOption
               active={settings.font === "reddit-mono"}
-              font="var(--font-reddit-mono)"
+              fontClass="font-reddit-mono"
               label="Mono"
               onClick={() => update("font", "reddit-mono")}
             />
@@ -288,9 +335,12 @@ export function PersonalizationTab() {
 
         {/* Mode */}
         <div className="flex items-center justify-between">
-          <span className="text-xs font-medium text-muted-foreground">Mode</span>
+          <span className="text-xs font-medium text-muted-foreground">
+            Mode
+          </span>
           <div className="flex items-center rounded-lg border border-border/50 bg-muted/30 p-0.5 w-fit">
             <button
+              aria-label="Light mode"
               className={`flex items-center justify-center rounded-md px-2.5 py-1 text-xs transition-colors cursor-pointer ${
                 mode === "light"
                   ? "bg-background text-foreground shadow-sm"
@@ -302,6 +352,7 @@ export function PersonalizationTab() {
               <Sun className="size-3" />
             </button>
             <button
+              aria-label="Dark mode"
               className={`flex items-center justify-center rounded-md px-2.5 py-1 text-xs transition-colors cursor-pointer ${
                 mode === "dark"
                   ? "bg-background text-foreground shadow-sm"
@@ -317,7 +368,9 @@ export function PersonalizationTab() {
 
         {/* Font size */}
         <div className="flex items-center justify-between">
-          <span className="text-xs font-medium text-muted-foreground">Font size</span>
+          <span className="text-xs font-medium text-muted-foreground">
+            Font size
+          </span>
           <div className="flex items-center gap-1">
             {(["s", "m", "l", "xl"] as const).map((s) => (
               <Opt
@@ -333,7 +386,9 @@ export function PersonalizationTab() {
 
         {/* Spacing */}
         <div className="flex items-center justify-between">
-          <span className="text-xs font-medium text-muted-foreground">Spacing</span>
+          <span className="text-xs font-medium text-muted-foreground">
+            Spacing
+          </span>
           <div className="flex items-center gap-1">
             {(["compact", "cozy", "roomy"] as const).map((s) => (
               <Opt
@@ -349,8 +404,11 @@ export function PersonalizationTab() {
 
         {/* Show avatars */}
         <div className="flex items-center justify-between">
-          <span className="text-xs font-medium text-muted-foreground">Avatars</span>
+          <span className="text-xs font-medium text-muted-foreground">
+            Avatars
+          </span>
           <button
+            aria-label="Toggle avatars"
             className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors ${
               settings.showAvatars ? "bg-primary" : "bg-muted"
             }`}
@@ -389,12 +447,12 @@ export function PersonalizationTab() {
 
 function FontOption({
   active,
-  font,
+  fontClass,
   label,
   onClick,
 }: {
   active: boolean;
-  font: string;
+  fontClass: string;
   label: string;
   onClick: () => void;
 }) {
@@ -408,9 +466,7 @@ function FontOption({
       onClick={onClick}
       type="button"
     >
-      <span className="text-sm font-semibold" style={{ fontFamily: font }}>
-        Ag
-      </span>
+      <span className={`text-sm font-semibold ${fontClass}`}>Ag</span>
       {label}
     </button>
   );

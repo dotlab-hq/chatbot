@@ -500,17 +500,28 @@ textarea:focus-visible {
   isolation: isolate;
 }
 
+.avatar-gradient {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--avatar-hue), 70%, 50%),
+    hsl(var(--avatar-hue-offset), 60%, 40%)
+  );
+}
+
 /* ── Personalize: Font families ──────────────────────────────────────────── */
 
 .font-sora {
   --font-geist: var(--font-sora);
+  font-family: var(--font-sora);
 }
 .font-onest {
   --font-geist: var(--font-onest);
+  font-family: var(--font-onest);
 }
 .font-reddit-mono {
   --font-geist: var(--font-reddit-mono);
   --font-geist-mono: var(--font-reddit-mono);
+  font-family: var(--font-reddit-mono);
 }
 
 /* ── Personalize: Accent themes ──────────────────────────────────────────── */

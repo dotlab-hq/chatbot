@@ -6,6 +6,7 @@ import {
   ImageIcon,
   XIcon,
 } from "lucide-react";
+import Image from "next/image";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ImageSearchResult } from "@/components/chat/search-sources-context";
 
@@ -37,7 +38,6 @@ function ImageLightbox({
     <div
       aria-label="Image preview"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
-      onKeyDown={handleKeyDown}
       role="dialog"
     >
       <button
@@ -49,21 +49,17 @@ function ImageLightbox({
         <XIcon className="size-5" />
       </button>
 
-      <div
-        className="relative max-h-[85vh] max-w-[90vw]"
-        onClick={(e) => {
-          e.stopPropagation();
-        }}
-        onKeyDown={(e) => {
-          e.stopPropagation();
-        }}
-      >
-        <img
+      <div className="relative max-h-[85vh] max-w-[90vw]">
+        <Image
           alt={image.title}
           className="max-h-[80vh] rounded-lg object-contain shadow-2xl"
+          height={800}
           src={image.imageUrl}
+          unoptimized
+          width={1200}
         />
         <div className="mt-2 flex items-center gap-2 text-sm text-white/80">
+          {/* biome-ignore lint: favicon needs raw img for external domain */}
           <img
             alt=""
             className="size-4 rounded-sm"
@@ -110,9 +106,10 @@ function ImageCard({
             <ImageIcon className="size-8" />
           </div>
         ) : (
-          <img
+          <Image
             alt={image.title}
             className={`h-full w-full object-cover transition-all duration-300 group-hover/img:scale-105 ${loaded ? "opacity-100" : "opacity-0"}`}
+            fill
             loading="lazy"
             onError={() => {
               setError(true);
@@ -120,7 +117,9 @@ function ImageCard({
             onLoad={() => {
               setLoaded(true);
             }}
+            sizes="224px"
             src={image.thumbnail || image.imageUrl}
+            unoptimized
           />
         )}
         {!loaded && !error && (
@@ -128,6 +127,7 @@ function ImageCard({
         )}
       </div>
       <div className="flex items-center gap-1.5 px-2.5 py-1.5">
+        {/* biome-ignore lint: favicon needs raw img for external domain */}
         <img
           alt=""
           className="size-3 shrink-0 rounded-sm"
