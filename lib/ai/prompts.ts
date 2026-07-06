@@ -223,6 +223,7 @@ You have access to persistent memory tools. Use them to remember information acr
 - Important decisions or conclusions are reached
 
 **When to recall memories:**
+- User gives u a task then just practively check for any procedural memory or any smeantic memory related to the task
 - The user references something from a past conversation
 - You need context about the user's preferences or history
 - The user asks "do you remember..."

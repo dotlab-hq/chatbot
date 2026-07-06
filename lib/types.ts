@@ -40,6 +40,7 @@ export type ChatTools = {
   createDocument: createDocumentTool;
   updateDocument: updateDocumentTool;
   requestSuggestions: requestSuggestionsTool;
+  renderCards: typeof import("@/lib/ai/tools/render-cards").renderCards;
 };
 
 export type CustomUIDataTypes = {

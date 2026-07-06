@@ -12,6 +12,7 @@ import {
   ToolOutput,
 } from "@/components/ai-elements/tool";
 import { Calculator } from "@/components/chat/calculator";
+import { CardCarousel } from "@/components/chat/card-carousel";
 import { CurrencyConverter } from "@/components/chat/currency-converter";
 import { useDataStream } from "@/components/chat/data-stream-provider";
 import { DocumentToolResult } from "@/components/chat/document";
@@ -373,6 +374,16 @@ const PurePreviewMessage = ({
           </ToolContent>
         </Tool>
       );
+    }
+
+    if (type === "tool-renderCards") {
+      const { toolCallId, state } = part;
+
+      if (state === "output-available" && part.output) {
+        return <CardCarousel data={part.output} key={toolCallId} />;
+      }
+
+      return null;
     }
 
     return null;

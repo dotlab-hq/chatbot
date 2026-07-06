@@ -43,6 +43,7 @@ import { getWeather } from "@/lib/ai/tools/get-weather";
 import { localTime } from "@/lib/ai/tools/local-time";
 import { createMemoryTools } from "@/lib/ai/tools/memory";
 import { readArtifact } from "@/lib/ai/tools/read-artifact";
+import { renderCards } from "@/lib/ai/tools/render-cards";
 import { requestSuggestions } from "@/lib/ai/tools/request-suggestions";
 import { timer } from "@/lib/ai/tools/timer";
 import { unitConverter } from "@/lib/ai/tools/unit-converter";
@@ -390,6 +391,7 @@ export async function POST(request: Request) {
           }),
           verifyContent,
           readArtifact: readArtifact(),
+          renderCards,
           ...(process.env.OPENSERP_API_KEY || process.env.OPENSERP_BASE_URL
             ? {
                 webSearch,
@@ -414,6 +416,7 @@ export async function POST(request: Request) {
           "requestSuggestions",
           "verifyContent",
           "readArtifact",
+          "renderCards",
           ...(process.env.OPENSERP_API_KEY || process.env.OPENSERP_BASE_URL
             ? [
                 "webSearch",
