@@ -41,11 +41,12 @@ export async function PATCH(
 
   const { skillId } = await params;
   const body = await request.json();
-  const { name, description, content, isEnabled } = body as {
+  const { name, description, content, isEnabled, isSystem } = body as {
     name?: string;
     description?: string;
     content?: string;
     isEnabled?: boolean;
+    isSystem?: boolean;
   };
 
   const existingSkill = await getSkillById({ id: skillId });
@@ -57,6 +58,14 @@ export async function PATCH(
   const isAdmin = (session.user as Record<string, unknown>).role === "admin";
   if (existingSkill.ownerId !== session.user.id && !isAdmin) {
     return new ChatbotError("forbidden:auth", "Not authorized").toResponse();
+  }
+
+  // Only admins can change isSystem flag
+  if (isSystem !== undefined && !isAdmin) {
+    return new ChatbotError(
+      "forbidden:auth",
+      "Only admins can change system skill status"
+    ).toResponse();
   }
 
   // Update skill fields
@@ -73,6 +82,9 @@ export async function PATCH(
 
   if (Object.keys(updates).length > 0) {
     await updateSkill({ id: skillId, ...updates });
+  }
+  if (isSystem !== undefined) {
+    await updateSkill({ id: skillId, isSystem });
   }
 
   // If skill content changed, re-upload to providers

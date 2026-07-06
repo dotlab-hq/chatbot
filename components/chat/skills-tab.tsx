@@ -3,6 +3,7 @@
 import {
   BrainIcon,
   CheckIcon,
+  CompassIcon,
   LoaderIcon,
   PlusIcon,
   SparklesIcon,
@@ -56,16 +57,21 @@ export function SkillsTab() {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
 
+  // Tab state
+  const [activeTab, setActiveTab] = useState<"personal" | "system">("personal");
+
   // Dialog states
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [editingSkill, setEditingSkill] = useState<Skill | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Skill | null>(null);
+  const [showDiscover, setShowDiscover] = useState(false);
 
   // Form state
   const [formName, setFormName] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [formContent, setFormContent] = useState("");
+  const [formIsSystem, setFormIsSystem] = useState(false);
 
   const loadSkills = useCallback(async () => {
     try {
@@ -96,10 +102,14 @@ export function SkillsTab() {
     setFormName("");
     setFormDescription("");
     setFormContent("");
+    setFormIsSystem(false);
   };
 
-  const openCreate = () => {
+  const openCreate = (asSystem = false) => {
     resetForm();
+    if (asSystem) {
+      setFormIsSystem(true);
+    }
     setEditingSkill(null);
     setShowCreate(true);
   };
@@ -109,6 +119,7 @@ export function SkillsTab() {
     setFormName(skill.name);
     setFormDescription(skill.description ?? "");
     setFormContent(skill.content);
+    setFormIsSystem(skill.isSystem);
     setShowCreate(true);
   };
 
@@ -129,6 +140,7 @@ export function SkillsTab() {
             name: formName.trim(),
             description: formDescription.trim() || undefined,
             content: formContent.trim(),
+            isSystem: formIsSystem,
           }),
         });
 
@@ -145,6 +157,7 @@ export function SkillsTab() {
             name: formName.trim(),
             description: formDescription.trim() || undefined,
             content: formContent.trim(),
+            isSystem: formIsSystem,
           }),
         });
 
@@ -218,75 +231,137 @@ export function SkillsTab() {
             are sent to the LLM.
           </p>
         </div>
-        <Button onClick={openCreate} size="sm">
-          <PlusIcon className="size-4" />
-          Add Skill
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => {
+              setShowDiscover(true);
+            }}
+            size="sm"
+            variant="outline"
+          >
+            <CompassIcon className="size-4" />
+            Discover
+          </Button>
+          <Button
+            onClick={() => {
+              openCreate(activeTab === "system");
+            }}
+            size="sm"
+          >
+            <PlusIcon className="size-4" />
+            Add Skill
+          </Button>
+        </div>
       </div>
 
-      {/* Personal Skills Section */}
-      <section>
-        <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          Personal Skills
-        </h3>
-        {personalSkills.length === 0 ? (
-          <div className="rounded-xl border border-border/50 bg-card p-6 text-center">
-            <SparklesIcon className="mx-auto mb-2 size-6 text-muted-foreground/50" />
-            <p className="text-sm text-muted-foreground">
-              No personal skills yet. Create one to extend the AI with your own
-              instructions.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {personalSkills.map((skill) => (
-              <SkillRow
-                canDelete={skill.ownerId !== undefined}
-                key={skill.id}
-                onDelete={() => {
-                  setDeleteTarget(skill);
-                }}
-                onEdit={() => {
-                  openEdit(skill);
-                }}
-                onToggle={() => {
-                  handleToggle(skill);
-                }}
-                skill={skill}
-              />
-            ))}
-          </div>
-        )}
-      </section>
+      {/* Tabs */}
+      <div className="flex gap-1 rounded-lg border border-border/50 bg-muted/30 p-1">
+        <button
+          className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+            activeTab === "personal"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+          onClick={() => {
+            setActiveTab("personal");
+          }}
+          type="button"
+        >
+          Personal
+          {personalSkills.length > 0 && (
+            <span className="ml-1.5 text-muted-foreground">
+              ({personalSkills.length})
+            </span>
+          )}
+        </button>
+        <button
+          className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+            activeTab === "system"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+          onClick={() => {
+            setActiveTab("system");
+          }}
+          type="button"
+        >
+          System
+          {systemSkills.length > 0 && (
+            <span className="ml-1.5 text-muted-foreground">
+              ({systemSkills.length})
+            </span>
+          )}
+        </button>
+      </div>
 
-      {/* System Skills Section */}
-      {systemSkills.length > 0 && (
+      {/* Tab Content */}
+      {activeTab === "personal" && (
         <section>
-          <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            System Skills
-          </h3>
-          <div className="space-y-2">
-            {systemSkills.map((skill) => (
-              <SkillRow
-                canDelete={isAdmin}
-                key={skill.id}
-                onDelete={() => {
-                  setDeleteTarget(skill);
-                }}
-                onEdit={
-                  isAdmin
-                    ? () => {
-                        openEdit(skill);
-                      }
-                    : undefined
-                }
-                onToggle={() => {
-                  handleToggle(skill);
-                }}
-                skill={skill}
-              />
-            ))}
-          </div>
+          {personalSkills.length === 0 ? (
+            <div className="rounded-xl border border-border/50 bg-card p-6 text-center">
+              <SparklesIcon className="mx-auto mb-2 size-6 text-muted-foreground/50" />
+              <p className="text-sm text-muted-foreground">
+                No personal skills yet. Create one to extend the AI with your
+                own instructions.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {personalSkills.map((skill) => (
+                <SkillRow
+                  canDelete={skill.ownerId !== undefined}
+                  key={skill.id}
+                  onDelete={() => {
+                    setDeleteTarget(skill);
+                  }}
+                  onEdit={() => {
+                    openEdit(skill);
+                  }}
+                  onToggle={() => {
+                    handleToggle(skill);
+                  }}
+                  skill={skill}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {activeTab === "system" && (
+        <section>
+          {systemSkills.length === 0 ? (
+            <div className="rounded-xl border border-border/50 bg-card p-6 text-center">
+              <BrainIcon className="mx-auto mb-2 size-6 text-muted-foreground/50" />
+              <p className="text-sm text-muted-foreground">
+                No system skills available. Check back later for new
+                capabilities.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {systemSkills.map((skill) => (
+                <SkillRow
+                  canDelete={isAdmin}
+                  key={skill.id}
+                  onDelete={() => {
+                    setDeleteTarget(skill);
+                  }}
+                  onEdit={
+                    isAdmin
+                      ? () => {
+                          openEdit(skill);
+                        }
+                      : undefined
+                  }
+                  onToggle={() => {
+                    handleToggle(skill);
+                  }}
+                  skill={skill}
+                />
+              ))}
+            </div>
+          )}
         </section>
       )}
 
@@ -295,12 +370,18 @@ export function SkillsTab() {
         <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingSkill ? "Edit Skill" : "Create Skill"}
+              {editingSkill
+                ? "Edit Skill"
+                : formIsSystem
+                  ? "Create System Skill"
+                  : "Create Skill"}
             </DialogTitle>
             <DialogDescription>
               {editingSkill
                 ? "Update the skill's instructions and details."
-                : "Create a new skill with custom instructions for the AI."}
+                : formIsSystem
+                  ? "Create a system skill available to all users."
+                  : "Create a new skill with custom instructions for the AI."}
             </DialogDescription>
           </DialogHeader>
           <form className="space-y-4" onSubmit={handleSubmit}>
@@ -332,6 +413,42 @@ export function SkillsTab() {
                 value={formDescription}
               />
             </div>
+            {isAdmin && (
+              <div className="flex items-center gap-3 rounded-lg border border-border/50 bg-muted/30 px-4 py-3">
+                <button
+                  aria-label={
+                    formIsSystem
+                      ? "Switch to personal skill"
+                      : "Switch to system skill"
+                  }
+                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors ${
+                    formIsSystem ? "bg-primary" : "bg-muted"
+                  }`}
+                  data-state={formIsSystem ? "checked" : "unchecked"}
+                  onClick={() => {
+                    setFormIsSystem(!formIsSystem);
+                  }}
+                  type="button"
+                >
+                  <span
+                    className={`pointer-events-none inline-block size-4 transform rounded-full bg-white shadow-sm ring-0 transition-transform ${
+                      formIsSystem ? "translate-x-4" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">System Skill</p>
+                  <p className="text-xs text-muted-foreground">
+                    System skills are available to all users by default
+                  </p>
+                </div>
+                {formIsSystem && (
+                  <Badge className="shrink-0" variant="secondary">
+                    System
+                  </Badge>
+                )}
+              </div>
+            )}
             <div className="space-y-2">
               <label className="text-sm font-medium" htmlFor="skill-content">
                 Instructions
@@ -412,6 +529,69 @@ export function SkillsTab() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Discover Skills Modal */}
+      <Dialog onOpenChange={setShowDiscover} open={showDiscover}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Discover Skills</DialogTitle>
+            <DialogDescription>
+              Browse available system skills and enable the ones you need.
+            </DialogDescription>
+          </DialogHeader>
+          {systemSkills.length === 0 ? (
+            <div className="py-8 text-center">
+              <BrainIcon className="mx-auto mb-2 size-8 text-muted-foreground/50" />
+              <p className="text-sm text-muted-foreground">
+                No system skills available yet.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {systemSkills.map((skill) => (
+                <div
+                  className="flex items-center gap-3 rounded-xl border border-border/50 bg-card p-4 transition-colors hover:border-border"
+                  key={skill.id}
+                >
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted/60">
+                    <BrainIcon className="size-4 text-muted-foreground" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{skill.name}</p>
+                    {skill.description && (
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                        {skill.description}
+                      </p>
+                    )}
+                    <p className="mt-1 truncate font-mono text-[11px] text-muted-foreground/70">
+                      {skill.slug}
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      handleToggle(skill);
+                    }}
+                    size="sm"
+                    variant={skill.isEnabled ? "outline" : "default"}
+                  >
+                    {skill.isEnabled ? (
+                      <>
+                        <XIcon className="size-3" />
+                        Disable
+                      </>
+                    ) : (
+                      <>
+                        <CheckIcon className="size-3" />
+                        Enable
+                      </>
+                    )}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
