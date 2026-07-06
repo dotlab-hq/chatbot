@@ -117,6 +117,7 @@ export function extractImageResults(message: {
 }): ImageSearchResult[] {
   if (!message.parts) return [];
   const results: ImageSearchResult[] = [];
+  const seenUrls = new Set<string>();
   for (const part of message.parts) {
     if (
       IMAGE_SEARCH_TOOL_TYPES.has(part.type) &&
@@ -130,7 +131,12 @@ export function extractImageResults(message: {
           "imageUrl" in item &&
           "title" in item
         ) {
-          results.push(item as ImageSearchResult);
+          const candidate = item as ImageSearchResult;
+          // Deduplicate by imageUrl — keep the first occurrence
+          if (!seenUrls.has(candidate.imageUrl)) {
+            seenUrls.add(candidate.imageUrl);
+            results.push(candidate);
+          }
         }
       }
     }

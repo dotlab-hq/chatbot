@@ -55,13 +55,13 @@ import {
 import { SuggestedActions } from "@/components/chat/suggested-actions";
 import type { VisibilityType } from "@/components/chat/visibility-selector";
 import { Button } from "@/components/ui/button";
+import { LiveWaveform } from "@/components/ui/live-waveform";
 import {
   type ChatModel,
   chatModels,
   DEFAULT_CHAT_MODEL,
   type ModelCapabilities,
 } from "@/lib/ai/models";
-import { LiveWaveform } from "@/components/ui/live-waveform";
 import type { Attachment, ChatMessage } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -217,7 +217,9 @@ function PureMultimodalInput({
   const [slashOpen, setSlashOpen] = useState(false);
   const [slashQuery, setSlashQuery] = useState("");
   const [slashIndex, setSlashIndex] = useState(0);
-  const [voiceMode, setVoiceMode] = useState<"idle" | "recording" | "transcribing">("idle");
+  const [voiceMode, setVoiceMode] = useState<
+    "idle" | "recording" | "transcribing"
+  >("idle");
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
@@ -313,6 +315,9 @@ function PureMultimodalInput({
         toast.error("Failed to upload files");
       } finally {
         setUploadQueue([]);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
       }
     },
     [setAttachments, uploadFile]
@@ -325,20 +330,24 @@ function PureMultimodalInput({
         return;
       }
 
-      const imageItems = Array.from(items).filter((item) =>
-        item.type.startsWith("image/")
+      // Collect files from clipboard (images, files, etc.)
+      const fileItems = Array.from(items).filter(
+        (item) => item.kind === "file"
       );
 
-      if (imageItems.length === 0) {
+      if (fileItems.length === 0) {
         return;
       }
 
       event.preventDefault();
 
-      setUploadQueue((prev) => [...prev, "Pasted image"]);
+      setUploadQueue((prev) => [
+        ...prev,
+        ...fileItems.map((item) => item.type || "Pasted file"),
+      ]);
 
       try {
-        const uploadPromises = imageItems
+        const uploadPromises = fileItems
           .map((item) => item.getAsFile())
           .filter((file): file is File => file !== null)
           .map((file) => uploadFile(file));
@@ -356,7 +365,7 @@ function PureMultimodalInput({
           ...(successfullyUploadedAttachments as Attachment[]),
         ]);
       } catch (_error) {
-        toast.error("Failed to upload pasted image(s)");
+        toast.error("Failed to upload pasted file(s)");
       } finally {
         setUploadQueue([]);
       }
@@ -503,6 +512,7 @@ function PureMultimodalInput({
         )}
 
       <input
+        accept="image/*,application/pdf,text/*,application/json,application/zip,audio/*,video/*,.csv,.xlsx,.xls,.doc,.docx,.ppt,.pptx,.md,.txt"
         className="pointer-events-none fixed -top-4 -left-4 size-0.5 opacity-0"
         multiple
         onChange={handleFileChange}
@@ -624,33 +634,31 @@ function PureMultimodalInput({
           <div className="flex flex-col gap-2 px-4 pt-3 pb-2">
             <LiveWaveform
               active={voiceMode === "recording"}
-              processing={voiceMode === "transcribing"}
+              fadeEdges
               height={96}
               mode="static"
-              fadeEdges
-              onStreamReady={handleStreamReady}
               onError={handleStreamError}
+              onStreamReady={handleStreamReady}
+              processing={voiceMode === "transcribing"}
             />
             <div className="flex items-center justify-between">
               <Button
+                className="h-7 w-7 rounded-lg border border-border/40 p-1"
+                disabled={voiceMode === "transcribing"}
+                onClick={handleVoiceCancel}
                 type="button"
                 variant="ghost"
-                className="h-7 w-7 rounded-lg border border-border/40 p-1"
-                onClick={handleVoiceCancel}
-                disabled={voiceMode === "transcribing"}
               >
                 <XIcon className="size-4" />
               </Button>
               <span className="text-[11px] text-muted-foreground">
-                {voiceMode === "recording"
-                  ? "Recording..."
-                  : "Transcribing..."}
+                {voiceMode === "recording" ? "Recording..." : "Transcribing..."}
               </span>
               <Button
-                type="button"
                 className="h-7 w-7 rounded-xl bg-foreground p-1 text-background hover:opacity-85 active:scale-95"
-                onClick={handleVoiceConfirm}
                 disabled={voiceMode === "transcribing"}
+                onClick={handleVoiceConfirm}
+                type="button"
               >
                 <CheckIcon className="size-4" />
               </Button>
@@ -659,11 +667,7 @@ function PureMultimodalInput({
         )}
         <PromptInputFooter className="px-3 pb-3">
           <PromptInputTools>
-            <AttachmentsButton
-              fileInputRef={fileInputRef}
-              selectedModelId={selectedModelId}
-              status={status}
-            />
+            <AttachmentsButton fileInputRef={fileInputRef} status={status} />
             <ModelSelectorCompact
               onModelChange={onModelChange}
               selectedModelId={selectedModelId}
@@ -673,12 +677,12 @@ function PureMultimodalInput({
           <div className="flex items-center gap-1">
             {voiceMode === "idle" && (
               <Button
-                type="button"
-                variant="ghost"
                 className="h-7 w-7 rounded-lg border border-border/40 p-1"
+                data-testid="mic-button"
                 disabled={status !== "ready"}
                 onClick={handleMicClick}
-                data-testid="mic-button"
+                type="button"
+                variant="ghost"
               >
                 <MicIcon size={14} />
               </Button>
@@ -711,6 +715,9 @@ function PureMultimodalInput({
 export const MultimodalInput = memo(
   PureMultimodalInput,
   (prevProps, nextProps) => {
+    if (prevProps.chatId !== nextProps.chatId) {
+      return false;
+    }
     if (prevProps.input !== nextProps.input) {
       return false;
     }
@@ -743,32 +750,20 @@ export const MultimodalInput = memo(
 function PureAttachmentsButton({
   fileInputRef,
   status,
-  selectedModelId,
 }: {
   fileInputRef: React.MutableRefObject<HTMLInputElement | null>;
   status: UseChatHelpers<ChatMessage>["status"];
-  selectedModelId: string;
 }) {
-  const { data: modelsResponse } = useSWR(
-    `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/models`,
-    (url: string) => fetch(url).then((r) => r.json()),
-    { revalidateOnFocus: false, dedupingInterval: 3_600_000 }
-  );
-
-  const caps: Record<string, ModelCapabilities> | undefined =
-    modelsResponse?.capabilities ?? modelsResponse;
-  const hasVision = caps?.[selectedModelId]?.vision ?? false;
-
   return (
     <Button
       className={cn(
         "h-7 w-7 rounded-lg border border-border/40 p-1 transition-colors",
-        hasVision
+        status === "ready"
           ? "text-foreground hover:border-border hover:text-foreground"
           : "text-muted-foreground/30 cursor-not-allowed"
       )}
       data-testid="attachments-button"
-      disabled={status !== "ready" || !hasVision}
+      disabled={status !== "ready"}
       onClick={(event) => {
         event.preventDefault();
         fileInputRef.current?.click();

@@ -6,7 +6,7 @@ import {
   ImageIcon,
   XIcon,
 } from "lucide-react";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ImageSearchResult } from "@/components/chat/search-sources-context";
 
 // ─── Image lightbox (full-size overlay) ──────────────────────────────────────
@@ -185,7 +185,19 @@ export const ImageCarousel = memo(function ImageCarousel({
     el.scrollBy({ left: direction * amount, behavior: "smooth" });
   }, []);
 
-  if (images.length === 0) {
+  // Safety-net deduplication: ensure no duplicate images reach the DOM
+  const uniqueImages = useMemo(() => {
+    const seen = new Set<string>();
+    return images.filter((img) => {
+      if (seen.has(img.imageUrl)) {
+        return false;
+      }
+      seen.add(img.imageUrl);
+      return true;
+    });
+  }, [images]);
+
+  if (uniqueImages.length === 0) {
     return null;
   }
 
@@ -197,7 +209,7 @@ export const ImageCarousel = memo(function ImageCarousel({
           className="flex gap-2.5 overflow-x-auto scroll-smooth pb-1 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
           ref={scrollRef}
         >
-          {images.map((img) => (
+          {uniqueImages.map((img) => (
             <ImageCard
               image={img}
               key={img.id}
