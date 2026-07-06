@@ -5,12 +5,16 @@
  * reasoning phases with reasoning models. This module provides transparent
  * retry wrappers that:
  *
- * 1. Buffer the full stream from streamText
- * 2. If the stream fails BEFORE producing any substantive content
- *    (text-delta or tool-call), automatically retry with exponential backoff
- * 3. Only forward chunks to the consumer once the stream completes
- *    successfully — making retries completely transparent
- * 4. Also track usage from the successful attempt
+ * 1. Forward reasoning (and other non-content) chunks immediately so the
+ *    user sees real-time thinking even across retried attempts.
+ * 2. If the stream fails BEFORE producing substantive content (text-delta
+ *    or tool-call), automatically retry with exponential backoff. The SSE
+ *    connection stays alive and new chunks from the retry flow through.
+ * 3. Forward text-delta / tool-call chunks immediately too — once those
+ *    start flowing the stream is committed and no retry is attempted.
+ * 4. Also validate the finish chunk at stream end to catch silent
+ *    truncation (HTTP 200 with partial data).
+ * 5. Track usage from the successful attempt.
  *
  * For generateText (non-streaming), a simpler retry wrapper is provided.
  */
@@ -37,14 +41,15 @@ const CONTENT_EVENT_TYPES = new Set([
 /**
  * Wrap streamText with automatic mid-stream retry.
  *
- * Buffers the entire stream into memory. If the underlying API call drops
- * mid-stream (common during long reasoning phases) and NO substantive
- * content has been produced yet, the call is retried with exponential
- * backoff. Only after a full successful run are chunks yielded to the
- * consumer — making retries completely transparent.
+ * Unlike a buffer-then-forward approach, this forwards **all** chunks
+ * immediately — reasoning, text-delta, tool-calls — so the client gets
+ * real-time streaming. Retry is only attempted when the stream drops
+ * BEFORE any substantive content (text-delta / tool-call) has been
+ * forwarded. During a retry the SSE connection stays alive; new chunks
+ * from the retried attempt simply continue flowing.
  *
- * Once content (text-delta or tool-call) starts flowing, the stream is
- * committed and no retry is attempted — the error propagates naturally.
+ * Once content starts flowing the stream is committed and errors
+ * propagate directly — no retry.
  *
  * @example
  * ```ts
@@ -84,30 +89,46 @@ export function retryableStreamText(
           await new Promise((r) => setTimeout(r, backoff));
         }
 
-        // Also apply SDK-level maxRetries for transient HTTP failures
         const result = streamText({ ...params, maxRetries: 1 });
         let hasProducedContent = false;
-        const buffer: any[] = [];
 
         try {
-          // Read the entire stream into the buffer
+          // Read the stream chunk-by-chunk, forwarding immediately
           for await (const chunk of result.stream) {
-            buffer.push(chunk);
-
+            // Track whether substantive content has been forwarded
             if (CONTENT_EVENT_TYPES.has(chunk.type)) {
               hasProducedContent = true;
             }
-          }
 
-          // Full stream completed — flush buffer to consumer
-          for (const chunk of buffer) {
+            if (chunk.type === "finish") {
+              // ── Validate finish chunk ───────────────────────────────
+              // Catch silent truncation: Gateway sometimes returns HTTP
+              // 200 with partial data when the provider drops mid-stream.
+              if (chunk.finishReason === "error") {
+                throw new Error("Stream finished with error reason");
+              }
+
+              if (chunk.finishReason !== "stop") {
+                console.warn(
+                  `[retry:streamText] Finish reason "${chunk.finishReason}" on attempt ${attempt + 1}/${maxRetries + 1}`
+                );
+              }
+
+              // Forward finish chunk, close stream, resolve usage
+              controller.enqueue(chunk);
+              controller.close();
+              result.usage.then(usageResolve, () => usageResolve(null));
+              return;
+            }
+
+            // Forward everything else immediately — reasoning, text, etc.
             controller.enqueue(chunk);
           }
-          controller.close();
 
-          // Resolve usage from this successful attempt
-          result.usage.then(usageResolve, () => usageResolve(null));
-          return;
+          // Stream exhausted without a finish chunk = truncated
+          throw new Error(
+            "Stream ended without a finish chunk — likely truncated mid-stream"
+          );
         } catch (error) {
           lastError =
             error instanceof Error
@@ -115,9 +136,9 @@ export function retryableStreamText(
               : new Error(`Stream error: ${String(error)}`);
 
           if (hasProducedContent) {
-            // Can't safely retry — content was already delivered
+            // Content already forwarded — can't retry without duplication
             console.error(
-              `[retry:streamText] Stream failed AFTER content on attempt ${attempt + 1}/${maxRetries + 1}: ${lastError.message}`
+              `[retry:streamText] Failed AFTER content on attempt ${attempt + 1}/${maxRetries + 1}: ${lastError.message}`
             );
             usageResolve(null);
             controller.error(lastError);
@@ -125,21 +146,19 @@ export function retryableStreamText(
           }
 
           console.warn(
-            `[retry:streamText] Stream failed BEFORE content on attempt ${attempt + 1}/${maxRetries + 1}: ${lastError.message}`
+            `[retry:streamText] Failed BEFORE content on attempt ${attempt + 1}/${maxRetries + 1}: ${lastError.message}`
           );
 
           if (attempt >= maxRetries) {
-            // Last attempt also failed
             usageResolve(null);
             controller.error(lastError);
             return;
           }
 
-          // Otherwise — retry the loop
+          // Retry the loop — SSE connection stays alive
         }
       }
 
-      // Shouldn't reach here, but just in case
       const exhausted = lastError ?? new Error("All retry attempts exhausted");
       usageResolve(null);
       controller.error(exhausted);
