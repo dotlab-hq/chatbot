@@ -6,6 +6,7 @@ import type { createDocument } from "@/lib/ai/tools/create-document";
 import type { currencyConverter } from "@/lib/ai/tools/currency-converter";
 import type { getWeather } from "@/lib/ai/tools/get-weather";
 import type { localTime } from "@/lib/ai/tools/local-time";
+import type { renderCards } from "@/lib/ai/tools/render-cards";
 import type { requestSuggestions } from "@/lib/ai/tools/request-suggestions";
 import type { timer } from "@/lib/ai/tools/timer";
 import type { unitConverter } from "@/lib/ai/tools/unit-converter";
@@ -29,6 +30,7 @@ type updateDocumentTool = InferUITool<ReturnType<typeof updateDocument>>;
 type requestSuggestionsTool = InferUITool<
   ReturnType<typeof requestSuggestions>
 >;
+type renderCardsTool = InferUITool<typeof renderCards>;
 
 export type ChatTools = {
   getWeather: weatherTool;
@@ -40,7 +42,7 @@ export type ChatTools = {
   createDocument: createDocumentTool;
   updateDocument: updateDocumentTool;
   requestSuggestions: requestSuggestionsTool;
-  renderCards: typeof import("@/lib/ai/tools/render-cards").renderCards;
+  renderCards: renderCardsTool;
 };
 
 export type CustomUIDataTypes = {
