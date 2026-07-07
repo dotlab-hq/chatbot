@@ -235,9 +235,12 @@ function PureMultimodalInput({
       parts: [
         ...attachments.map((attachment) => ({
           type: "file" as const,
-          url: attachment.url,
+          url: attachment.url ?? "",
           name: attachment.name,
           mediaType: attachment.contentType,
+          ...(attachment.providerReference
+            ? { providerReference: attachment.providerReference }
+            : {}),
         })),
         {
           type: "text",
@@ -279,12 +282,12 @@ function PureMultimodalInput({
 
       if (response.ok) {
         const data = await response.json();
-        const { url, pathname, contentType } = data;
+        const { providerReference, mediaType, filename } = data;
 
         return {
-          url,
-          name: pathname,
-          contentType,
+          name: filename,
+          contentType: mediaType,
+          providerReference,
         };
       }
       const { error } = await response.json();
@@ -356,7 +359,8 @@ function PureMultimodalInput({
         const successfullyUploadedAttachments = uploadedAttachments.filter(
           (attachment) =>
             attachment !== undefined &&
-            attachment.url !== undefined &&
+            (attachment.url !== undefined ||
+              attachment.providerReference !== undefined) &&
             attachment.contentType !== undefined
         );
 
@@ -558,13 +562,13 @@ function PureMultimodalInput({
             className="flex w-full self-start flex-row gap-2 overflow-x-auto px-3 pt-3 no-scrollbar"
             data-testid="attachments-preview"
           >
-            {attachments.map((attachment) => (
+            {attachments.map((attachment, idx) => (
               <PreviewAttachment
                 attachment={attachment}
-                key={attachment.url}
+                key={attachment.url ?? `att-${idx}`}
                 onRemove={() => {
                   setAttachments((currentAttachments) =>
-                    currentAttachments.filter((a) => a.url !== attachment.url)
+                    currentAttachments.filter((_, i) => i !== idx)
                   );
                   if (fileInputRef.current) {
                     fileInputRef.current.value = "";

@@ -107,8 +107,11 @@ const PurePreviewMessage = ({
             name: attachment.filename ?? "file",
             contentType: attachment.mediaType,
             url: attachment.url,
+            providerReference: attachment.providerReference,
           }}
-          key={attachment.url}
+          key={
+            attachment.url ?? `${attachment.filename}-${attachment.mediaType}`
+          }
         />
       ))}
     </div>

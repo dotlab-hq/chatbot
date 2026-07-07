@@ -538,6 +538,8 @@ export const skill = chatbot.table(
       onDelete: "cascade",
     }),
     providerReference: text("provider_reference"),
+    uploadStatus: text("upload_status").notNull().default("pending"), // pending | uploaded | failed | skipped
+    uploadError: text("upload_error"),
     createdAt: timestamp("createdAt").notNull().defaultNow(),
     updatedAt: timestamp("updatedAt")
       .notNull()

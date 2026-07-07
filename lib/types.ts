@@ -71,6 +71,7 @@ export type ChatMessage = UIMessage<
 
 export type Attachment = {
   name: string;
-  url: string;
+  url?: string;
   contentType: string;
+  providerReference?: Record<string, string>;
 };

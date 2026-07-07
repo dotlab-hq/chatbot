@@ -46,6 +46,9 @@ type Skill = {
   isSystem: boolean;
   ownerId: string;
   isEnabled: boolean;
+  providerReference: string | null;
+  uploadStatus: string;
+  uploadError: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -637,6 +640,34 @@ function SkillRow({
         <p className="mt-1 truncate font-mono text-[11px] text-muted-foreground/70">
           {skill.slug}
         </p>
+        {skill.providerReference ? (
+          <div className="mt-1 flex items-center gap-1.5">
+            <Badge
+              className="text-[10px]"
+              variant={
+                skill.uploadStatus === "uploaded" ? "default" : "destructive"
+              }
+            >
+              {skill.uploadStatus === "uploaded"
+                ? "Provider linked"
+                : skill.uploadStatus === "failed"
+                  ? "Upload failed"
+                  : skill.uploadStatus}
+            </Badge>
+            {skill.uploadError && (
+              <span
+                className="max-w-[200px] truncate text-[10px] text-destructive"
+                title={skill.uploadError}
+              >
+                {skill.uploadError}
+              </span>
+            )}
+          </div>
+        ) : skill.uploadStatus === "skipped" ? (
+          <p className="mt-1 text-[10px] text-muted-foreground/60">
+            No providers configured
+          </p>
+        ) : null}
       </div>
       <div className="flex items-center gap-1">
         <button

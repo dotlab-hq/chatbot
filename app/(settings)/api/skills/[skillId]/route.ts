@@ -91,13 +91,12 @@ export async function PATCH(
   if (content !== undefined) {
     const skillName = updates.name ?? existingSkill.name;
     const skillContent = updates.content ?? content;
-    const providerReference = await uploadSkillToProviders(
-      skillName,
-      skillContent
-    );
+    const uploadResult = await uploadSkillToProviders(skillName, skillContent);
     await updateSkill({
       id: skillId,
-      providerReference: providerReference ?? undefined,
+      providerReference: uploadResult.providerReference,
+      uploadStatus: uploadResult.status,
+      uploadError: uploadResult.error,
     });
   }
 

@@ -112,17 +112,17 @@ export async function POST(request: Request) {
     ownerId: session.user.id,
   });
 
-  // Upload skill content to providers and store the reference
-  const providerReference = await uploadSkillToProviders(
+  // Upload skill content to providers and store the reference + status
+  const uploadResult = await uploadSkillToProviders(
     name.trim(),
     content.trim()
   );
-  if (providerReference) {
-    await updateSkill({
-      id: skill.id,
-      providerReference,
-    });
-  }
+  await updateSkill({
+    id: skill.id,
+    providerReference: uploadResult.providerReference,
+    uploadStatus: uploadResult.status,
+    uploadError: uploadResult.error,
+  });
 
   // Auto-enable for the creator
   await toggleUserSkill({

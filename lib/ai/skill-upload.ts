@@ -3,6 +3,12 @@ import { openai } from "@ai-sdk/openai";
 import { uploadSkill } from "ai";
 import { isTestEnvironment } from "@/lib/constants";
 
+export type SkillUploadResult = {
+  providerReference: string | null;
+  status: "uploaded" | "failed" | "skipped";
+  error: string | null;
+};
+
 /**
  * Upload skill content to available providers and return a merged
  * ProviderReference (Record<providerName, skillId>) as a JSON string
@@ -13,39 +19,52 @@ import { isTestEnvironment } from "@/lib/constants";
  * through each provider's `.skills()` factory, producing proper
  * provider-specific skill references.
  *
- * In test environments, returns null (no upload needed for mocks).
+ * In test environments, returns skipped status (no upload needed for mocks).
  */
 export async function uploadSkillToProviders(
   skillName: string,
   content: string
-): Promise<string | null> {
+): Promise<SkillUploadResult> {
   if (isTestEnvironment) {
-    return null;
+    return { providerReference: null, status: "skipped", error: null };
   }
 
   const displayTitle = skillName.trim();
   const data = new TextEncoder().encode(content);
   const mergedRef: Record<string, string> = {};
+  const errors: string[] = [];
+
+  const hasAnthropicKey = Boolean(process.env.ANTHROPIC_API_KEY);
+  const hasOpenAIKey = Boolean(process.env.OPENAI_API_KEY);
+
+  if (!hasAnthropicKey && !hasOpenAIKey) {
+    return {
+      providerReference: null,
+      status: "failed",
+      error:
+        "No provider API keys configured. Set ANTHROPIC_API_KEY or OPENAI_API_KEY.",
+    };
+  }
 
   // Upload to Anthropic if configured
-  if (process.env.ANTHROPIC_API_KEY) {
+  if (hasAnthropicKey) {
     try {
       const result = await uploadSkill({
         api: anthropic,
         files: [{ path: "SKILL.md", data }],
         displayTitle,
       });
-      // providerReference is Record<string, string> — merge into our combined ref
       if (result.providerReference) {
         Object.assign(mergedRef, result.providerReference);
       }
-    } catch {
-      // non-critical, continue without Anthropic reference
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      errors.push(`Anthropic: ${msg}`);
     }
   }
 
   // Upload to OpenAI if configured
-  if (process.env.OPENAI_API_KEY) {
+  if (hasOpenAIKey) {
     try {
       const result = await uploadSkill({
         api: openai,
@@ -58,17 +77,28 @@ export async function uploadSkillToProviders(
       if (result.providerReference) {
         Object.assign(mergedRef, result.providerReference);
       }
-    } catch {
-      // non-critical, continue without OpenAI reference
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      errors.push(`OpenAI: ${msg}`);
     }
   }
 
-  // Only return if we got at least one reference
   if (Object.keys(mergedRef).length === 0) {
-    return null;
+    return {
+      providerReference: null,
+      status: "failed",
+      error:
+        errors.length > 0
+          ? errors.join("; ")
+          : "Upload produced no provider references",
+    };
   }
 
-  return JSON.stringify(mergedRef);
+  return {
+    providerReference: JSON.stringify(mergedRef),
+    status: "uploaded",
+    error: errors.length > 0 ? errors.join("; ") : null,
+  };
 }
 
 /**

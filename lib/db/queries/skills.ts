@@ -13,6 +13,8 @@ export async function createSkill({
   isSystem,
   ownerId,
   providerReference,
+  uploadStatus,
+  uploadError,
 }: {
   name: string;
   slug: string;
@@ -20,7 +22,9 @@ export async function createSkill({
   content?: string;
   isSystem?: boolean;
   ownerId?: string;
-  providerReference?: string;
+  providerReference?: string | null;
+  uploadStatus?: string;
+  uploadError?: string | null;
 }): Promise<Skill> {
   try {
     const [created] = await db
@@ -32,7 +36,9 @@ export async function createSkill({
         content,
         isSystem: isSystem ?? false,
         ownerId,
-        providerReference,
+        providerReference: providerReference ?? null,
+        uploadStatus: uploadStatus ?? "pending",
+        uploadError: uploadError ?? null,
       })
       .returning();
     return created;
@@ -119,13 +125,17 @@ export async function updateSkill({
   content,
   isSystem,
   providerReference,
+  uploadStatus,
+  uploadError,
 }: {
   id: string;
   name?: string;
   description?: string;
   content?: string;
   isSystem?: boolean;
-  providerReference?: string;
+  providerReference?: string | null;
+  uploadStatus?: string;
+  uploadError?: string | null;
 }): Promise<Skill | null> {
   try {
     const updates: Record<string, unknown> = { updatedAt: new Date() };
@@ -143,6 +153,12 @@ export async function updateSkill({
     }
     if (providerReference !== undefined) {
       updates.providerReference = providerReference;
+    }
+    if (uploadStatus !== undefined) {
+      updates.uploadStatus = uploadStatus;
+    }
+    if (uploadError !== undefined) {
+      updates.uploadError = uploadError;
     }
 
     const [updated] = await db
