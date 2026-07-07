@@ -390,12 +390,13 @@ const PurePreviewMessage = ({
       return null;
     }
 
-    if ((type === "tool-randomApi" || type === "dynamic-tool") &&
-        (part as any).toolName === "httpRequest") {
-      const { toolCallId, state } = part as any;
+    if (type === "dynamic-tool" &&
+        (part as { toolName?: string }).toolName === "httpRequest") {
+      const toolPart = part as { toolCallId: string; state: string; output?: unknown };
+      const { toolCallId, state } = toolPart;
 
-      if (state === "output-available" && part.output) {
-        return <RandomApi result={part.output} key={toolCallId} />;
+      if (state === "output-available" && toolPart.output) {
+        return <RandomApi result={toolPart.output as Parameters<typeof RandomApi>[0]["result"]} key={toolCallId} />;
       }
 
       return null;
