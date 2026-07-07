@@ -173,7 +173,7 @@ export async function compactConversation({
 
   // Use the LLM to generate a summary
   const { text: summary } = await retryableGenerateText({
-    maxOutputTokens: 32_000,
+    maxOutputTokens: 128_000,
     model: getLanguageModel(modelId),
     prompt: `You are a conversation summarizer. Summarize the following conversation between a user and an AI assistant.
 Be concise but preserve all key information, decisions, code context, and important details that would be needed to continue the conversation.

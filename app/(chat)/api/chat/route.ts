@@ -525,7 +525,7 @@ export async function POST(request: Request) {
         }
 
         const { stream, usage } = retryableStreamText({
-          maxOutputTokens: 32_000,
+          maxOutputTokens: 128_000,
           model: getLanguageModel(chatModel),
           instructions: systemPrompt({
             requestHints,

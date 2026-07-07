@@ -28,7 +28,7 @@ export async function generateTitleFromUserMessage({
   message: UIMessage;
 }) {
   const { text } = await retryableGenerateText({
-    maxOutputTokens: 32_000,
+    maxOutputTokens: 8_000,
     model: getTitleModel(),
     instructions: titlePrompt,
     prompt: getTextFromMessage(message),
