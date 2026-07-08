@@ -235,7 +235,8 @@ export async function POST(request: Request) {
               ?.filter(
                 (p: Record<string, unknown>) =>
                   p.state === "approval-responded" ||
-                  p.state === "output-denied"
+                  p.state === "output-denied" ||
+                  p.state === "output-available"
               )
               .map((p: Record<string, unknown>) => [
                 String(p.toolCallId ?? ""),
@@ -294,7 +295,9 @@ export async function POST(request: Request) {
     const isReasoningModel = capabilities?.reasoning === true;
     const supportsTools = capabilities?.tools === true;
 
-    const modelMessages = await convertToModelMessages(uiMessages);
+    const modelMessages = await convertToModelMessages(uiMessages, {
+      ignoreIncompleteToolCalls: true,
+    });
 
     const hasProject = Boolean(projectVectorStoreId);
 

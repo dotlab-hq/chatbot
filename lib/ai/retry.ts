@@ -19,7 +19,7 @@
  * For generateText (non-streaming), a simpler retry wrapper is provided.
  */
 
-import { generateText, streamText } from "ai";
+import { generateText, MissingToolResultsError, streamText } from "ai";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -139,6 +139,17 @@ export function retryableStreamText(
             // Content already forwarded — can't retry without duplication
             console.error(
               `[retry:streamText] Failed AFTER content on attempt ${attempt + 1}/${maxRetries + 1}: ${lastError.message}`
+            );
+            usageResolve(null);
+            controller.error(lastError);
+            return;
+          }
+
+          if (lastError instanceof MissingToolResultsError) {
+            // Deterministic error: same input will always produce the same
+            // result, so retrying is futile. Propagate immediately.
+            console.error(
+              `[retry:streamText] MissingToolResultsError (deterministic) on attempt ${attempt + 1}/${maxRetries + 1}: ${lastError.message}`
             );
             usageResolve(null);
             controller.error(lastError);

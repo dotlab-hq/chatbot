@@ -83,6 +83,14 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
   const [input, setInput] = useState("");
   const [showCreditCardAlert, setShowCreditCardAlert] = useState(false);
 
+  // Track tool call IDs that have already triggered an auto-send in
+  // sendAutomaticallyWhen. This prevents infinite loops where the AI SDK
+  // fires sendAutomaticallyWhen both when a tool call is added AND when the
+  // stream finishes — without this, the tool-call part (still in
+  // "output-available" state after the LLM responds) would trigger another
+  // resubmission, creating a continuous loop.
+  const autoSentToolCallIds = useRef(new Set<string>());
+
   const [projectId, setProjectId] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
       return new URLSearchParams(window.location.search).get("projectId");
@@ -139,15 +147,43 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
     generateId: generateUUID,
     sendAutomaticallyWhen: ({ messages: currentMessages }) => {
       const lastMessage = currentMessages.at(-1);
-      return (
+      // Auto-send when the user approved a tool (human-in-the-loop)
+      const hasApproval =
         lastMessage?.parts?.some(
           (part) =>
             "state" in part &&
             part.state === "approval-responded" &&
             "approval" in part &&
             (part.approval as { approved?: boolean })?.approved === true
-        ) ?? false
-      );
+        ) ?? false;
+      if (hasApproval) {
+        return true;
+      }
+
+      // Auto-send when a client-side tool (like clientHttpRequest) has its
+      // output available — the onToolCall handler called addToolOutput with
+      // the result, and we need to send it back to the LLM for continuation.
+      //
+      // IMPORTANT: We track which toolCallIds have already triggered an
+      // auto-send to prevent infinite loops. The AI SDK fires this callback
+      // BOTH when a tool call is added AND when the stream finishes. Without
+      // dedup, the tool-call part (still in "output-available" state after
+      // the LLM responds) would trigger a second resubmission.
+      for (const part of lastMessage?.parts ?? []) {
+        if (
+          "state" in part &&
+          part.state === "output-available" &&
+          "output" in part &&
+          "toolCallId" in part
+        ) {
+          const toolCallId = (part as { toolCallId: string }).toolCallId;
+          if (!autoSentToolCallIds.current.has(toolCallId)) {
+            autoSentToolCallIds.current.add(toolCallId);
+            return true;
+          }
+        }
+      }
+      return false;
     },
     onToolCall: async ({ toolCall }) => {
       if (toolCall.dynamic) {
@@ -177,30 +213,15 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
           timeout ?? 10_000
         );
         try {
-          // Cache-busting: add unique params to prevent browser from serving stale cached responses
-          const cacheBusterUrl = new URL(url);
-          cacheBusterUrl.searchParams.set("_t", Date.now().toString());
-          cacheBusterUrl.searchParams.set(
-            "_cb",
-            Math.random().toString(36).slice(2)
-          );
-
-          const response = await fetch(cacheBusterUrl.toString(), {
+          const response = await fetch(url, {
             method,
-            headers: {
-              "Content-Type": "application/json",
-              "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
-              Pragma: "no-cache",
-              Expires: "0",
-              ...headers,
-            },
+            headers: headers ?? { "Content-Type": "application/json" },
             body:
               body && ["POST", "PUT", "PATCH"].includes(method)
                 ? body
                 : undefined,
             signal: controller.signal,
-            cache: "no-store",
-            referrerPolicy: (referrerPolicy ?? "no-referrer") as ReferrerPolicy,
+            referrerPolicy: (referrerPolicy ?? "unsafe-url") as ReferrerPolicy,
           });
           const responseHeaders: Record<string, string> = {};
           response.headers.forEach((value, key) => {
@@ -269,7 +290,9 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
             msg.parts?.some((part) => {
               const state = (part as { state?: string }).state;
               return (
-                state === "approval-responded" || state === "output-denied"
+                state === "approval-responded" ||
+                state === "output-denied" ||
+                state === "output-available"
               );
             })
           );

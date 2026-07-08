@@ -11,9 +11,9 @@ import { z } from "zod";
  */
 export const clientHttpRequest = tool({
   description: `Execute an HTTP request from the CLIENT/BROWSER (no proxy, user's IP).
-Use this when the user explicitly asks for a client-side call, or says 'from my browser/IP', 'client call', or 'from my machine'.
-Returns status, headers, and parsed JSON body rendered as a rich card.
-For server-side/proxied requests (the default), use the server-side randomApiTool/httpRequest instead.`,
+Use this for ANY HTTP request that should come from the user's IP address rather than the server.
+This allows APIs to see the user's real IP and bypass server-side proxy restrictions.
+Returns status, headers, and parsed JSON body rendered as a rich card.`,
   inputSchema: z.object({
     method: z
       .enum(["GET", "POST", "PUT", "PATCH", "DELETE"])
@@ -54,7 +54,6 @@ For server-side/proxied requests (the default), use the server-side randomApiToo
       .default("strict-origin-when-cross-origin")
       .describe("Browser referrer policy for the request"),
   }),
-  
 
   // No `execute` here — this is a CLIENT-side tool.
   // Actual execution happens in `onToolCall` in hooks/use-active-chat.tsx,

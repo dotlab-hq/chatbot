@@ -300,16 +300,16 @@ export const httpToolsPrompt = `
 You have two HTTP request tools — choose the right one based on where the request should originate.
 
 ### When to use \`clientHttpRequest\` (CLIENT-SIDE):
-- The user explicitly says "from my browser", "from my IP", "client-side", or "client call"
+- The user says "client", "browser", "my IP", or "from my machine"
 - The request should NOT go through the server proxy
 - Use this when the user wants the API call to see their IP address, not the server's
+- **NOTE: The server-side randomApiTool has connection issues with some endpoints. For reliable API calls, prefer \`clientHttpRequest\`.**
 
-### When to use \`randomApiTool\` (SERVER-SIDE, default):
-- The user does NOT specify where the request should originate
+### When to use \`randomApiTool\` (SERVER-SIDE):
+- The user explicitly wants server-side execution
 - The request benefits from server-side proxy routing
-- This is the DEFAULT for most API calls
 
-**Rule of thumb:** If the user says "client", "browser", "my IP", or "from my machine", use \`clientHttpRequest\`. Otherwise, use \`randomApiTool\`.
+**Default preference:** Use \`clientHttpRequest\` for most HTTP requests. Only use \`randomApiTool\` when server-side execution is specifically needed.
 `;
 
 export const systemPrompt = ({

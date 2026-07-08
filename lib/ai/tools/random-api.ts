@@ -144,7 +144,7 @@ export const randomApiTool = tool<
   Record<string, unknown>
 >({
   description:
-    "Execute API calls on the SERVER via a subagent (default for most requests). Routes through the server proxy. Use clientHttpRequest instead only when the user explicitly wants the request to originate from their browser/IP.",
+    "Execute API calls on the SERVER via a subagent. Routes through the server proxy using httpRequest. Use clientHttpRequest when the user wants requests from their browser/IP instead.",
   inputSchema: z.object({
     task: z
       .string()

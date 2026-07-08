@@ -1,5 +1,6 @@
 "use client";
 import type { UseChatHelpers } from "@ai-sdk/react";
+import { CodeBlock } from "@/components/ai-elements/code-block";
 import {
   MessageContent,
   MessageResponse,
@@ -23,7 +24,6 @@ import { LocalTime } from "@/components/chat/local-time";
 import { MessageActions } from "@/components/chat/message-actions";
 import { MessageReasoning } from "@/components/chat/message-reasoning";
 import { PreviewAttachment } from "@/components/chat/preview-attachment";
-import { RandomApi } from "@/components/chat/random-api";
 import {
   extractImageSearchResults,
   extractSearchResults,
@@ -403,52 +403,127 @@ const PurePreviewMessage = ({
       return null;
     }
 
-    if (
-      type === "dynamic-tool" &&
-      (part as { toolName?: string }).toolName === "httpRequest"
-    ) {
-      const toolPart = part as {
-        toolCallId: string;
-        state: string;
-        output?: unknown;
-      };
-      const { toolCallId, state } = toolPart;
-
-      if (state === "output-available" && toolPart.output) {
-        return (
-          <RandomApi
-            key={toolCallId}
-            result={
-              toolPart.output as Parameters<typeof RandomApi>[0]["result"]
-            }
-          />
-        );
-      }
-
-      return null;
-    }
-
-    // Client-side HTTP request tool (no proxy, runs in browser)
     if (type === "tool-clientHttpRequest") {
-      const toolPart = part as {
-        toolCallId: string;
-        state: string;
-        output?: unknown;
-      };
-      const { toolCallId, state } = toolPart;
+      const { toolCallId, state } = part;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const p = part as any;
+      const inp = p.input as
+        | {
+            method: string;
+            url: string;
+            headers?: Record<string, string>;
+            body?: string;
+            timeout?: number;
+            referrerPolicy?: string;
+          }
+        | undefined;
+      const out = p.output as
+        | {
+            ok?: boolean;
+            response?: {
+              status?: number;
+              statusText?: string;
+              headers?: Record<string, string>;
+              body?: unknown;
+            };
+            error?: string;
+          }
+        | undefined;
+      const errText = p.errorText as string | undefined;
 
-      if (state === "output-available" && toolPart.output) {
-        return (
-          <RandomApi
-            key={toolCallId}
-            result={
-              toolPart.output as Parameters<typeof RandomApi>[0]["result"]
-            }
-          />
-        );
-      }
+      const statusCode = out?.response?.status;
+      const statusBadge =
+        statusCode !== undefined
+          ? statusCode < 300
+            ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-400"
+            : statusCode < 500
+              ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-400"
+              : "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-400"
+          : "";
 
-      return null;
+      return (
+        <Tool
+          className="w-[min(100%,650px)]"
+          defaultOpen={true}
+          key={toolCallId}
+        >
+          <ToolHeader state={state} title="HTTP Request" type={type} />
+          <ToolContent>
+            {(state === "input-available" || state === "input-streaming") &&
+              inp && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={cn(
+                        "inline-flex items-center rounded px-2 py-0.5 font-mono text-xs font-bold uppercase",
+                        inp.method === "GET" &&
+                          "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-400",
+                        inp.method === "POST" &&
+                          "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-400",
+                        inp.method === "PUT" &&
+                          "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-400",
+                        inp.method === "PATCH" &&
+                          "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-400",
+                        inp.method === "DELETE" &&
+                          "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-400"
+                      )}
+                    >
+                      {inp.method}
+                    </span>
+                    <span className="truncate font-mono text-sm">
+                      {inp.url}
+                    </span>
+                  </div>
+                  <ToolInput input={inp} />
+                </div>
+              )}
+            {state === "output-available" && out && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  {statusCode !== undefined && (
+                    <span
+                      className={cn(
+                        "inline-flex items-center rounded px-2 py-0.5 font-mono text-xs font-bold tabular-nums",
+                        statusBadge
+                      )}
+                    >
+                      {statusCode} {out.response?.statusText ?? ""}
+                    </span>
+                  )}
+                  <span className="text-muted-foreground text-xs">
+                    {out.ok === true
+                      ? "Success"
+                      : out.ok === false
+                        ? "Failed"
+                        : ""}
+                  </span>
+                </div>
+                <ToolOutput
+                  errorText={undefined}
+                  output={
+                    out.response?.body ? (
+                      <CodeBlock
+                        code={JSON.stringify(out.response.body, null, 2)}
+                        language="json"
+                      />
+                    ) : (
+                      <span className="text-muted-foreground text-sm">
+                        No response body
+                      </span>
+                    )
+                  }
+                />
+              </div>
+            )}
+            {state === "output-error" && (
+              <ToolOutput
+                errorText={errText ?? "Request failed"}
+                output={null}
+              />
+            )}
+          </ToolContent>
+        </Tool>
+      );
     }
 
     return null;
