@@ -150,9 +150,9 @@ export function VideoPlayer({
     };
   }, []);
 
-  const getVideoSource = () => {
+  const getVideoSource = (): string | undefined => {
     if (!videoUrl) {
-      return null;
+      return undefined;
     }
 
     if (videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be")) {
@@ -233,7 +233,6 @@ export function VideoPlayer({
         poster="https://picsum.photos/seed/video-poster/640/360.jpg"
         ref={videoRef}
         src={getVideoSource()}
-        volume={volume}
         width="100%"
       />
 
