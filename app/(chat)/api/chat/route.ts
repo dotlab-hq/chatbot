@@ -91,7 +91,11 @@ import {
 } from "@/lib/mcp/client";
 import { checkIpRateLimit } from "@/lib/ratelimit";
 import type { ChatMessage } from "@/lib/types";
-import { convertToUIMessages, generateUUID } from "@/lib/utils";
+import {
+  convertToUIMessages,
+  generateUUID,
+  pruneMessagesForLLM,
+} from "@/lib/utils";
 
 export const maxDuration = 300;
 
@@ -348,7 +352,11 @@ export async function POST(request: Request) {
     const isReasoningModel = capabilities?.reasoning === true;
     const supportsTools = capabilities?.tools === true;
 
-    const modelMessages = await convertToModelMessages(uiMessages, {
+    // Prune reasoning and tool-call input parts before sending to LLM.
+    // Tool results are kept as they contain meaningful output, but reasoning
+    // chunks and tool call inputs are stripped to reduce context bloat.
+    const prunedUIMessages = pruneMessagesForLLM(uiMessages);
+    const modelMessages = await convertToModelMessages(prunedUIMessages, {
       ignoreIncompleteToolCalls: true,
     });
 
