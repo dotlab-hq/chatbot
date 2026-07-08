@@ -161,7 +161,15 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
             headers?: Record<string, string>;
             body?: string;
             timeout?: number;
-            referrerPolicy?: string;
+            referrerPolicy?:
+              | "no-referrer"
+              | "no-referrer-when-downgrade"
+              | "origin"
+              | "origin-when-cross-origin"
+              | "same-origin"
+              | "strict-origin"
+              | "strict-origin-when-cross-origin"
+              | "unsafe-url";
           };
         const controller = new AbortController();
         const timeoutId = setTimeout(
@@ -201,7 +209,15 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
                 url,
                 headers,
                 body: body ?? null,
-                referrerPolicy: referrerPolicy ?? "no-referrer",
+                referrerPolicy: (referrerPolicy ?? "no-referrer") as
+                  | "no-referrer"
+                  | "no-referrer-when-downgrade"
+                  | "origin"
+                  | "origin-when-cross-origin"
+                  | "same-origin"
+                  | "strict-origin"
+                  | "strict-origin-when-cross-origin"
+                  | "unsafe-url",
               },
               response: {
                 status: response.status,
