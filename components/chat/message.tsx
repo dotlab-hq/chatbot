@@ -471,7 +471,7 @@ const PurePreviewMessage = ({
       return (
         <Tool
           className="w-[min(100%,650px)]"
-          defaultOpen={true}
+          defaultOpen={false}
           key={toolCallId}
         >
           <ToolHeader
