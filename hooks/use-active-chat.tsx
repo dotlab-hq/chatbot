@@ -164,13 +164,17 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       // output available — the onToolCall handler called addToolOutput with
       // the result, and we need to send it back to the LLM for continuation.
       //
-      // IMPORTANT: We track which toolCallIds have already triggered an
-      // auto-send to prevent infinite loops. The AI SDK fires this callback
-      // BOTH when a tool call is added AND when the stream finishes. Without
-      // dedup, the tool-call part (still in "output-available" state after
-      // the LLM responds) would trigger a second resubmission.
+      // IMPORTANT: Only match known CLIENT-SIDE tools (those handled in
+      // onToolCall). Server-side tools (getWeather, calculator, etc.) already
+      // return their results from the server — matching them here would cause
+      // an unwanted re-submission and a second LLM call.
+      //
+      // Also track which toolCallIds have already triggered an auto-send to
+      // prevent infinite loops. The AI SDK fires this callback BOTH when a
+      // tool call is added AND when the stream finishes.
       for (const part of lastMessage?.parts ?? []) {
         if (
+          part.type === "tool-clientHttpRequest" &&
           "state" in part &&
           part.state === "output-available" &&
           "output" in part &&
