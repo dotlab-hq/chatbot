@@ -18,23 +18,44 @@ For server-side/proxied requests (the default), use the server-side randomApiToo
     method: z
       .enum(["GET", "POST", "PUT", "PATCH", "DELETE"])
       .describe("HTTP method for the request"),
+
     url: z.string().url().describe("The URL to request"),
+
     headers: z
       .record(z.string())
       .optional()
       .describe("Optional request headers"),
+
     body: z
       .string()
       .optional()
-      .describe("JSON body for POST/PUT/PATCH requests"),
+      .describe(
+        "Raw request body. Must match the supplied Content-Type (e.g. JSON string, URL-encoded string, XML, etc.)"
+      ),
+
     timeout: z
       .number()
       .min(1000)
-      .max(3e4)
-      .default(1e4)
+      .max(30_000)
+      .default(10_000)
       .describe("Request timeout in milliseconds"),
+
+    referrerPolicy: z
+      .enum([
+        "no-referrer",
+        "no-referrer-when-downgrade",
+        "origin",
+        "origin-when-cross-origin",
+        "same-origin",
+        "strict-origin",
+        "strict-origin-when-cross-origin",
+        "unsafe-url",
+      ])
+      .default("strict-origin-when-cross-origin")
+      .describe("Browser referrer policy for the request"),
   }),
-  execute: async ({ method, url, headers, body, timeout }) => {
+
+  execute: async ({ method, url, headers, body, timeout, referrerPolicy }) => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
@@ -43,12 +64,14 @@ For server-side/proxied requests (the default), use the server-side randomApiToo
         method,
         headers: {
           "Content-Type": "application/json",
-          "Referrer-Policy": "no-referrer",
           ...headers,
         },
         body:
           body && ["POST", "PUT", "PATCH"].includes(method) ? body : undefined,
         signal: controller.signal,
+
+        // ✅ Correct place for controlling Referer
+        referrerPolicy,
       });
 
       const responseHeaders: Record<string, string> = {};
@@ -57,13 +80,14 @@ For server-side/proxied requests (the default), use the server-side randomApiToo
       });
 
       const contentType = response.headers.get("content-type") || "";
+
       let responseBody: unknown;
+
       try {
         const text = await response.text();
+
         if (contentType.includes("application/json")) {
           responseBody = JSON.parse(text);
-        } else if (contentType.includes("text/")) {
-          responseBody = text;
         } else {
           responseBody = text;
         }
@@ -72,7 +96,13 @@ For server-side/proxied requests (the default), use the server-side randomApiToo
       }
 
       return {
-        request: { method, url, headers, body: body ?? null },
+        request: {
+          method,
+          url,
+          headers,
+          body: body ?? null,
+          referrerPolicy,
+        },
         response: {
           status: response.status,
           statusText: response.statusText,
@@ -83,7 +113,13 @@ For server-side/proxied requests (the default), use the server-side randomApiToo
       };
     } catch (err) {
       return {
-        request: { method, url, headers, body: body ?? null },
+        request: {
+          method,
+          url,
+          headers,
+          body: body ?? null,
+          referrerPolicy,
+        },
         error: err instanceof Error ? err.message : String(err),
       };
     } finally {
