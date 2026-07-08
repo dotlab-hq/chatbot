@@ -190,8 +190,8 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
         return;
       }
       if (toolCall.toolName === "clientHttpRequest") {
-        const { method, url, headers, body, timeout, referrerPolicy } =
-          toolCall.input as {
+        const { requests } = toolCall.input as {
+          requests: Array<{
             method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
             url: string;
             headers?: Record<string, string>;
@@ -206,49 +206,68 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
               | "strict-origin"
               | "strict-origin-when-cross-origin"
               | "unsafe-url";
+          }>;
+        };
+
+        const executeSingleRequest = async (
+          req: (typeof requests)[number]
+        ): Promise<{
+          request: {
+            method: string;
+            url: string;
+            headers?: Record<string, string>;
+            body: string | null;
+            referrerPolicy: string;
           };
-        const controller = new AbortController();
-        const timeoutId = setTimeout(
-          () => controller.abort(),
-          timeout ?? 10_000
-        );
-        try {
-          const response = await fetch(url, {
-            method,
-            headers: headers ?? { "Content-Type": "application/json" },
-            body:
-              body && ["POST", "PUT", "PATCH"].includes(method)
-                ? body
-                : undefined,
-            signal: controller.signal,
-            referrerPolicy: (referrerPolicy ?? "unsafe-url") as ReferrerPolicy,
-          });
-          const responseHeaders: Record<string, string> = {};
-          response.headers.forEach((value, key) => {
-            responseHeaders[key] = value;
-          });
-          const contentType = response.headers.get("content-type") || "";
-          let responseBody: unknown;
+          response?: {
+            status: number;
+            statusText: string;
+            headers: Record<string, string>;
+            body: unknown;
+          };
+          error?: string;
+          ok?: boolean;
+        }> => {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(
+            () => controller.abort(),
+            req.timeout ?? 10_000
+          );
           try {
-            const text = await response.text();
-            if (contentType.includes("application/json")) {
-              responseBody = JSON.parse(text);
-            } else {
-              responseBody = text;
+            const response = await fetch(req.url, {
+              method: req.method,
+              headers: req.headers ?? { "Content-Type": "application/json" },
+              body:
+                req.body && ["POST", "PUT", "PATCH"].includes(req.method)
+                  ? req.body
+                  : undefined,
+              signal: controller.signal,
+              referrerPolicy: (req.referrerPolicy ??
+                "unsafe-url") as ReferrerPolicy,
+            });
+            const responseHeaders: Record<string, string> = {};
+            response.headers.forEach((value, key) => {
+              responseHeaders[key] = value;
+            });
+            const contentType = response.headers.get("content-type") || "";
+            let responseBody: unknown;
+            try {
+              const text = await response.text();
+              if (contentType.includes("application/json")) {
+                responseBody = JSON.parse(text);
+              } else {
+                responseBody = text;
+              }
+            } catch {
+              responseBody = "(binary or unreadable response)";
             }
-          } catch {
-            responseBody = "(binary or unreadable response)";
-          }
-          addToolOutput({
-            tool: "clientHttpRequest",
-            toolCallId: toolCall.toolCallId,
-            output: {
+            return {
               request: {
-                method,
-                url,
-                headers,
-                body: body ?? null,
-                referrerPolicy: (referrerPolicy ?? "no-referrer") as
+                method: req.method,
+                url: req.url,
+                headers: req.headers,
+                body: req.body ?? null,
+                referrerPolicy: (req.referrerPolicy ?? "no-referrer") as
                   | "no-referrer"
                   | "no-referrer-when-downgrade"
                   | "origin"
@@ -265,18 +284,38 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
                 body: responseBody,
               },
               ok: response.ok,
-            },
-          });
-        } catch (err) {
-          addToolOutput({
-            tool: "clientHttpRequest",
-            toolCallId: toolCall.toolCallId,
-            state: "output-error",
-            errorText: err instanceof Error ? err.message : String(err),
-          });
-        } finally {
-          clearTimeout(timeoutId);
-        }
+            };
+          } catch (err) {
+            return {
+              request: {
+                method: req.method,
+                url: req.url,
+                headers: req.headers,
+                body: req.body ?? null,
+                referrerPolicy: (req.referrerPolicy ?? "no-referrer") as
+                  | "no-referrer"
+                  | "no-referrer-when-downgrade"
+                  | "origin"
+                  | "origin-when-cross-origin"
+                  | "same-origin"
+                  | "strict-origin"
+                  | "strict-origin-when-cross-origin"
+                  | "unsafe-url",
+              },
+              error: err instanceof Error ? err.message : String(err),
+            };
+          } finally {
+            clearTimeout(timeoutId);
+          }
+        };
+
+        const results = await Promise.all(requests.map(executeSingleRequest));
+
+        addToolOutput({
+          tool: "clientHttpRequest",
+          toolCallId: toolCall.toolCallId,
+          output: { results },
+        });
       }
     },
     transport: new DefaultChatTransport({
