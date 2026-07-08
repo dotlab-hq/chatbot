@@ -177,14 +177,29 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
           timeout ?? 10_000
         );
         try {
-          const response = await fetch(url, {
+          // Cache-busting: add unique params to prevent browser from serving stale cached responses
+          const cacheBusterUrl = new URL(url);
+          cacheBusterUrl.searchParams.set("_t", Date.now().toString());
+          cacheBusterUrl.searchParams.set(
+            "_cb",
+            Math.random().toString(36).slice(2)
+          );
+
+          const response = await fetch(cacheBusterUrl.toString(), {
             method,
-            headers: { "Content-Type": "application/json", ...headers },
+            headers: {
+              "Content-Type": "application/json",
+              "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+              Pragma: "no-cache",
+              Expires: "0",
+              ...headers,
+            },
             body:
               body && ["POST", "PUT", "PATCH"].includes(method)
                 ? body
                 : undefined,
             signal: controller.signal,
+            cache: "no-store",
             referrerPolicy: (referrerPolicy ?? "no-referrer") as ReferrerPolicy,
           });
           const responseHeaders: Record<string, string> = {};
@@ -194,11 +209,14 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
           const contentType = response.headers.get("content-type") || "";
           let responseBody: unknown;
           try {
-            responseBody = contentType.includes("application/json")
-              ? await response.json()
-              : await response.text();
+            const text = await response.text();
+            if (contentType.includes("application/json")) {
+              responseBody = JSON.parse(text);
+            } else {
+              responseBody = text;
+            }
           } catch {
-            responseBody = null;
+            responseBody = "(binary or unreadable response)";
           }
           addToolOutput({
             tool: "clientHttpRequest",

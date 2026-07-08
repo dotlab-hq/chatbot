@@ -54,83 +54,29 @@ For server-side/proxied requests (the default), use the server-side randomApiToo
       .default("strict-origin-when-cross-origin")
       .describe("Browser referrer policy for the request"),
   }),
+  
 
-  execute: async ({ method, url, headers, body, timeout, referrerPolicy }) => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-    // Cache-busting: always get fresh responses from APIs
-    const cacheBusterUrl = new URL(url);
-    cacheBusterUrl.searchParams.set("_t", Date.now().toString());
-    cacheBusterUrl.searchParams.set("_cb", Math.random().toString(36).slice(2));
-
-    try {
-      const response = await fetch(cacheBusterUrl.toString(), {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
-          Pragma: "no-cache",
-          Expires: "0",
-          ...headers,
-        },
-        body:
-          body && ["POST", "PUT", "PATCH"].includes(method) ? body : undefined,
-        signal: controller.signal,
-        cache: "no-store",
-        referrerPolicy,
-      });
-
-      const responseHeaders: Record<string, string> = {};
-      response.headers.forEach((value, key) => {
-        responseHeaders[key] = value;
-      });
-
-      const contentType = response.headers.get("content-type") || "";
-
-      let responseBody: unknown;
-
-      try {
-        const text = await response.text();
-
-        if (contentType.includes("application/json")) {
-          responseBody = JSON.parse(text);
-        } else {
-          responseBody = text;
-        }
-      } catch {
-        responseBody = "(binary or unreadable response)";
-      }
-
-      return {
-        request: {
-          method,
-          url,
-          headers,
-          body: body ?? null,
-          referrerPolicy,
-        },
-        response: {
-          status: response.status,
-          statusText: response.statusText,
-          headers: responseHeaders,
-          body: responseBody,
-        },
-        ok: response.ok,
-      };
-    } catch (err) {
-      return {
-        request: {
-          method,
-          url,
-          headers,
-          body: body ?? null,
-          referrerPolicy,
-        },
-        error: err instanceof Error ? err.message : String(err),
-      };
-    } finally {
-      clearTimeout(timeoutId);
-    }
-  },
+  // No `execute` here — this is a CLIENT-side tool.
+  // Actual execution happens in `onToolCall` in hooks/use-active-chat.tsx,
+  // which runs in the browser where `fetch` originates from the user's IP.
+  // Having an `execute` here would cause a SECOND (server-side) call.
+  outputSchema: z.object({
+    request: z.object({
+      method: z.string(),
+      url: z.string(),
+      headers: z.record(z.string()).optional(),
+      body: z.string().nullable(),
+      referrerPolicy: z.string(),
+    }),
+    response: z
+      .object({
+        status: z.number(),
+        statusText: z.string(),
+        headers: z.record(z.string()),
+        body: z.unknown(),
+      })
+      .optional(),
+    error: z.string().optional(),
+    ok: z.boolean().optional(),
+  }),
 });
