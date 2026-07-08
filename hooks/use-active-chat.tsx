@@ -23,7 +23,6 @@ import { toast } from "@/components/chat/toast";
 import type { VisibilityType } from "@/components/chat/visibility-selector";
 import { useAutoResume } from "@/hooks/use-auto-resume";
 import { DEFAULT_CHAT_MODEL } from "@/lib/ai/models";
-import { clientHttpRequest } from "@/lib/ai/tools/client-http-request";
 import type { Vote } from "@/lib/db/schema";
 import { ChatbotError } from "@/lib/errors";
 import type { ChatMessage } from "@/lib/types";
@@ -133,6 +132,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
     regenerate,
     resumeStream,
     addToolApprovalResponse,
+    addToolOutput,
   } = useChat<ChatMessage>({
     id: chatId,
     messages: initialMessages,
@@ -149,8 +149,71 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
         ) ?? false
       );
     },
-    tools: {
-      clientHttpRequest,
+    onToolCall: async ({ toolCall }) => {
+      if (toolCall.dynamic) {
+        return;
+      }
+      if (toolCall.toolName === "clientHttpRequest") {
+        const { method, url, headers, body, timeout } = toolCall.input as {
+          method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+          url: string;
+          headers?: Record<string, string>;
+          body?: string;
+          timeout?: number;
+        };
+        const controller = new AbortController();
+        const timeoutId = setTimeout(
+          () => controller.abort(),
+          timeout ?? 10_000
+        );
+        try {
+          const response = await fetch(url, {
+            method,
+            headers: { "Content-Type": "application/json", ...headers },
+            body:
+              body && ["POST", "PUT", "PATCH"].includes(method)
+                ? body
+                : undefined,
+            signal: controller.signal,
+          });
+          const responseHeaders: Record<string, string> = {};
+          response.headers.forEach((value, key) => {
+            responseHeaders[key] = value;
+          });
+          const contentType = response.headers.get("content-type") || "";
+          let responseBody: unknown;
+          try {
+            responseBody = contentType.includes("application/json")
+              ? await response.json()
+              : await response.text();
+          } catch {
+            responseBody = null;
+          }
+          addToolOutput({
+            tool: "clientHttpRequest",
+            toolCallId: toolCall.toolCallId,
+            output: {
+              request: { method, url, headers, body: body ?? null },
+              response: {
+                status: response.status,
+                statusText: response.statusText,
+                headers: responseHeaders,
+                body: responseBody,
+              },
+              ok: response.ok,
+            },
+          });
+        } catch (err) {
+          addToolOutput({
+            tool: "clientHttpRequest",
+            toolCallId: toolCall.toolCallId,
+            state: "output-error",
+            errorText: err instanceof Error ? err.message : String(err),
+          });
+        } finally {
+          clearTimeout(timeoutId);
+        }
+      }
     },
     transport: new DefaultChatTransport({
       api: `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/chat`,

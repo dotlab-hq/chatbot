@@ -14,7 +14,7 @@ export const clientHttpRequest = tool({
 Use this to call public APIs when you need the request to originate from the user's IP address.
 Returns status, headers, and parsed JSON body.
 For proxied requests, use the server-side httpRequest tool instead.`,
-  parameters: z.object({
+  inputSchema: z.object({
     method: z
       .enum(["GET", "POST", "PUT", "PATCH", "DELETE"])
       .describe("HTTP method for the request"),
