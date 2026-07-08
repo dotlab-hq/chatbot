@@ -59,7 +59,6 @@ function ImageLightbox({
           width={1200}
         />
         <div className="mt-2 flex items-center gap-2 text-sm text-white/80">
-          {/* biome-ignore lint: favicon needs raw img for external domain */}
           <img
             alt=""
             className="size-4 rounded-sm"
@@ -127,7 +126,6 @@ function ImageCard({
         )}
       </div>
       <div className="flex items-center gap-1.5 px-2.5 py-1.5">
-        {/* biome-ignore lint: favicon needs raw img for external domain */}
         <img
           alt=""
           className="size-3 shrink-0 rounded-sm"

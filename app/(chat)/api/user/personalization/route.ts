@@ -100,25 +100,48 @@ export async function PATCH(request: Request) {
     const body = (await request.json()) as Partial<PersonalizationData>;
 
     const updateData: Record<string, string | boolean> = {};
-    if (body.theme !== undefined) updateData.theme = body.theme;
-    if (body.font !== undefined) updateData.font = body.font;
-    if (body.fontSize !== undefined) updateData.fontSize = body.fontSize;
-    if (body.spacing !== undefined) updateData.spacing = body.spacing;
-    if (body.showAvatars !== undefined)
+    if (body.theme !== undefined) {
+      updateData.theme = body.theme;
+    }
+    if (body.font !== undefined) {
+      updateData.font = body.font;
+    }
+    if (body.fontSize !== undefined) {
+      updateData.fontSize = body.fontSize;
+    }
+    if (body.spacing !== undefined) {
+      updateData.spacing = body.spacing;
+    }
+    if (body.showAvatars !== undefined) {
       updateData.showAvatars = body.showAvatars;
-    if (body.baseStyle !== undefined) updateData.baseStyle = body.baseStyle;
-    if (body.warm !== undefined) updateData.warm = body.warm;
-    if (body.enthusiastic !== undefined)
+    }
+    if (body.baseStyle !== undefined) {
+      updateData.baseStyle = body.baseStyle;
+    }
+    if (body.warm !== undefined) {
+      updateData.warm = body.warm;
+    }
+    if (body.enthusiastic !== undefined) {
       updateData.enthusiastic = body.enthusiastic;
-    if (body.headersAndLists !== undefined)
+    }
+    if (body.headersAndLists !== undefined) {
       updateData.headersAndLists = body.headersAndLists;
-    if (body.emoji !== undefined) updateData.emoji = body.emoji;
-    if (body.customInstructions !== undefined)
+    }
+    if (body.emoji !== undefined) {
+      updateData.emoji = body.emoji;
+    }
+    if (body.customInstructions !== undefined) {
       updateData.customInstructions = body.customInstructions;
-    if (body.nickname !== undefined) updateData.nickname = body.nickname;
-    if (body.occupation !== undefined) updateData.occupation = body.occupation;
-    if (body.moreAboutYou !== undefined)
+    }
+    if (body.nickname !== undefined) {
+      updateData.nickname = body.nickname;
+    }
+    if (body.occupation !== undefined) {
+      updateData.occupation = body.occupation;
+    }
+    if (body.moreAboutYou !== undefined) {
       updateData.moreAboutYou = body.moreAboutYou;
+    }
 
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json(

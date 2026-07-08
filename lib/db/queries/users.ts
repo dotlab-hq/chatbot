@@ -59,8 +59,12 @@ export async function updateUserProfile({
 }): Promise<User | null> {
   try {
     const updates: Record<string, unknown> = { updatedAt: new Date() };
-    if (name !== undefined) updates.name = name;
-    if (email !== undefined) updates.email = email;
+    if (name !== undefined) {
+      updates.name = name;
+    }
+    if (email !== undefined) {
+      updates.email = email;
+    }
 
     const [updated] = await db
       .update(user)

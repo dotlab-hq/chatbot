@@ -773,7 +773,7 @@ function ProjectsTab() {
         <>
           <div className="flex items-center justify-between">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              {projects.length} project{projects.length !== 1 ? "s" : ""}
+              {projects.length} project{projects.length === 1 ? "" : "s"}
             </p>
             <Button
               className="h-7 text-xs gap-1"
@@ -810,7 +810,7 @@ function ProjectsTab() {
                       <span className="flex items-center gap-1">
                         <FileIcon className="size-3" />
                         {project.fileCount} file
-                        {project.fileCount !== 1 ? "s" : ""}
+                        {project.fileCount === 1 ? "" : "s"}
                       </span>
                       <span className="text-muted-foreground/30">/</span>
                       <span>
@@ -855,7 +855,7 @@ function ProjectsTab() {
 
           <div className="flex items-center justify-between">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              {projectFiles.length} file{projectFiles.length !== 1 ? "s" : ""}
+              {projectFiles.length} file{projectFiles.length === 1 ? "" : "s"}
             </p>
             <label>
               <input
@@ -1182,7 +1182,7 @@ function McpTab() {
         <>
           <div className="flex items-center justify-between">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              {servers.length} server{servers.length !== 1 ? "s" : ""}
+              {servers.length} server{servers.length === 1 ? "" : "s"}
             </p>
             <Button
               className="h-7 text-xs gap-1"

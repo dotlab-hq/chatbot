@@ -84,13 +84,13 @@ const SearchSourcesPanel = memo(function SearchSourcesPanel({
 
       {/* Text sources section */}
       <div className="flex flex-col gap-2 p-3">
-        {unique.map((result, i) => {
+        {unique.map((result) => {
           const domain = result.domain ?? getDomain(result.url);
           return (
             <a
               className="group/source flex flex-col gap-1 rounded-lg border border-border/30 bg-muted/10 px-3 py-2.5 transition-colors hover:border-border/60 hover:bg-muted/30"
               href={result.url}
-              key={`${result.url}-${i}`}
+              key={result.url}
               rel="noopener noreferrer"
               target="_blank"
             >

@@ -29,7 +29,7 @@ export async function checkIpRateLimit(ip: string | undefined) {
   }
 
   const redis = getClient();
-  if (!redis || redis.status !== "ready") {
+  if (redis?.status !== "ready") {
     return;
   }
 

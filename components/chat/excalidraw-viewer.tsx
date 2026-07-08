@@ -38,7 +38,9 @@ export function ExcalidrawViewer({ content, onChange }: ExcalidrawViewerProps) {
   contentRef.current = content;
 
   useEffect(() => {
-    if (!content) return;
+    if (!content) {
+      return;
+    }
     try {
       const data = JSON.parse(content);
       setInitialData({
@@ -56,10 +58,14 @@ export function ExcalidrawViewer({ content, onChange }: ExcalidrawViewerProps) {
 
   const handleChange = useCallback(
     (elements: readonly any[], appState: any, files: any) => {
-      if (!onChange) return;
+      if (!onChange) {
+        return;
+      }
       const serialized = serializeScene(elements, appState, files);
       // Avoid triggering save if content hasn't actually changed
-      if (serialized === contentRef.current) return;
+      if (serialized === contentRef.current) {
+        return;
+      }
       onChange(serialized);
     },
     [onChange]

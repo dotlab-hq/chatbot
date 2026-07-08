@@ -94,7 +94,9 @@ const LEVEL_OPTIONS = [
 
 async function fetchAiSettings(): Promise<AiSettings> {
   const r = await fetch("/api/user/personalization");
-  if (!r.ok) return DEFAULTS;
+  if (!r.ok) {
+    return DEFAULTS;
+  }
   const data = (await r.json()) as { settings: Record<string, string> };
   return {
     baseStyle:
@@ -135,7 +137,9 @@ export function PersonalizationTab() {
   useEffect(() => {
     let cancelled = false;
     fetchAiSettings().then((s) => {
-      if (cancelled) return;
+      if (cancelled) {
+        return;
+      }
       setSettings(s);
       setLoaded(true);
     });
@@ -145,9 +149,13 @@ export function PersonalizationTab() {
   }, []);
 
   const scheduleSave = useCallback((next: AiSettings) => {
-    if (saveTimer.current) clearTimeout(saveTimer.current);
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+    }
     saveTimer.current = setTimeout(() => {
-      saveAiSettings(next).catch(() => {});
+      saveAiSettings(next).catch(() => {
+        // Silently save — errors are non-critical UI preference updates
+      });
     }, 800);
   }, []);
 

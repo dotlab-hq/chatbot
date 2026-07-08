@@ -68,8 +68,9 @@ export function getToolSets(): ToolSet {
 function buildTransport(server: McpServer) {
   switch (server.transport) {
     case "stdio": {
-      if (!server.command)
+      if (!server.command) {
         throw new Error("stdio transport requires a command");
+      }
       return new Experimental_StdioMCPTransport({
         command: server.command,
         args: server.args ?? [],
@@ -77,11 +78,14 @@ function buildTransport(server: McpServer) {
       });
     }
     case "sse":
-      if (!server.url) throw new Error("SSE transport requires a URL");
+      if (!server.url) {
+        throw new Error("SSE transport requires a URL");
+      }
       return { type: "sse" as const, url: server.url };
     case "streamable-http":
-      if (!server.url)
+      if (!server.url) {
         throw new Error("Streamable HTTP transport requires a URL");
+      }
       return { type: "http" as const, url: server.url };
     default:
       throw new Error(`Unsupported transport: ${server.transport}`);

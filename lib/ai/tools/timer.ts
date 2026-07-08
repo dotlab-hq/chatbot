@@ -16,7 +16,7 @@ export const timer = tool({
         "Optional label for the timer (e.g., 'Pasta', 'Meeting break')"
       ),
   }),
-  execute: async (input) => {
+  execute: (input) => {
     const ms =
       input.duration *
       (input.unit === "hours"

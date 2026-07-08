@@ -97,7 +97,9 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
     if (isNewChat) {
       const params = new URLSearchParams(window.location.search);
       const pid = params.get("projectId");
-      if (pid) setProjectId(pid);
+      if (pid) {
+        setProjectId(pid);
+      }
     }
   }, [isNewChat]);
 
@@ -265,7 +267,9 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
 
   // Track chat title for document.title
   const [chatTitle, setChatTitle] = useState<string | null>(() => {
-    if (!isNewChat) return null;
+    if (!isNewChat) {
+      return null;
+    }
     return "New Chat";
   });
 

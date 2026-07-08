@@ -11,7 +11,7 @@ export const calculator = tool({
         "Mathematical expression to evaluate (e.g., '24*(18+3)', 'sqrt(144)', 'sin(PI/2)')"
       ),
   }),
-  execute: async (input) => {
+  execute: (input) => {
     const { expression } = input;
 
     // ponytail: safe math eval — sanitizes to math-only chars + known functions

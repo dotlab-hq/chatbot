@@ -585,7 +585,7 @@ function ProjectsTab() {
                     <span className="flex items-center gap-1">
                       <FileIcon className="size-3" />
                       {project.fileCount} file
-                      {project.fileCount !== 1 ? "s" : ""}
+                      {project.fileCount === 1 ? "" : "s"}
                     </span>
                     <span>
                       {new Date(project.createdAt).toLocaleDateString()}

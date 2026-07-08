@@ -200,7 +200,9 @@ export function AppSidebar({ user }: { user: User | undefined }) {
   };
 
   const handleRenameProject = async () => {
-    if (!renameTarget || !renameName.trim()) return;
+    if (!renameTarget || !renameName.trim()) {
+      return;
+    }
     try {
       const r = await fetch(
         `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/projects`,
@@ -213,7 +215,9 @@ export function AppSidebar({ user }: { user: User | undefined }) {
           }),
         }
       );
-      if (!r.ok) throw new Error("Rename failed");
+      if (!r.ok) {
+        throw new Error("Rename failed");
+      }
       toast.success("Project renamed");
       setRenameTarget(null);
       loadProjects();
@@ -223,13 +227,17 @@ export function AppSidebar({ user }: { user: User | undefined }) {
   };
 
   const handleDeleteProject = async () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget) {
+      return;
+    }
     try {
       const r = await fetch(
         `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/projects?projectId=${deleteTarget.id}`,
         { method: "DELETE" }
       );
-      if (!r.ok) throw new Error("Delete failed");
+      if (!r.ok) {
+        throw new Error("Delete failed");
+      }
       toast.success(`"${deleteTarget.name}" deleted`);
       setDeleteTarget(null);
       setExpandedProjectId(null);
@@ -241,7 +249,9 @@ export function AppSidebar({ user }: { user: User | undefined }) {
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !uploadProjectId) return;
+    if (!file || !uploadProjectId) {
+      return;
+    }
     const fd = new FormData();
     fd.append("file", file);
     try {
@@ -249,7 +259,9 @@ export function AppSidebar({ user }: { user: User | undefined }) {
         `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/projects/${uploadProjectId}/files`,
         { method: "POST", body: fd }
       );
-      if (!r.ok) throw new Error("Upload failed");
+      if (!r.ok) {
+        throw new Error("Upload failed");
+      }
       toast.success(`Uploaded "${file.name}"`);
       loadProjects();
     } catch {
@@ -365,7 +377,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                     >
                       <FolderIcon className="size-4" />
                       <span>Projects</span>
-                      <span
+                      <button
                         className="ml-auto mr-1 flex size-5 items-center justify-center rounded text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -379,11 +391,10 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                             setCreateProjectOpen(true);
                           }
                         }}
-                        role="button"
-                        tabIndex={0}
+                        type="button"
                       >
                         <PlusIcon className="size-3.5" />
-                      </span>
+                      </button>
                       <ChevronRightIcon
                         className={`size-3 transition-transform duration-200 ${projectsOpen ? "rotate-90" : ""}`}
                       />
@@ -406,6 +417,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                                 <button
                                   className="flex flex-1 items-center gap-2 overflow-hidden"
                                   onClick={() => toggleProject(project.id)}
+                                  type="button"
                                 >
                                   {isExpanded ? (
                                     <FolderOpenIcon className="size-3.5 shrink-0 text-sidebar-foreground/50" />
@@ -419,7 +431,10 @@ export function AppSidebar({ user }: { user: User | undefined }) {
 
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
-                                    <button className="flex size-6 shrink-0 items-center justify-center rounded text-sidebar-foreground/20 opacity-0 transition-all duration-150 hover:bg-sidebar-accent hover:text-sidebar-foreground/60 group-hover:opacity-100 data-[state=open]:opacity-100">
+                                    <button
+                                      className="flex size-6 shrink-0 items-center justify-center rounded text-sidebar-foreground/20 opacity-0 transition-all duration-150 hover:bg-sidebar-accent hover:text-sidebar-foreground/60 group-hover:opacity-100 data-[state=open]:opacity-100"
+                                      type="button"
+                                    >
                                       <MoreHorizontalIcon className="size-3.5" />
                                     </button>
                                   </DropdownMenuTrigger>
@@ -501,13 +516,15 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                                       </div>
                                     ) : (
                                       projectChats[project.id].map(
-                                        (chat, idx) => (
+                                        (chat, _idx) => (
                                           <ChatItem
                                             chat={chat}
                                             compact
                                             isActive={false}
                                             key={chat.id}
-                                            onDelete={() => {}}
+                                            onDelete={() => {
+                                              // noop - parent handles delete
+                                            }}
                                             setOpenMobile={setOpenMobile}
                                           />
                                         )
@@ -552,7 +569,9 @@ export function AppSidebar({ user }: { user: User | undefined }) {
       {filesDialogTarget && (
         <ProjectFilesDialog
           onOpenChange={(o) => {
-            if (!o) setFilesDialogTarget(null);
+            if (!o) {
+              setFilesDialogTarget(null);
+            }
           }}
           open={!!filesDialogTarget}
           projectId={filesDialogTarget.id}
@@ -563,7 +582,9 @@ export function AppSidebar({ user }: { user: User | undefined }) {
       {/* Rename Project Dialog */}
       <Dialog
         onOpenChange={(o) => {
-          if (!o) setRenameTarget(null);
+          if (!o) {
+            setRenameTarget(null);
+          }
         }}
         open={!!renameTarget}
       >
@@ -603,7 +624,9 @@ export function AppSidebar({ user }: { user: User | undefined }) {
       {/* Delete Project Confirmation */}
       <AlertDialog
         onOpenChange={(o) => {
-          if (!o) setDeleteTarget(null);
+          if (!o) {
+            setDeleteTarget(null);
+          }
         }}
         open={!!deleteTarget}
       >
@@ -629,9 +652,11 @@ export function AppSidebar({ user }: { user: User | undefined }) {
 
       <input
         accept=".txt,.md,.pdf,.csv,.json,.docx"
+        aria-label="Upload file"
         className="hidden"
         onChange={handleFileUpload}
         ref={fileInputRef}
+        title="Upload file"
         type="file"
       />
 

@@ -100,7 +100,7 @@ export function CodeDiffView({
       ref={containerRef}
     >
       <div className="min-w-max">
-        {diffLines.map((line, idx) => (
+        {diffLines.map((line, _idx) => (
           <div
             className={`flex border-l-2 px-4 py-0.5 leading-6 ${
               line.type === "added"
@@ -110,7 +110,7 @@ export function CodeDiffView({
                   : "border-l-transparent"
             }`}
             data-diff-line={line.type === "unchanged" ? undefined : line.type}
-            key={`${line.type}-${line.content}-${idx}`}
+            key={`${line.type}-${line.content}-${line.oldLineNum ?? "?"}-${line.newLineNum ?? "?"}`}
           >
             <span className="w-10 shrink-0 select-none text-right text-xs text-muted-foreground/50">
               {line.oldLineNum ?? ""}

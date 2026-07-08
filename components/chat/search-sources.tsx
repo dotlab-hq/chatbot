@@ -7,7 +7,9 @@ import type { ChatMessage } from "@/lib/types";
 const SEARCH_TOOL_TYPES = new Set(["tool-webSearch", "tool-webSearchExtract"]);
 
 export function extractSearchResults(message: ChatMessage) {
-  if (!message.parts) return [];
+  if (!message.parts) {
+    return [];
+  }
   const results: {
     rank: number;
     title: string;
@@ -46,7 +48,9 @@ export function extractSearchResults(message: ChatMessage) {
 const IMAGE_SEARCH_TOOL_TYPES = new Set(["tool-webImageSearch"]);
 
 export function extractImageSearchResults(message: ChatMessage) {
-  if (!message.parts) return [];
+  if (!message.parts) {
+    return [];
+  }
   const results: {
     id: string;
     rank: number;
@@ -124,6 +128,7 @@ export const SearchSourcesBar = memo(function SearchSourcesBar({
             src={faviconUrl(domain)}
           />
         ))}
+        {/* Note: using <img> for external favicons; Next.js Image requires remotePatterns config */}
       </div>
       {domains.length > 4 && (
         <span className="text-[10px] text-muted-foreground/70">
@@ -131,7 +136,7 @@ export const SearchSourcesBar = memo(function SearchSourcesBar({
         </span>
       )}
       <span className="text-xs font-medium">
-        {count} Source{count !== 1 ? "s" : ""}
+        {count} Source{count === 1 ? "" : "s"}
       </span>
       <ExternalLinkIcon
         className={`size-3 transition-transform ${active ? "rotate-[-45deg]" : ""}`}

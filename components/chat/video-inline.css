@@ -1,0 +1,90 @@
+.video-inline-container {
+  width: 100%;
+  max-width: 42rem;
+  margin-left: auto;
+  margin-right: auto;
+  border-radius: 1rem;
+  border: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+  background-color: #000;
+  overflow: hidden;
+}
+
+.video-inline-player {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background-color: #000;
+}
+
+.video-inline-controls {
+  padding: 1rem;
+  background-color: #000;
+}
+
+.video-inline-progress-bar {
+  position: relative;
+  height: 0.5rem;
+  background-color: rgb(255 255 255 / 0.2);
+  border-radius: 9999px;
+  cursor: pointer;
+}
+
+.video-inline-progress-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background-color: #fff;
+  border-radius: 9999px;
+  width: var(--seek-progress, 0%);
+}
+
+.video-inline-thumb {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.video-inline-progress-bar:hover .video-inline-thumb {
+  opacity: 1;
+}
+
+.video-inline-thumb-inner {
+  height: 100%;
+  width: 0.75rem;
+  background-color: rgb(255 255 255 / 0.5);
+  border-radius: 9999px;
+  margin-left: -0.375rem;
+}
+
+.video-inline-volume-slider {
+  width: 5rem;
+  height: 0.25rem;
+  background-color: rgb(255 255 255 / 0.2);
+  border-radius: 9999px;
+  cursor: pointer;
+}
+
+.video-inline-button {
+  background-color: rgb(255 255 255 / 0.2);
+  border-radius: 9999px;
+  padding: 0.75rem;
+  color: #fff;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+
+.video-inline-button:hover {
+  background-color: rgb(255 255 255 / 0.3);
+}
+
+.video-inline-mute-button {
+  color: #fff;
+}
+
+.video-inline-mute-button:hover {
+  color: rgb(255 255 255 / 0.8);
+}

@@ -76,10 +76,11 @@ export function SearchSourcesProvider({
 
 export function useSearchSourcesPanel() {
   const ctx = useContext(SearchSourcesContext);
-  if (!ctx)
+  if (!ctx) {
     throw new Error(
       "useSearchSourcesPanel must be inside SearchSourcesProvider"
     );
+  }
   return ctx;
 }
 
@@ -89,7 +90,9 @@ const IMAGE_SEARCH_TOOL_TYPES = new Set(["tool-webImageSearch"]);
 export function extractSearchResults(message: {
   parts?: { type: string; output?: unknown }[];
 }): SearchResult[] {
-  if (!message.parts) return [];
+  if (!message.parts) {
+    return [];
+  }
   const results: SearchResult[] = [];
   for (const part of message.parts) {
     if (
@@ -115,7 +118,9 @@ export function extractSearchResults(message: {
 export function extractImageResults(message: {
   parts?: { type: string; output?: unknown }[];
 }): ImageSearchResult[] {
-  if (!message.parts) return [];
+  if (!message.parts) {
+    return [];
+  }
   const results: ImageSearchResult[] = [];
   const seenUrls = new Set<string>();
   for (const part of message.parts) {

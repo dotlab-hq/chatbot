@@ -65,7 +65,7 @@ export function SidebarUserNav({
               >
                 {session?.data?.user?.image ? (
                   <img
-                    alt="Avatar"
+                    alt="User avatar"
                     className="size-5 shrink-0 rounded-full object-cover ring-1 ring-sidebar-border/50"
                     src={session.data.user.image}
                   />

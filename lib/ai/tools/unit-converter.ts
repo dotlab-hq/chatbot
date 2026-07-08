@@ -96,25 +96,36 @@ const TEMP_UNITS = ["celsius", "fahrenheit", "kelvin"] as const;
 function convertTemp(value: number, from: string, to: string): number {
   // Convert to Celsius first
   let celsius: number;
-  if (from === "celsius") celsius = value;
-  else if (from === "fahrenheit") celsius = (value - 32) * (5 / 9);
-  else celsius = value - 273.15; // kelvin
+  if (from === "celsius") {
+    celsius = value;
+  } else if (from === "fahrenheit") {
+    celsius = (value - 32) * (5 / 9);
+  } else {
+    celsius = value - 273.15; // kelvin
+  }
 
   // Convert from Celsius
-  if (to === "celsius") return celsius;
-  if (to === "fahrenheit") return celsius * (9 / 5) + 32;
+  if (to === "celsius") {
+    return celsius;
+  }
+  if (to === "fahrenheit") {
+    return celsius * (9 / 5) + 32;
+  }
   return celsius + 273.15; // kelvin
 }
 
 function findUnit(input: string): string | null {
   const lower = input.toLowerCase();
   // Check exact match first
-  if (CONVERSIONS[lower] || TEMP_UNITS.includes(lower as any)) return lower;
+  if (CONVERSIONS[lower] || TEMP_UNITS.includes(lower as any)) {
+    return lower;
+  }
   // Check singular/plural
   if (lower.endsWith("s")) {
     const singular = lower.slice(0, -1);
-    if (CONVERSIONS[singular] || TEMP_UNITS.includes(singular as any))
+    if (CONVERSIONS[singular] || TEMP_UNITS.includes(singular as any)) {
       return singular;
+    }
   }
   return null;
 }
@@ -127,12 +138,16 @@ export const unitConverter = tool({
     from: z.string().describe("Source unit (e.g., 'feet', 'celsius', 'kg')"),
     to: z.string().describe("Target unit (e.g., 'meters', 'fahrenheit', 'lb')"),
   }),
-  execute: async (input) => {
+  execute: (input) => {
     const from = findUnit(input.from);
     const to = findUnit(input.to);
 
-    if (!from) return { error: `Unknown source unit: "${input.from}".` };
-    if (!to) return { error: `Unknown target unit: "${input.to}".` };
+    if (!from) {
+      return { error: `Unknown source unit: "${input.from}".` };
+    }
+    if (!to) {
+      return { error: `Unknown target unit: "${input.to}".` };
+    }
 
     const isTemp =
       TEMP_UNITS.includes(from as any) && TEMP_UNITS.includes(to as any);
@@ -150,8 +165,9 @@ export const unitConverter = tool({
       result = convertTemp(input.value, from, to);
     } else {
       const fromTable = CONVERSIONS[from];
-      if (!fromTable?.[to])
+      if (!fromTable?.[to]) {
         return { error: `Cannot convert from "${from}" to "${to}".` };
+      }
       result = input.value * fromTable[to];
     }
 

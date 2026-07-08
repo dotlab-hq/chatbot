@@ -68,7 +68,7 @@ export function CurrencyConverter({
     );
   }
 
-  const fmt = (val: number, code: string) =>
+  const fmt = (val: number, _code: string) =>
     val.toLocaleString(undefined, {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,

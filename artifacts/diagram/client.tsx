@@ -23,7 +23,7 @@ type DiagramEditorProps = {
 };
 
 function DiagramEditor({
-  title,
+  title: _title,
   content,
   status,
   isLoading,
@@ -35,7 +35,9 @@ function DiagramEditor({
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const toggleFullscreen = useCallback(() => {
-    if (!setMetadata) return;
+    if (!setMetadata) {
+      return;
+    }
     setMetadata((prev) => ({
       ...prev,
       diagramFullscreen: !prev?.diagramFullscreen,

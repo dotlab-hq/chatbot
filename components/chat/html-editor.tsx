@@ -35,7 +35,9 @@ function buildPreviewHtml(raw: string): string {
   const hasTailwind = /cdn\.tailwindcss\.com/.test(raw);
 
   if (hasDoctype && hasHtmlTag) {
-    if (hasTailwind) return raw;
+    if (hasTailwind) {
+      return raw;
+    }
     if (hasHead) {
       return raw.replace(/<head(\s[^>]*)?>/, `<head$1>${TAILWIND_SETUP}`);
     }
@@ -67,7 +69,9 @@ export function HtmlEditor({
   const isFullscreen = metadata?.htmlFullscreen === true;
 
   const toggleFullscreen = useCallback(() => {
-    if (!setMetadata) return;
+    if (!setMetadata) {
+      return;
+    }
     setMetadata((prev) => ({ ...prev, htmlFullscreen: !prev?.htmlFullscreen }));
   }, [setMetadata]);
 

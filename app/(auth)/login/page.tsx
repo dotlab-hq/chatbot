@@ -8,7 +8,6 @@ import { type LoginActionState, login } from "@/app/(auth)/actions";
 import { AuthForm } from "@/components/chat/auth-form";
 import { SubmitButton } from "@/components/chat/submit-button";
 import { toast } from "@/components/chat/toast";
-import { useSession } from "@/lib/auth-client";
 
 export default function Page() {
   const router = useRouter();
@@ -19,8 +18,6 @@ export default function Page() {
     login,
     { status: "idle" }
   );
-
-  const session = useSession();
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: router and refetch are stable refs
   useEffect(() => {

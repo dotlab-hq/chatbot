@@ -223,7 +223,7 @@ function PureMultimodalInput({
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
-  const submitForm = useCallback(async () => {
+  const submitForm = useCallback(() => {
     window.history.pushState(
       {},
       "",
@@ -421,7 +421,9 @@ function PureMultimodalInput({
     const chunks: BlobPart[] = [];
 
     recorder.ondataavailable = (e) => {
-      if (e.data.size > 0) chunks.push(e.data);
+      if (e.data.size > 0) {
+        chunks.push(e.data);
+      }
     };
 
     recorder.onstop = () => {
@@ -442,7 +444,9 @@ function PureMultimodalInput({
 
   // Transcribe when audioBlob is ready
   useEffect(() => {
-    if (voiceMode !== "transcribing" || !audioBlob) return;
+    if (voiceMode !== "transcribing" || !audioBlob) {
+      return;
+    }
 
     let cancelled = false;
 
@@ -454,7 +458,9 @@ function PureMultimodalInput({
           `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/transcribe`,
           { method: "POST", body: formData }
         );
-        if (!res.ok) throw new Error("Transcription failed");
+        if (!res.ok) {
+          throw new Error("Transcription failed");
+        }
         const { text } = await res.json();
         if (!cancelled) {
           setInput((prev) => (prev ? `${prev} ${text}` : text));

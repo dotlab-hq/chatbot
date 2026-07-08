@@ -32,7 +32,7 @@ export function useSession() {
       setValue(v as AtomValue);
     });
     return unsub;
-  }, [sessionAtom]);
+  }, []);
 
   const refetch = useCallback(async () => {
     try {

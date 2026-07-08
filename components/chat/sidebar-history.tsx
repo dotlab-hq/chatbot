@@ -175,7 +175,9 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
         `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/chat/${chatId}/pin`,
         { method: "POST" }
       );
-      if (!res.ok) throw new Error("Failed to toggle pin");
+      if (!res.ok) {
+        throw new Error("Failed to toggle pin");
+      }
       const { isPinned } = await res.json();
       toast.success(isPinned ? "Chat pinned" : "Chat unpinned");
       mutate();

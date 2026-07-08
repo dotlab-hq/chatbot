@@ -33,14 +33,14 @@ export const documentSchema = new Schema({
 const serializeTable = (state: MarkdownSerializerState, node: Node) => {
   const rows: string[] = [];
   for (let r = 0; r < node.children.length; r++) {
+    // biome-ignore lint/style/noNonNullAssertion: Index is within bounds of node.children
     const row = node.children[r]!;
     const cells: string[] = [];
-    for (let c = 0; c < row.children.length; c++) {
-      const cell = row.children[c]!;
+    for (const cell of row.children) {
       let text = "";
-      cell.forEach((child) => {
-        if (child.isText) text += child.text;
-      });
+      if (cell.isText) {
+        text += cell.text;
+      }
       cells.push(text);
     }
     rows.push(`| ${cells.join(" | ")} |`);
@@ -55,8 +55,11 @@ const tableMarkdownSerializer = new MarkdownSerializer(
   {
     ...defaultMarkdownSerializer.nodes,
     table: serializeTable,
+    // biome-ignore lint/suspicious/noEmptyBlockStatements: Intentional serializer stubs — parent table() handles row/cell content inline
     table_row: () => {},
+    // biome-ignore lint/suspicious/noEmptyBlockStatements: Intentional serializer stubs — parent table() handles row/cell content inline
     table_cell: () => {},
+    // biome-ignore lint/suspicious/noEmptyBlockStatements: Intentional serializer stubs — parent table() handles row/cell content inline
     table_header: () => {},
   },
   defaultMarkdownSerializer.marks

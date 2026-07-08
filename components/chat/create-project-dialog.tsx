@@ -37,7 +37,9 @@ export function CreateProjectDialog({
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim()) {
+      return;
+    }
 
     setCreating(true);
     try {
@@ -52,7 +54,9 @@ export function CreateProjectDialog({
           }),
         }
       );
-      if (!r.ok) throw new Error("Project creation failed");
+      if (!r.ok) {
+        throw new Error("Project creation failed");
+      }
       const { project } = (await r.json()) as {
         project: { id: string; name: string };
       };
@@ -70,7 +74,9 @@ export function CreateProjectDialog({
   return (
     <Dialog
       onOpenChange={(o) => {
-        if (!o) reset();
+        if (!o) {
+          reset();
+        }
         onOpenChange(o);
       }}
       open={open}

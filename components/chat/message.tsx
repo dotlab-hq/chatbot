@@ -35,6 +35,7 @@ import {
 } from "@/components/chat/search-sources-context";
 import { Timer } from "@/components/chat/timer";
 import { UnitConverter } from "@/components/chat/unit-converter";
+import { VideoInline } from "@/components/chat/video-inline";
 import { Weather } from "@/components/chat/weather";
 import { ShimmeringText } from "@/components/ui/shimmering-text";
 import type { Vote } from "@/lib/db/schema";
@@ -177,7 +178,8 @@ const PurePreviewMessage = ({
       type === "tool-timer" ||
       type === "tool-currencyConverter" ||
       type === "tool-unitConverter" ||
-      type === "tool-localTime"
+      type === "tool-localTime" ||
+      type === "tool-playVideo"
     ) {
       const { toolCallId, state } = part;
       const approvalId = (part as { approval?: { id: string } }).approval?.id;
@@ -210,6 +212,17 @@ const PurePreviewMessage = ({
             break;
           case "localTime":
             content = <LocalTime result={output} />;
+            break;
+          case "playVideo":
+            content = (
+              <VideoInline
+                title={
+                  (output as { videoUrl: string; videoTitle?: string })
+                    .videoTitle
+                }
+                videoUrl={(output as { videoUrl: string }).videoUrl}
+              />
+            );
             break;
           default:
             content = null;

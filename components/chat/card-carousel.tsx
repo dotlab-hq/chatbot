@@ -44,7 +44,6 @@ function extractDomain(url: string): string {
 
 function FaviconImg({ domain }: { domain: string }) {
   return (
-    // biome-ignore lint: favicon needs raw img for external domain
     <img
       alt=""
       className="size-8 rounded-sm opacity-60"
@@ -116,7 +115,6 @@ function Card({ card, inNewTab }: { card: CardData; inNewTab: boolean }) {
         )}
         {displayDomain && (
           <div className="mt-auto flex items-center gap-1.5 pt-1.5">
-            {/* biome-ignore lint: favicon needs raw img for external domain */}
             <img
               alt=""
               className="size-3 shrink-0 rounded-sm"

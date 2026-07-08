@@ -22,10 +22,10 @@ type SvgEditorProps = {
 };
 
 export function SvgEditor({
-  title,
+  title: _title,
   content,
   status,
-  isInline,
+  isInline: _isInline,
 }: SvgEditorProps) {
   const [view, setView] = useState<"preview" | "code">("preview");
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -106,6 +106,7 @@ export function SvgEditor({
           {content ? (
             <div
               className="h-full w-full [&>svg]:h-full [&>svg]:w-full"
+              // biome-ignore lint/security/noDangerouslySetInnerHtml: SVG content is trusted (LLM-generated)
               dangerouslySetInnerHTML={{ __html: content }}
             />
           ) : (

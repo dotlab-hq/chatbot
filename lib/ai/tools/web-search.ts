@@ -219,7 +219,9 @@ export const rankTracker = tool({
     const target = domain.toLowerCase().replace(/^www\./, "");
 
     const matches = (d: string) => {
-      if (!d) return false;
+      if (!d) {
+        return false;
+      }
       const norm = d.toLowerCase().replace(/^www\./, "");
       return norm === target || norm.endsWith(`.${target}`);
     };

@@ -75,10 +75,18 @@ export async function updateProject({
 }): Promise<Project | null> {
   try {
     const updates: Record<string, unknown> = { updatedAt: new Date() };
-    if (name !== undefined) updates.name = name;
-    if (description !== undefined) updates.description = description;
-    if (vectorStoreId !== undefined) updates.vectorStoreId = vectorStoreId;
-    if (fileCount !== undefined) updates.fileCount = fileCount;
+    if (name !== undefined) {
+      updates.name = name;
+    }
+    if (description !== undefined) {
+      updates.description = description;
+    }
+    if (vectorStoreId !== undefined) {
+      updates.vectorStoreId = vectorStoreId;
+    }
+    if (fileCount !== undefined) {
+      updates.fileCount = fileCount;
+    }
 
     const [updated] = await db
       .update(project)

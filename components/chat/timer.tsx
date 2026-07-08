@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 function formatRemaining(ms: number) {
-  if (ms <= 0) return { hours: "00", minutes: "00", seconds: "00", total: 0 };
+  if (ms <= 0) {
+    return { hours: "00", minutes: "00", seconds: "00", total: 0 };
+  }
   const totalSeconds = Math.floor(ms / 1000);
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -66,7 +68,9 @@ export function Timer({
   }, []);
 
   useEffect(() => {
-    if (done) playAlarm();
+    if (done) {
+      playAlarm();
+    }
   }, [done, playAlarm]);
 
   const progress = 1 - remaining.total / data.durationMs;

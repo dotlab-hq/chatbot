@@ -94,14 +94,30 @@ export async function updateMcpServer({
 }): Promise<McpServer | null> {
   try {
     const updates: Record<string, unknown> = { updatedAt: new Date() };
-    if (name !== undefined) updates.name = name;
-    if (description !== undefined) updates.description = description;
-    if (transport !== undefined) updates.transport = transport;
-    if (url !== undefined) updates.url = url;
-    if (command !== undefined) updates.command = command;
-    if (args !== undefined) updates.args = args;
-    if (env !== undefined) updates.env = env;
-    if (enabled !== undefined) updates.enabled = enabled;
+    if (name !== undefined) {
+      updates.name = name;
+    }
+    if (description !== undefined) {
+      updates.description = description;
+    }
+    if (transport !== undefined) {
+      updates.transport = transport;
+    }
+    if (url !== undefined) {
+      updates.url = url;
+    }
+    if (command !== undefined) {
+      updates.command = command;
+    }
+    if (args !== undefined) {
+      updates.args = args;
+    }
+    if (env !== undefined) {
+      updates.env = env;
+    }
+    if (enabled !== undefined) {
+      updates.enabled = enabled;
+    }
 
     const [updated] = await db
       .update(mcpServer)

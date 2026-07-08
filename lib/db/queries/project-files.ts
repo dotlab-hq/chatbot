@@ -60,10 +60,15 @@ export async function updateProjectFile({
 }): Promise<void> {
   try {
     const updates: Record<string, unknown> = {};
-    if (openaiFileId !== undefined) updates.openaiFileId = openaiFileId;
-    if (vectorStoreFileId !== undefined)
+    if (openaiFileId !== undefined) {
+      updates.openaiFileId = openaiFileId;
+    }
+    if (vectorStoreFileId !== undefined) {
       updates.vectorStoreFileId = vectorStoreFileId;
-    if (status !== undefined) updates.status = status;
+    }
+    if (status !== undefined) {
+      updates.status = status;
+    }
     await db.update(projectFile).set(updates).where(eq(projectFile.id, id));
   } catch (_error) {
     throw new ChatbotError(

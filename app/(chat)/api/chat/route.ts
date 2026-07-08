@@ -43,6 +43,7 @@ import { editDocument } from "@/lib/ai/tools/edit-document";
 import { getWeather } from "@/lib/ai/tools/get-weather";
 import { localTime } from "@/lib/ai/tools/local-time";
 import { createMemoryTools } from "@/lib/ai/tools/memory";
+import { playVideo } from "@/lib/ai/tools/play-video";
 import { randomApiTool } from "@/lib/ai/tools/random-api";
 import { readArtifact } from "@/lib/ai/tools/read-artifact";
 import { renderCards } from "@/lib/ai/tools/render-cards";
@@ -397,6 +398,7 @@ export async function POST(request: Request) {
           readArtifact: readArtifact(),
           renderCards,
           randomApiTool,
+          playVideo,
           ...(process.env.OPENSERP_API_KEY || process.env.OPENSERP_BASE_URL
             ? {
                 webSearch,
@@ -423,6 +425,7 @@ export async function POST(request: Request) {
           "readArtifact",
           "renderCards",
           "randomApiTool",
+          "playVideo",
           ...(process.env.OPENSERP_API_KEY || process.env.OPENSERP_BASE_URL
             ? [
                 "webSearch",

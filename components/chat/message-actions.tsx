@@ -18,7 +18,7 @@ import type { Vote } from "@/lib/db/schema";
 import type { ChatMessage } from "@/lib/types";
 
 let currentAudio: HTMLAudioElement | null = null;
-let currentMessageId: string | null = null;
+let _currentMessageId: string | null = null;
 
 export function PureMessageActions({
   chatId,
@@ -63,7 +63,7 @@ export function PureMessageActions({
       currentAudio.pause();
       currentAudio.currentTime = 0;
       currentAudio = null;
-      currentMessageId = null;
+      _currentMessageId = null;
       setPlayingId(null);
       return;
     }
@@ -73,7 +73,7 @@ export function PureMessageActions({
       currentAudio.pause();
       currentAudio.currentTime = 0;
       currentAudio = null;
-      currentMessageId = null;
+      _currentMessageId = null;
       setPlayingId(null);
     }
 
@@ -82,12 +82,12 @@ export function PureMessageActions({
     if (cachedUrl) {
       const audio = new Audio(cachedUrl);
       currentAudio = audio;
-      currentMessageId = id;
+      _currentMessageId = id;
       setPlayingId(id);
       audio.onended = () => {
         setPlayingId(null);
         currentAudio = null;
-        currentMessageId = null;
+        _currentMessageId = null;
       };
       audio.play();
       return;
@@ -116,14 +116,14 @@ export function PureMessageActions({
 
       const audio = new Audio(url);
       currentAudio = audio;
-      currentMessageId = id;
+      _currentMessageId = id;
       setPlayingId(id);
       setLoadingId(null);
 
       audio.onended = () => {
         setPlayingId(null);
         currentAudio = null;
-        currentMessageId = null;
+        _currentMessageId = null;
       };
 
       audio.play();
