@@ -216,7 +216,7 @@ const PureDocumentHeader = ({
   isStreaming,
 }: {
   title: string;
-  kind: ArtifactKind;
+  kind: Document["kind"];
   isStreaming: boolean;
 }) => (
   <div className="flex flex-row items-center justify-between gap-2 rounded-t-2xl border border-b-0 border-border/50 px-4 py-3 dark:bg-muted">
