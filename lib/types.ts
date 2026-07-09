@@ -69,6 +69,14 @@ export type CustomUIDataTypes = {
   clear: null;
   finish: null;
   "chat-title": string;
+  "subagent-step": {
+    tool: string;
+    status: "running" | "streaming" | "complete" | "error";
+    step?: number;
+    message?: string;
+    error?: string;
+    task?: string;
+  };
 };
 
 export type ChatMessage = UIMessage<

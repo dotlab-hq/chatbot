@@ -4,7 +4,6 @@ import {
   createUIMessageStream,
   createUIMessageStreamResponse,
   generateId,
-  isStepCount,
   toUIMessageStream,
   type UIMessage,
 } from "ai";
@@ -18,6 +17,7 @@ import {
   type PostRequestBody,
   postRequestBodySchema,
 } from "@/app/(chat)/api/chat/schema";
+import { createChatAgent } from "@/lib/ai/chat-agent";
 import {
   compactConversation,
   extractTokenUsage,
@@ -25,7 +25,6 @@ import {
 } from "@/lib/ai/compaction";
 import {
   allowedModelIds,
-  chatModels,
   DEFAULT_CHAT_MODEL,
   getCapabilities,
 } from "@/lib/ai/models";
@@ -34,45 +33,12 @@ import {
   type RequestHints,
   systemPrompt,
 } from "@/lib/ai/prompts";
-import { getLanguageModel } from "@/lib/ai/providers";
-import { retryableStreamText } from "@/lib/ai/retry";
-import { calculator } from "@/lib/ai/tools/calculator";
-import { clientHttpRequest } from "@/lib/ai/tools/client-http-request";
-import { createDocument } from "@/lib/ai/tools/create-document";
-import { currencyConverter } from "@/lib/ai/tools/currency-converter";
-import { editDocument } from "@/lib/ai/tools/edit-document";
-import { getWeather } from "@/lib/ai/tools/get-weather";
-import { localTime } from "@/lib/ai/tools/local-time";
-import { createMemoryTools } from "@/lib/ai/tools/memory";
-import { playVideo } from "@/lib/ai/tools/play-video";
-import { randomApiTool } from "@/lib/ai/tools/random-api";
-import { readArtifact } from "@/lib/ai/tools/read-artifact";
-import { renderCards } from "@/lib/ai/tools/render-cards";
-import { requestSuggestions } from "@/lib/ai/tools/request-suggestions";
-import { timer } from "@/lib/ai/tools/timer";
-import { unitConverter } from "@/lib/ai/tools/unit-converter";
-import { updateDocument } from "@/lib/ai/tools/update-document";
-import { verifyContent } from "@/lib/ai/tools/verify";
-import {
-  rankTracker,
-  webExtract,
-  webImageSearch,
-  webSearch,
-  webSearchExtract,
-} from "@/lib/ai/tools/web-search";
-import {
-  createGetFileContentTool,
-  createListProjectFilesTool,
-  createSearchProjectFilesTool,
-} from "@/lib/ai/vector-store";
-import { isProductionEnvironment } from "@/lib/constants";
 import { db } from "@/lib/db";
 import {
   createStreamId,
   deleteChatById,
   getChatById,
   getEnabledUserSkills,
-  getMcpServersByUserId,
   getMessagesByChatId,
   getProjectById,
   incrementChatTokenUsage,
@@ -84,17 +50,10 @@ import {
 } from "@/lib/db/queries";
 import { type DBMessage, personalization } from "@/lib/db/schema";
 import { ChatbotError } from "@/lib/errors";
-import {
-  connectToMcpServer,
-  disconnectAll,
-  getToolSets,
-} from "@/lib/mcp/client";
+import { disconnectAll } from "@/lib/mcp/client";
 import { checkIpRateLimit } from "@/lib/ratelimit";
 import type { ChatMessage } from "@/lib/types";
-import {
-  convertToUIMessages,
-  generateUUID
-} from "@/lib/utils";
+import { convertToUIMessages, generateUUID } from "@/lib/utils";
 
 export const maxDuration = 300;
 
@@ -345,10 +304,8 @@ export async function POST(request: Request) {
       }
     }
 
-    const modelConfig = chatModels.find((m) => m.id === chatModel);
     const modelCapabilities = await getCapabilities();
     const capabilities = modelCapabilities[chatModel];
-    const isReasoningModel = capabilities?.reasoning === true;
     const supportsTools = capabilities?.tools === true;
 
     // Prune reasoning and tool-call input parts before sending to LLM.
@@ -444,198 +401,45 @@ export async function POST(request: Request) {
     const stream = createUIMessageStream({
       originalMessages: isToolApprovalFlow ? uiMessages : undefined,
       execute: async ({ writer: dataStream }) => {
-        const tools: Record<string, any> = {
-          getWeather,
-          calculator,
-          timer,
-          currencyConverter,
-          unitConverter,
-          localTime,
-          createDocument: createDocument({
-            session,
-            dataStream,
-            modelId: chatModel,
-          }),
-          editDocument: editDocument({ dataStream, session }),
-          updateDocument: updateDocument({
-            session,
-            dataStream,
-            modelId: chatModel,
-          }),
-          requestSuggestions: requestSuggestions({
-            session,
-            dataStream,
-            modelId: chatModel,
-          }),
-          verifyContent,
-          readArtifact: readArtifact(),
-          renderCards,
-          randomApiTool,
-          clientHttpRequest,
-          playVideo,
-          ...(process.env.OPENSERP_API_KEY || process.env.OPENSERP_BASE_URL
-            ? {
-                webSearch,
-                webSearchExtract,
-                webImageSearch,
-                webExtract,
-                rankTracker,
-              }
-            : {}),
-        };
+        const instructions = systemPrompt({
+          requestHints,
+          supportsTools,
+          hasProject,
+          hasMemory: Boolean(process.env.MONGODB_URI),
+          hasSearchTools: Boolean(
+            process.env.OPENSERP_API_KEY || process.env.OPENSERP_BASE_URL
+          ),
+          personalization: personalizationData,
+        });
 
-        const activeTools: string[] = [
-          "getWeather",
-          "calculator",
-          "timer",
-          "currencyConverter",
-          "unitConverter",
-          "localTime",
-          "createDocument",
-          "editDocument",
-          "updateDocument",
-          "requestSuggestions",
-          "verifyContent",
-          "readArtifact",
-          "renderCards",
-          "randomApiTool",
-          "clientHttpRequest",
-          "playVideo",
-          ...(process.env.OPENSERP_API_KEY || process.env.OPENSERP_BASE_URL
-            ? [
-                "webSearch",
-                "webSearchExtract",
-                "webImageSearch",
-                "webExtract",
-                "rankTracker",
-              ]
-            : []),
-        ];
-
-        if (projectVectorStoreId) {
-          tools.searchProjectFiles =
-            createSearchProjectFilesTool(projectVectorStoreId);
-          tools.listProjectFiles =
-            createListProjectFilesTool(projectVectorStoreId);
-          tools.getFileContent = createGetFileContentTool(projectVectorStoreId);
-          activeTools.push(
-            "searchProjectFiles",
-            "listProjectFiles",
-            "getFileContent"
-          );
-        }
-
-        // Load MongoDB memory tools when configured
-        if (process.env.MONGODB_URI) {
-          const effectiveProjectId = chat?.projectId || projectId || undefined;
-          const memoryTools = createMemoryTools({
-            userId: session.user.id,
-            chatId: id,
-            projectId: effectiveProjectId,
-          });
-          Object.assign(tools, memoryTools);
-          activeTools.push(
-            "saveMemory",
-            "recallMemory",
-            "listMemories",
-            "deleteMemory",
-            "clearMemories"
-          );
-        }
-
-        // Load tools from enabled MCP servers
-        const mcpServers = await getMcpServersByUserId({
+        const { agent } = await createChatAgent({
+          session,
+          dataStream,
+          chatModel,
+          instructions,
+          projectVectorStoreId,
           userId: session.user.id,
+          chatId: id,
+          projectId,
+          chatProjectId: chat?.projectId,
+          enabledSkillsForInference,
         });
-        const enabledServers = mcpServers.filter((s) => s.enabled);
 
-        await Promise.all(enabledServers.map((s) => connectToMcpServer(s)));
-        const mcpTools = getToolSets();
-        for (const [toolName, toolDef] of Object.entries(mcpTools)) {
-          tools[toolName] = toolDef;
-          activeTools.push(toolName);
-        }
-
-        // Build providerOptions for skill references
-        // providerReference is stored as a JSON string in the DB — parse it
-        // into the Record<providerName, skillId> object that the providers expect.
-        const isAnthropicModel = chatModel.startsWith("claude-");
-        const providerSkillRefs = enabledSkillsForInference
-          .map((s) => {
-            const ref = s.providerReference;
-            if (!ref) {
-              return null;
-            }
-            try {
-              return JSON.parse(ref) as Record<string, string>;
-            } catch {
-              return null;
-            }
-          })
-          .filter((ref): ref is Record<string, string> => ref !== null);
-
-        let providerOptions: Record<string, any> = {};
-        if (providerSkillRefs.length > 0) {
-          if (isAnthropicModel) {
-            providerOptions = {
-              anthropic: {
-                container: {
-                  skills: providerSkillRefs.map((ref) => ({
-                    type: "custom" as const,
-                    providerReference: ref,
-                  })),
-                },
-              },
-            };
-          } else {
-            // OpenAI: skills are passed via shell tool environment
-            providerOptions = {
-              openai: {
-                shell: {
-                  environment: {
-                    type: "containerAuto",
-                    skills: providerSkillRefs.map((ref) => ({
-                      type: "skillReference" as const,
-                      providerReference: ref,
-                    })),
-                  },
-                },
-              },
-            };
-          }
-        }
-
-        const { stream, usage } = retryableStreamText({
-          maxOutputTokens: 128_000,
-          model: getLanguageModel(chatModel),
-          instructions: systemPrompt({
-            requestHints,
-            supportsTools,
-            hasProject,
-            hasMemory: Boolean(process.env.MONGODB_URI),
-            hasSearchTools: Boolean(
-              process.env.OPENSERP_API_KEY || process.env.OPENSERP_BASE_URL
-            ),
-            personalization: personalizationData,
-          }),
-          messages: modelMessages,
-          ...(providerSkillRefs.length > 0 ? { providerOptions } : {}),
-          reasoning: modelConfig?.reasoningEffort,
-          stopWhen: isStepCount(5),
-          activeTools: isReasoningModel && !supportsTools ? [] : activeTools,
-          tools,
-          telemetry: {
-            isEnabled: isProductionEnvironment,
-            functionId: "stream-text",
-          },
-        });
+        const result = await agent.stream({ messages: modelMessages });
 
         // Capture token usage from the stream
-        capturedUsagePromise = Promise.resolve(usage)
-          .then((result) => extractTokenUsage(result))
-          .catch(() => null);
+        try {
+          const streamUsage = await result.usage;
+          capturedUsagePromise = Promise.resolve(
+            extractTokenUsage(streamUsage)
+          );
+        } catch {
+          capturedUsagePromise = Promise.resolve(null);
+        }
 
-        dataStream.merge(toUIMessageStream({ stream, sendReasoning: true }));
+        dataStream.merge(
+          toUIMessageStream({ stream: result.stream, sendReasoning: true })
+        );
 
         if (titlePromise) {
           try {

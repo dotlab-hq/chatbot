@@ -8,6 +8,36 @@ import { useDataStream } from "@/components/chat/data-stream-provider";
 import { getChatHistoryPaginationKey } from "@/components/chat/sidebar-history";
 import { initialArtifactData, useArtifact } from "@/hooks/use-artifact";
 
+export type SubagentStepState = Record<
+  string,
+  {
+    status: "running" | "streaming" | "complete" | "error";
+    step?: number;
+    message?: string;
+    error?: string;
+    task?: string;
+  }
+>;
+
+// Global state so multiple consumers can access the latest subagent state
+const globalSubagentSteps: SubagentStepState = {};
+const listeners = new Set<() => void>();
+
+function notifyListeners() {
+  for (const listener of listeners) {
+    listener();
+  }
+}
+
+export function subscribeToSubagentSteps(cb: () => void) {
+  listeners.add(cb);
+  return () => listeners.delete(cb);
+}
+
+export function getSubagentSteps(): SubagentStepState {
+  return globalSubagentSteps;
+}
+
 export function DataStreamHandler() {
   const { dataStream, setDataStream } = useDataStream();
   const { mutate } = useSWRConfig();
@@ -26,6 +56,17 @@ export function DataStreamHandler() {
       if (delta.type === "data-chat-title") {
         document.title = delta.data;
         mutate(unstable_serialize(getChatHistoryPaginationKey));
+        continue;
+      }
+      if (delta.type === "data-subagent-step") {
+        globalSubagentSteps[delta.data.tool] = {
+          status: delta.data.status,
+          step: delta.data.step,
+          message: delta.data.message,
+          error: delta.data.error,
+          task: delta.data.task,
+        };
+        notifyListeners();
         continue;
       }
       const artifactDefinition = artifactDefinitions.find(

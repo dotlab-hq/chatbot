@@ -1,5 +1,6 @@
 import type { Geo } from "@vercel/functions";
 import type { ArtifactKind } from "@/components/chat/artifact";
+import { parallelPromptSection } from "@/lib/ai/parallel-executioner";
 
 export const artifactsPrompt = `
 Artifacts is a side panel that displays content alongside the conversation. It supports scripts (code), documents (text), spreadsheets, SVG graphics, HTML pages (Tailwind CSS only), diagrams (Excalidraw flowcharts, architecture diagrams, wireframes), and video content (interactive video player using react-player — supports YouTube, Vimeo, direct .mp4/.webm/.mov files, HLS .m3u8 streams, Dailymotion, Twitch, Facebook Video, and more). Changes appear in real-time.
@@ -347,6 +348,10 @@ export const systemPrompt = ({
 
   if (hasSearchTools) {
     prompt += `\n\n${searchToolsPrompt}`;
+  }
+
+  if (supportsTools) {
+    prompt += `\n\n${parallelPromptSection}`;
   }
 
   prompt += `\n\n${httpToolsPrompt}`;

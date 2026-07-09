@@ -178,14 +178,30 @@ export const webExtract = tool({
       .enum(["auto", "fast", "rendered"])
       .default("auto")
       .describe("Extraction algorithm"),
+    format: z
+      .enum(["markdown", "json", "text"])
+      .default("json")
+      .describe("Output format"),
     clean: z.boolean().default(true).describe("Remove boilerplate"),
   }),
-  execute: async ({ url, mode, clean }) => {
+  execute: async ({ url, mode, clean, format }) => {
     const client = getClient();
-    const result = await client.extract({ url, mode, clean });
+    const result = await client.extract({ url, mode, clean, format });
+
+    // extract returns a string for "markdown"/"text" format and an object for "json" format
+    if (typeof result === "string") {
+      return {
+        url,
+        title: null,
+        markdown: result.slice(0, 8000),
+        headings: null,
+        links: null,
+      };
+    }
+
     return {
       url,
-      title: result.title,
+      title: result.title ?? null,
       markdown: result.markdown?.slice(0, 8000) ?? null,
       headings: result.headings?.slice(0, 20) ?? null,
       links: result.links?.slice(0, 30) ?? null,

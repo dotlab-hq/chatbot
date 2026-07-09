@@ -1,6 +1,12 @@
-import type { InferAgentUIMessage } from "ai";
-import { ToolLoopAgent } from "ai";
+import type { InferAgentUIMessage, ModelMessage } from "ai";
+import { pruneMessages, ToolLoopAgent } from "ai";
 import { getLanguageModel } from "@/lib/ai/providers";
+
+/** Rough token estimate: ~4 chars per token */
+const estimateTokens = (messages: ModelMessage[]) =>
+  Math.round(JSON.stringify(messages).length / 4);
+
+const COMPACTION_THRESHOLD = 100_000;
 
 /**
  * Random API subagent — executes HTTP requests with full CRUD support.
@@ -17,6 +23,18 @@ CRITICAL RULES:
 4. After the final API call, summarize what was accomplished`,
   tools: {
     // HTTP request tools will be registered by the host
+  },
+  prepareStep: ({ messages }) => {
+    if (estimateTokens(messages) > COMPACTION_THRESHOLD) {
+      return {
+        messages: pruneMessages({
+          messages,
+          reasoning: "all",
+          toolCalls: "before-last-3-messages",
+          emptyMessages: "remove",
+        }),
+      };
+    }
   },
 });
 

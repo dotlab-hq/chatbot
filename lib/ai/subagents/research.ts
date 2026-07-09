@@ -1,6 +1,13 @@
-import type { InferAgentUIMessage } from "ai";
-import { ToolLoopAgent } from "ai";
+import type { InferAgentUIMessage, ModelMessage } from "ai";
+import { pruneMessages, ToolLoopAgent } from "ai";
 import { getLanguageModel } from "@/lib/ai/providers";
+
+/** Rough token estimate: ~4 chars per token */
+const estimateTokens = (messages: ModelMessage[]) =>
+  Math.round(JSON.stringify(messages).length / 4);
+
+const COMPACTION_THRESHOLD = 100_000;
+
 import {
   rankTracker,
   webExtract,
@@ -40,6 +47,18 @@ When you have gathered enough information and written your summary, STOP. Do not
     webExtract,
     webImageSearch,
     rankTracker,
+  },
+  prepareStep: ({ messages }) => {
+    if (estimateTokens(messages) > COMPACTION_THRESHOLD) {
+      return {
+        messages: pruneMessages({
+          messages,
+          reasoning: "all",
+          toolCalls: "before-last-3-messages",
+          emptyMessages: "remove",
+        }),
+      };
+    }
   },
 });
 

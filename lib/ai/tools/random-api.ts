@@ -1,5 +1,6 @@
-import type { InferAgentUIMessage } from "ai";
+import type { InferAgentUIMessage, ModelMessage } from "ai";
 import {
+  pruneMessages,
   readUIMessageStream,
   ToolLoopAgent,
   tool,
@@ -99,6 +100,12 @@ export const httpRequest = tool({
   },
 });
 
+/** Rough token estimate: ~4 chars per token */
+const estimateTokens = (messages: ModelMessage[]) =>
+  Math.round(JSON.stringify(messages).length / 4);
+
+const COMPACTION_THRESHOLD = 100_000;
+
 export const randomApiSubagent = new ToolLoopAgent({
   model: getLanguageModel("claude-edge"),
   instructions: `You are a random API subagent. Execute HTTP requests with full CRUD operations.
@@ -110,6 +117,18 @@ CRITICAL RULES:
 4. After the final API call, summarize what was accomplished`,
   tools: {
     httpRequest,
+  },
+  prepareStep: ({ messages }) => {
+    if (estimateTokens(messages) > COMPACTION_THRESHOLD) {
+      return {
+        messages: pruneMessages({
+          messages,
+          reasoning: "all",
+          toolCalls: "before-last-3-messages",
+          emptyMessages: "remove",
+        }),
+      };
+    }
   },
 });
 
