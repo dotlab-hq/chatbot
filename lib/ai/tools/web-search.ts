@@ -28,10 +28,10 @@ const LANG = z
 
 export const webSearch = tool({
   description:
-    "Search the web and return results with titles, URLs, and snippets. Use this when the user asks a factual question, current events, or any question that benefits from up-to-date information. Supported engines: google, bing, duckduckgo, ecosia, yandex, baidu. Default is google, use bing as a fallback or when the user asks for it.",
+    "Search the web and return results with titles, URLs, and snippets. Use this when the user asks a factual question, current events, or any question that benefits from up-to-date information. Supported engines: google, bing, duckduckgo, ecosia, yandex, baidu. Always uses Bing by default.",
   inputSchema: z.object({
     query: z.string().describe("The search query"),
-    engine: ENGINE.default("google"),
+    engine: ENGINE.default("bing"),
     limit: z.number().min(1).max(20).default(10).describe("Number of results"),
     region: REGION,
     lang: LANG,
@@ -68,7 +68,7 @@ export const webSearchExtract = tool({
     "Search the web and extract cleaned page content from the top results. Use this when the user needs in-depth information from actual pages, not just snippets. extract is capped at 5.",
   inputSchema: z.object({
     query: z.string().describe("The search query"),
-    engine: ENGINE.default("google"),
+    engine: ENGINE.default("bing"),
     extract: z
       .number()
       .min(1)
@@ -125,7 +125,7 @@ export const webImageSearch = tool({
     "Search for images related to a query. Returns image URLs, thumbnails, dimensions, and source pages. Use this when the user wants to find images, pictures, photos, or visual content related to a topic. Works best when run alongside webSearch to complement text results with visual results.",
   inputSchema: z.object({
     query: z.string().describe("The image search query"),
-    engine: ENGINE.default("google"),
+    engine: ENGINE.default("bing"),
     limit: z
       .number()
       .min(1)
@@ -221,7 +221,7 @@ export const rankTracker = tool({
       .min(1)
       .max(10)
       .describe("Keywords to check ranking for"),
-    engine: ENGINE.default("google"),
+    engine: ENGINE.default("bing"),
     region: REGION.default("US"),
     depth: z
       .number()

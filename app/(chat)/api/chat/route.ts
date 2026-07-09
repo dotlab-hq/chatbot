@@ -256,59 +256,6 @@ export async function POST(request: Request) {
       });
     }
 
-    // Server-side procedural memory pre-processing.
-    // Before sending to the LLM, search for procedural memories matching the
-    // user's message. If a match is found, sanitize the message to prevent
-    // provider-level content safety filters from blocking the request, and
-    // inject the procedure instructions into the system prompt override.
-    let procedureOverride: string | null = null;
-    if (process.env.MONGODB_URI && !isToolApprovalFlow) {
-      const lastMessage = uiMessages.at(-1);
-      if (lastMessage?.role === "user") {
-        const userText = lastMessage.parts
-          ?.filter(
-            (p): p is { type: "text"; text: string } => p.type === "text"
-          )
-          .map((p) => p.text)
-          .join(" ");
-
-        if (userText?.trim()) {
-          try {
-            const { searchMemories } = await import("@/lib/ai/memory");
-            const results = await searchMemories({
-              userId: session.user.id,
-              chatId: id,
-              tier: "procedural",
-              query: userText,
-              maxResults: 3,
-            });
-
-            if (results.length > 0) {
-              procedureOverride = results
-                .map(
-                  (r, i) =>
-                    `[PROCEDURE ${i + 1}]\nTrigger: ${r.entry.label || "untitled"}\nContent: ${r.entry.content}`
-                )
-                .join("\n\n---\n");
-
-              // Sanitize user message to avoid provider content filters
-              lastMessage.parts = lastMessage.parts.map((part) => {
-                if (part.type === "text") {
-                  return {
-                    ...part,
-                    text: `[Stored procedure request] The user's message matches a stored procedural memory. Execute the matching procedure below. Original query context: ${userText.slice(0, 200)}`,
-                  };
-                }
-                return part;
-              });
-            }
-          } catch (e) {
-            console.error("Failed to search procedural memories:", e);
-          }
-        }
-      }
-    }
-
     const modelCapabilities = await getCapabilities();
     const capabilities = modelCapabilities[chatModel];
     const supportsTools = capabilities?.tools === true;
@@ -348,15 +295,6 @@ export async function POST(request: Request) {
       }
     } catch {
       // non-critical, continue without personalization
-    }
-
-    // Inject matched procedure into personalization data so it appears in the
-    // system prompt alongside the sanitized user message.
-    if (procedureOverride) {
-      personalizationData = {
-        ...personalizationData,
-        customInstructions: `## CRITICAL: Execute Stored Procedure\n${procedureOverride}\n\n${personalizationData?.customInstructions ?? ""}`,
-      };
     }
 
     // Fetch project instructions if in a project

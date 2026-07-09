@@ -167,7 +167,7 @@ export function createMemoryTools(params: {
               (r, i) =>
                 `[${i + 1}] (${r.tier}) ${r.entry.label || r.entry.content.slice(0, 80)}\n${r.entry.content}`
             )
-            .join("\n\n");
+            .join("\n\n\n");
         } catch (error) {
           return `Error recalling memories: ${error instanceof Error ? error.message : "unknown error"}`;
         }

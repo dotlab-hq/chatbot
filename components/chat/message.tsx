@@ -2,7 +2,7 @@
 import type { UseChatHelpers } from "@ai-sdk/react";
 import type { ToolUIPart } from "ai";
 import { ChevronDownIcon } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { CodeBlock } from "@/components/ai-elements/code-block";
 import {
   MessageContent,
@@ -15,8 +15,6 @@ import {
   ToolInput,
   type ToolPart,
 } from "@/components/ai-elements/tool";
-import type { ActivityItem } from "@/components/chat/activity-panel-context";
-import { useActivityPanel } from "@/components/chat/activity-panel-context";
 import { AgentContextPanel } from "@/components/chat/agent-context-panel";
 import { Calculator } from "@/components/chat/calculator";
 import { CardCarousel } from "@/components/chat/card-carousel";
@@ -28,7 +26,6 @@ import { SparklesIcon } from "@/components/chat/icons";
 import { ImageCarousel } from "@/components/chat/image-carousel";
 import { LocalTime } from "@/components/chat/local-time";
 import { MessageActions } from "@/components/chat/message-actions";
-import { MessageReasoning } from "@/components/chat/message-reasoning";
 import { PreviewAttachment } from "@/components/chat/preview-attachment";
 import {
   extractImageSearchResults,
@@ -47,101 +44,6 @@ import { ShimmeringText } from "@/components/ui/shimmering-text";
 import type { Vote } from "@/lib/db/schema";
 import type { ChatMessage } from "@/lib/types";
 import { cn, sanitizeText } from "@/lib/utils";
-
-function formatToolName(type: string) {
-  return type
-    .replace(/^tool-/, "")
-    .replace(/([a-z])([A-Z])/g, "$1 $2")
-    .replace(/^./, (char) => char.toUpperCase());
-}
-
-function getOutputDomains(output: unknown) {
-  if (!Array.isArray(output)) {
-    return [];
-  }
-
-  return [
-    ...new Set(
-      output
-        .map((item) => {
-          if (!item || typeof item !== "object") {
-            return null;
-          }
-          const value =
-            "domain" in item
-              ? item.domain
-              : "url" in item
-                ? getDomain(String(item.url))
-                : "pageUrl" in item
-                  ? getDomain(String(item.pageUrl))
-                  : null;
-          return typeof value === "string" ? value : null;
-        })
-        .filter((domain): domain is string => Boolean(domain))
-    ),
-  ];
-}
-
-function buildActivityItems(message: ChatMessage, reasoning: string) {
-  const items: ActivityItem[] = [];
-
-  if (reasoning.trim()) {
-    const chunks = reasoning
-      .split(/\n{2,}/)
-      .map((chunk) => chunk.trim())
-      .filter(Boolean);
-
-    for (const [index, chunk] of chunks.entries()) {
-      const [firstLine, ...rest] = chunk.split("\n");
-      items.push({
-        id: `reasoning-${index}`,
-        title: firstLine.slice(0, 90),
-        body: rest.join("\n").trim() || undefined,
-      });
-    }
-  }
-
-  for (const [index, part] of message.parts.entries()) {
-    if (!part.type.startsWith("tool-") || !("state" in part)) {
-      continue;
-    }
-
-    const domains = getOutputDomains(
-      "output" in part ? part.output : undefined
-    );
-    const state = String(part.state);
-    const partType = String(part.type);
-    const isSearch =
-      partType === "tool-webSearch" ||
-      partType === "tool-webSearchExtract" ||
-      partType === "tool-webImageSearch";
-
-    items.push({
-      id: `tool-${index}`,
-      title: isSearch
-        ? state === "output-available"
-          ? "Searched the web"
-          : "Browsing sources"
-        : formatToolName(partType),
-      body:
-        state === "output-available"
-          ? undefined
-          : "Waiting for this tool to finish.",
-      domains,
-      status: state === "output-available" ? "complete" : "running",
-    });
-  }
-
-  return items.length > 0
-    ? items
-    : [
-        {
-          id: "thinking",
-          title: "Constructing a concise answer",
-          body: "No detailed thinking transcript was saved for this message.",
-        },
-      ];
-}
 
 function CollapsibleUserMessage({ text }: { text: string }) {
   const [expanded, setExpanded] = useState(false);
@@ -211,8 +113,6 @@ const PurePreviewMessage = ({
 
   const isUser = message.role === "user";
   const isAssistant = message.role === "assistant";
-  const { messageId: activeActivityMessageId, openPanel: openActivityPanel } =
-    useActivityPanel();
 
   const hasAnyContent = message.parts?.some(
     (part) =>
@@ -259,6 +159,11 @@ const PurePreviewMessage = ({
     </div>
   );
 
+  const lastCreateDocIndex =
+    message.parts?.reduce<number>((acc, part, i) => {
+      return part.type === "tool-createDocument" ? i : acc;
+    }, -1) ?? -1;
+
   const mergedReasoning = message.parts?.reduce(
     (acc, part) => {
       if (part.type === "reasoning" && part.text?.trim().length > 0) {
@@ -289,16 +194,6 @@ const PurePreviewMessage = ({
     durationSeconds: undefined,
     rendered: false,
   };
-  const activityItems = useMemo(
-    () => buildActivityItems(message, mergedReasoning.text),
-    [message, mergedReasoning.text]
-  );
-
-  // Deduplicate: only show the last createDocument tool call
-  const lastCreateDocIndex =
-    message.parts?.reduce<number>((acc, part, i) => {
-      return part.type === "tool-createDocument" ? i : acc;
-    }, -1) ?? -1;
 
   const parts = message.parts?.map((part, index) => {
     const { type } = part;
@@ -307,22 +202,30 @@ const PurePreviewMessage = ({
     if (type === "reasoning") {
       if (!mergedReasoning.rendered && mergedReasoning.text) {
         mergedReasoning.rendered = true;
+        if (mergedReasoning.isStreaming || isLoading) {
+          return (
+            <div
+              className="text-sm text-muted-foreground"
+              data-testid="message-reasoning-loading"
+              key={key}
+            >
+              Thinking...
+            </div>
+          );
+        }
+        const cleanedText = mergedReasoning.text
+          .split("\n")
+          .filter((line) => line.trim().length > 0)
+          .join("\n");
         return (
-          <MessageReasoning
-            isLoading={isLoading || mergedReasoning.isStreaming}
-            isOpen={activeActivityMessageId === message.id}
-            key={key}
-            onOpenActivity={(durationSeconds) =>
-              openActivityPanel(
-                activityItems,
-                message.id,
-                durationSeconds ?? mergedReasoning.durationSeconds
-              )
-            }
-            reasoning={mergedReasoning.text}
-            savedDurationSeconds={mergedReasoning.durationSeconds}
-            timelineItems={activityItems}
-          />
+          <details className="w-full max-w-[min(95%,80ch)] text-xs" key={key}>
+            <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+              Thought for {mergedReasoning.durationSeconds ?? "?"}s
+            </summary>
+            <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-muted/30 p-3 leading-relaxed">
+              {cleanedText}
+            </pre>
+          </details>
         );
       }
       return null;
