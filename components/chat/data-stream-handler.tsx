@@ -38,6 +38,35 @@ export function getSubagentSteps(): SubagentStepState {
   return globalSubagentSteps;
 }
 
+// ─── Global todo list state ─────────────────────────────────────────────────
+
+export type TodoUpdate = {
+  items: Array<{
+    id: string;
+    text: string;
+    done: boolean;
+    order: number;
+  }>;
+};
+
+const globalTodoItems: TodoUpdate["items"] = [];
+const todoListeners = new Set<() => void>();
+
+function notifyTodoListeners() {
+  for (const listener of todoListeners) {
+    listener();
+  }
+}
+
+export function subscribeToTodoUpdates(cb: () => void) {
+  todoListeners.add(cb);
+  return () => todoListeners.delete(cb);
+}
+
+export function getTodoItems(): TodoUpdate["items"] {
+  return globalTodoItems;
+}
+
 export function DataStreamHandler() {
   const { dataStream, setDataStream } = useDataStream();
   const { mutate } = useSWRConfig();
@@ -67,6 +96,12 @@ export function DataStreamHandler() {
           task: delta.data.task,
         };
         notifyListeners();
+        continue;
+      }
+      if (delta.type === "data-todo-update") {
+        globalTodoItems.length = 0;
+        globalTodoItems.push(...delta.data.items);
+        notifyTodoListeners();
         continue;
       }
       const artifactDefinition = artifactDefinitions.find(

@@ -112,7 +112,13 @@ export function AppSidebar({ user }: { user: User | undefined }) {
       fileCount: number;
     }>
   >([]);
-  const [projectsOpen, setProjectsOpen] = useState(true);
+  const [projectsOpen, setProjectsOpen] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("sidebar-projects-open");
+      return saved !== null ? JSON.parse(saved) : false;
+    }
+    return false;
+  });
   const [expandedProjectId, setExpandedProjectId] = useState<string | null>(
     null
   );
@@ -162,6 +168,11 @@ export function AppSidebar({ user }: { user: User | undefined }) {
     window.addEventListener("open-settings", handler);
     return () => window.removeEventListener("open-settings", handler);
   }, []);
+
+  // Persist projects section open/close preference to localStorage
+  useEffect(() => {
+    localStorage.setItem("sidebar-projects-open", JSON.stringify(projectsOpen));
+  }, [projectsOpen]);
 
   // Reload projects list when files change from elsewhere (e.g. settings)
   useEffect(() => {

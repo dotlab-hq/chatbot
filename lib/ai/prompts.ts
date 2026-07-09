@@ -199,6 +199,32 @@ function buildPersonalizationPrompt(hints: PersonalizationHints): string {
     : "";
 }
 
+export const todoPrompt = `
+## Todo List Management
+
+You have access to the \`manageTodoList\` tool that lets you maintain a visible todo list for the user. This is displayed directly in the chat UI so the user can track progress visually.
+
+**When to use \`manageTodoList\`:**
+- At the START of any multi-step task: break it down into actionable items and create them all at once using "add-multiple"
+- When you receive a complex request with multiple parts: create a todo item for each part
+- As you complete each step: check off the todo item using the "check" action
+- When task priorities change: update or reorder items as needed
+- When something is no longer needed: delete it from the list
+
+**Best practices:**
+- Create the full todo list IMMEDIATELY at the start of a task — before doing any work
+- Use "add-multiple" to batch-create all items at once
+- Each todo item should be a clear, actionable statement (e.g., "Implement user login API", "Add error handling for form submission")
+- Keep items granular enough to track meaningful progress (not too broad, not too granular)
+- Check items off as they are completed so the user can see progress
+- The todo list persists only within this conversation
+
+Example workflow:
+1. User asks: "Build a login page with email/password auth and error handling"
+2. You call: manageTodoList with action: add-multiple and items: ["Create login form UI", "Add email/password validation", "Implement auth API call", "Add error handling and loading states"]
+3. After completing each piece, call: manageTodoList with action: check and the corresponding item's id
+`;
+
 export const projectFilesPrompt = `
 This project contains uploaded files accessible through three tools. Use them to answer questions about the user's project files.
 
@@ -352,6 +378,10 @@ export const systemPrompt = ({
 
   if (supportsTools) {
     prompt += `\n\n${parallelPromptSection}`;
+  }
+
+  if (supportsTools) {
+    prompt += `\n\n${todoPrompt}`;
   }
 
   prompt += `\n\n${httpToolsPrompt}`;

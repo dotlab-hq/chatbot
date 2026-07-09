@@ -427,7 +427,12 @@ export async function POST(request: Request) {
 
         const result = await agent.stream({ messages: modelMessages });
 
-        // Capture token usage from the stream
+        // Merge stream into UI message stream FIRST so it pipes immediately
+        dataStream.merge(
+          toUIMessageStream({ stream: result.stream, sendReasoning: true })
+        );
+
+        // Capture token usage (promise resolves when stream finishes)
         try {
           const streamUsage = await result.usage;
           capturedUsagePromise = Promise.resolve(
@@ -436,10 +441,6 @@ export async function POST(request: Request) {
         } catch {
           capturedUsagePromise = Promise.resolve(null);
         }
-
-        dataStream.merge(
-          toUIMessageStream({ stream: result.stream, sendReasoning: true })
-        );
 
         if (titlePromise) {
           try {

@@ -24,6 +24,7 @@ import { renderCards } from "@/lib/ai/tools/render-cards";
 import { requestSuggestions } from "@/lib/ai/tools/request-suggestions";
 import { researchTool } from "@/lib/ai/tools/research";
 import { timer } from "@/lib/ai/tools/timer";
+import { createTodoTool } from "@/lib/ai/tools/todo-list";
 import { unitConverter } from "@/lib/ai/tools/unit-converter";
 import { updateDocument } from "@/lib/ai/tools/update-document";
 import { verifyContent } from "@/lib/ai/tools/verify";
@@ -171,6 +172,7 @@ export async function createChatAgent(params: CreateChatAgentParams) {
     ),
     clientHttpRequest,
     playVideo,
+    manageTodoList: createTodoTool(dataStream),
     ...(process.env.OPENSERP_API_KEY || process.env.OPENSERP_BASE_URL
       ? {
           webSearch,
@@ -200,6 +202,7 @@ export async function createChatAgent(params: CreateChatAgentParams) {
     "researchTool",
     "clientHttpRequest",
     "playVideo",
+    "manageTodoList",
     ...(process.env.OPENSERP_API_KEY || process.env.OPENSERP_BASE_URL
       ? [
           "webSearch",

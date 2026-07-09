@@ -77,6 +77,14 @@ export type CustomUIDataTypes = {
     error?: string;
     task?: string;
   };
+  "todo-update": {
+    items: Array<{
+      id: string;
+      text: string;
+      done: boolean;
+      order: number;
+    }>;
+  };
 };
 
 export type ChatMessage = UIMessage<

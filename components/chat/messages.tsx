@@ -9,6 +9,7 @@ import {
   useSearchSourcesPanel,
 } from "@/components/chat/search-sources-context";
 import { SearchSourcesPanel } from "@/components/chat/search-sources-panel";
+import { TodoList } from "@/components/chat/todo-list";
 import { useMessages } from "@/hooks/use-messages";
 import type { Vote } from "@/lib/db/schema";
 import type { ChatMessage } from "@/lib/types";
@@ -82,6 +83,9 @@ function PureMessages({
           style={isArtifactVisible ? { scrollbarWidth: "none" } : undefined}
         >
           <div className="mx-auto flex min-h-full min-w-0 max-w-4xl flex-col gap-5 px-2 py-6 md:gap-7 md:px-4">
+            {/* Todo list rendered above the messages when items exist */}
+            <TodoList />
+
             {messages.map((message, index) => (
               <PreviewMessage
                 addToolApprovalResponse={addToolApprovalResponse}
