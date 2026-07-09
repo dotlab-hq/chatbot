@@ -438,7 +438,9 @@ export async function POST(request: Request) {
                               providerMetadata?: Record<string, unknown>;
                             }
                           ).providerMetadata ?? {}),
-                          thinkingDurationSeconds,
+                          chatbot: {
+                            thinkingDurationSeconds,
+                          },
                         },
                       }
                     : part

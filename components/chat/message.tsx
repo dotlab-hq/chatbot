@@ -1,6 +1,5 @@
 "use client";
 import type { UseChatHelpers } from "@ai-sdk/react";
-import type { ToolUIPart } from "ai";
 import { ChevronDownIcon } from "lucide-react";
 import { useState } from "react";
 import { CodeBlock } from "@/components/ai-elements/code-block";
@@ -9,11 +8,15 @@ import {
   MessageResponse,
 } from "@/components/ai-elements/message";
 import {
+  Reasoning,
+  ReasoningContent,
+  ReasoningTrigger,
+} from "@/components/ai-elements/reasoning";
+import {
   Tool,
   ToolContent,
   ToolHeader,
   ToolInput,
-  type ToolPart,
 } from "@/components/ai-elements/tool";
 import { AgentContextPanel } from "@/components/chat/agent-context-panel";
 import { Calculator } from "@/components/chat/calculator";
@@ -169,14 +172,14 @@ const PurePreviewMessage = ({
       if (part.type === "reasoning" && part.text?.trim().length > 0) {
         const providerMetadata = (
           part as {
-            providerMetadata?: { thinkingDurationSeconds?: number };
+            providerMetadata?: { chatbot?: { thinkingDurationSeconds?: number } };
           }
         ).providerMetadata;
         return {
           text: acc.text ? `${acc.text}\n\n${part.text}` : part.text,
           isStreaming: "state" in part ? part.state === "streaming" : false,
           durationSeconds:
-            providerMetadata?.thinkingDurationSeconds ?? acc.durationSeconds,
+            providerMetadata?.chatbot?.thinkingDurationSeconds ?? acc.durationSeconds,
           rendered: false,
         };
       }
@@ -202,30 +205,17 @@ const PurePreviewMessage = ({
     if (type === "reasoning") {
       if (!mergedReasoning.rendered && mergedReasoning.text) {
         mergedReasoning.rendered = true;
-        if (mergedReasoning.isStreaming || isLoading) {
-          return (
-            <div
-              className="text-sm text-muted-foreground"
-              data-testid="message-reasoning-loading"
-              key={key}
-            >
-              Thinking...
-            </div>
-          );
-        }
-        const cleanedText = mergedReasoning.text
-          .split("\n")
-          .filter((line) => line.trim().length > 0)
-          .join("\n");
         return (
-          <details className="w-full max-w-[min(95%,80ch)] text-xs" key={key}>
-            <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
-              Thought for {mergedReasoning.durationSeconds ?? "?"}s
-            </summary>
-            <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-muted/30 p-3 leading-relaxed">
-              {cleanedText}
-            </pre>
-          </details>
+          <Reasoning
+            className="w-full max-w-[min(95%,80ch)]"
+            defaultOpen={mergedReasoning.isStreaming || isLoading}
+            duration={mergedReasoning.durationSeconds}
+            isStreaming={mergedReasoning.isStreaming || isLoading}
+            key={key}
+          >
+            <ReasoningTrigger />
+            <ReasoningContent>{mergedReasoning.text}</ReasoningContent>
+          </Reasoning>
         );
       }
       return null;
@@ -306,7 +296,7 @@ const PurePreviewMessage = ({
             content = null;
         }
         return (
-          <div className={widthClass} key={toolCallId}>
+          <div className={widthClass} key={key}>
             {content}
           </div>
         );
@@ -314,7 +304,7 @@ const PurePreviewMessage = ({
 
       if (isDenied) {
         return (
-          <div className={widthClass} key={toolCallId}>
+          <div className={widthClass} key={key}>
             <Tool className="w-full" defaultOpen={true}>
               <ToolHeader state="output-denied" type={type} />
               <ToolContent>
@@ -329,7 +319,7 @@ const PurePreviewMessage = ({
 
       if (state === "approval-responded") {
         return (
-          <div className={widthClass} key={toolCallId}>
+          <div className={widthClass} key={key}>
             <Tool className="w-full" defaultOpen={true}>
               <ToolHeader state={state} type={type} />
               <ToolContent>
@@ -341,7 +331,7 @@ const PurePreviewMessage = ({
       }
 
       return (
-        <div className={widthClass} key={toolCallId}>
+        <div className={widthClass} key={key}>
           <Tool className="w-full" defaultOpen={true}>
             <ToolHeader state={state} type={type} />
             <ToolContent>
@@ -395,7 +385,7 @@ const PurePreviewMessage = ({
         return (
           <div
             className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-500 dark:bg-red-950/50"
-            key={toolCallId}
+            key={key}
           >
             Error creating document: {String(part.output.error)}
           </div>
@@ -405,7 +395,7 @@ const PurePreviewMessage = ({
       return (
         <DocumentPreview
           isReadonly={isReadonly}
-          key={toolCallId}
+          key={key}
           result={part.output}
         />
       );
@@ -418,7 +408,7 @@ const PurePreviewMessage = ({
         return (
           <div
             className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-500 dark:bg-red-950/50"
-            key={toolCallId}
+            key={key}
           >
             Error updating document: {String(part.output.error)}
           </div>
@@ -426,7 +416,7 @@ const PurePreviewMessage = ({
       }
 
       return (
-        <div className="relative" key={toolCallId}>
+        <div className="relative" key={key}>
           <DocumentPreview
             args={{ ...part.output, isUpdate: true }}
             isReadonly={isReadonly}
@@ -443,7 +433,7 @@ const PurePreviewMessage = ({
         <Tool
           className="w-[min(100%,450px)]"
           defaultOpen={true}
-          key={toolCallId}
+          key={key}
         >
           <ToolHeader state={state} type="tool-requestSuggestions" />
           <ToolContent>
@@ -469,7 +459,7 @@ const PurePreviewMessage = ({
       const { toolCallId, state } = part;
 
       if (state === "output-available" && part.output) {
-        return <CardCarousel data={part.output} key={toolCallId} />;
+        return <CardCarousel data={part.output} key={key} />;
       }
 
       return null;
@@ -544,7 +534,7 @@ const PurePreviewMessage = ({
         <Tool
           className="w-[min(100%,650px)]"
           defaultOpen={false}
-          key={toolCallId}
+          key={key}
         >
           <ToolHeader
             state={state}
@@ -660,43 +650,8 @@ const PurePreviewMessage = ({
       );
     }
 
-    if (type.startsWith("tool-")) {
-      const toolPart = part as {
-        toolCallId?: string;
-        state?: string;
-        input?: unknown;
-        output?: unknown;
-        errorText?: string;
-      };
-      const toolName = type.replace("tool-", "");
-      const state = (toolPart.state ?? "input-available") as ToolPart["state"];
-      const toolType = type as ToolUIPart["type"];
-
-      return (
-        <Tool
-          className="w-[min(100%,680px)] overflow-hidden border-border/60 bg-card/70 shadow-sm"
-          defaultOpen={state !== "output-available"}
-          key={toolPart.toolCallId ?? key}
-        >
-          <ToolHeader state={state} title={toolName} type={toolType} />
-          <ToolContent>
-            {(state === "input-streaming" ||
-              state === "input-available" ||
-              state === "approval-requested" ||
-              state === "approval-responded") &&
-              toolPart.input !== undefined && (
-                <ToolInput input={toolPart.input as ToolPart["input"]} />
-              )}
-            {state === "output-error" && (
-              <div className="rounded-md bg-destructive/10 p-3 text-destructive text-xs">
-                {toolPart.errorText ?? "An error occurred"}
-              </div>
-            )}
-          </ToolContent>
-        </Tool>
-      );
-    }
-
+    // Hide tools that don't have a custom UI component — only tools
+    // with dedicated renderers above (weather, calculator, etc.) are shown.
     return null;
   });
 

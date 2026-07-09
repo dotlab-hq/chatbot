@@ -8,10 +8,6 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
-import { cjk } from "@streamdown/cjk";
-import { code } from "@streamdown/code";
-import { math } from "@streamdown/math";
-import { mermaid } from "@streamdown/mermaid";
 import { ChevronDownIcon } from "lucide-react";
 import {
   createContext,
@@ -23,8 +19,6 @@ import {
   useRef,
   useState,
 } from "react";
-import { Streamdown } from "streamdown";
-
 import { ShimmeringText } from "@/components/ui/shimmering-text";
 
 interface ReasoningContextValue {
@@ -201,8 +195,6 @@ export type ReasoningContentProps = HTMLAttributes<HTMLDivElement> & {
   children: string;
 };
 
-const streamdownPlugins = { cjk, code, math, mermaid };
-
 export const ReasoningContent = memo(
   ({ className, children, ...props }: ReasoningContentProps) => {
     const { isStreaming, isOpen } = useReasoning();
@@ -223,13 +215,13 @@ export const ReasoningContent = memo(
         )}
       >
         <div
-          className="max-h-[200px] overflow-y-auto rounded-lg border border-border/20 bg-muted/30 px-3 py-2 text-[11px] leading-relaxed"
+          className="max-h-[200px] overflow-y-auto rounded-lg border border-border/20 bg-muted/30 px-3 py-2 text-[11px] leading-relaxed whitespace-pre-wrap wrap-break-word\"
           ref={scrollRef}
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+          {...props}
         >
-          <Streamdown plugins={streamdownPlugins} {...props}>
-            {children}
-          </Streamdown>
+          {children}
+          {isStreaming && <span className="inline-block w-1.5 h-3 ml-0.5 bg-muted-foreground/40 animate-pulse" />}
         </div>
       </div>
     );
