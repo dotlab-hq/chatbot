@@ -20,8 +20,8 @@ import {
   getSubagentSteps,
   getToolPlan,
   resetAgentContext,
-  subscribeToSubagentSteps,
   type SubagentStepState,
+  subscribeToSubagentSteps,
   type ToolPlanState,
 } from "./data-stream-handler";
 
@@ -37,7 +37,10 @@ function formatToolName(tool: string) {
     .replace(/^./, (char) => char.toUpperCase());
 }
 
-export function AgentContextPanel({ chatId, className }: AgentContextPanelProps) {
+export function AgentContextPanel({
+  chatId: _chatId,
+  className,
+}: AgentContextPanelProps) {
   const [toolPlan, setToolPlan] = useState<ToolPlanState | null>(null);
   const [subagentSteps, setSubagentSteps] = useState<SubagentStepState>({});
   const [isOpen, setIsOpen] = useState(true);
@@ -52,7 +55,7 @@ export function AgentContextPanel({ chatId, className }: AgentContextPanelProps)
       setSubagentSteps({ ...getSubagentSteps() });
       setIsOpen(true);
     });
-  }, [chatId]);
+  }, []);
 
   const subagents = useMemo(
     () => Object.entries(subagentSteps),
@@ -70,27 +73,27 @@ export function AgentContextPanel({ chatId, className }: AgentContextPanelProps)
   return (
     <Collapsible
       className={cn(
-        "group not-prose mb-4 w-full rounded-md border bg-card",
+        "group not-prose w-full max-w-[680px] rounded-lg border border-border/60 bg-card/70 shadow-sm backdrop-blur",
         className
       )}
       onOpenChange={setIsOpen}
       open={isOpen}
     >
       <CollapsibleTrigger className="w-full">
-        <div className="flex w-full items-center justify-between p-3">
+        <div className="flex w-full items-center justify-between px-3 py-2.5">
           <div className="flex min-w-0 items-center gap-2">
             {runningCount > 0 ? (
               <Loader2 className="size-4 shrink-0 animate-spin text-primary" />
             ) : (
               <BrainCircuit className="size-4 shrink-0 text-primary" />
             )}
-            <span className="truncate font-medium text-sm">
-              Agent Context
-            </span>
+            <span className="truncate font-medium text-sm">Work activity</span>
             <span className="shrink-0 text-muted-foreground text-xs">
               {runningCount > 0
                 ? `${runningCount} running`
-                : `${toolPlan?.groups.length ?? 0} tool groups`}
+                : subagents.length > 0
+                  ? `${subagents.length} completed`
+                  : `${toolPlan?.groups.length ?? 0} tool groups`}
             </span>
           </div>
           <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
@@ -103,7 +106,7 @@ export function AgentContextPanel({ chatId, className }: AgentContextPanelProps)
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-muted-foreground text-xs">
                 <Route className="size-3.5" />
-                <span>Prepared tool groups</span>
+                <span>Planned capabilities</span>
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {toolPlan.groups.map((group) => (
@@ -120,7 +123,7 @@ export function AgentContextPanel({ chatId, className }: AgentContextPanelProps)
                 <>
                   <div className="flex items-center gap-2 text-muted-foreground text-xs">
                     <Wrench className="size-3.5" />
-                    <span>Active tools</span>
+                    <span>Tools available for this turn</span>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {toolPlan.tools.slice(0, 18).map((tool) => (

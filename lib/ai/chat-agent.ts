@@ -50,7 +50,7 @@ import type { ToolPlan } from "./tool-planner";
 const estimateTokens = (messages: ModelMessage[]) =>
   Math.round(JSON.stringify(messages).length / 4);
 
-const COMPACTION_THRESHOLD = 100_000;
+const STEP_PRUNE_THRESHOLD = 32_000;
 
 /**
  * Wraps a subagent tool to emit progress events via dataStream.
@@ -323,7 +323,9 @@ export async function createChatAgent(params: CreateChatAgentParams) {
   const plannedActiveTools =
     toolPlan?.activeTools === "all" || !toolPlan
       ? activeTools
-      : activeTools.filter((toolName) => toolPlan.activeTools.includes(toolName));
+      : activeTools.filter((toolName) =>
+          toolPlan.activeTools.includes(toolName)
+        );
 
   // ── Reasoning effort ──────────────────────────────────────────────────
 
@@ -339,7 +341,7 @@ export async function createChatAgent(params: CreateChatAgentParams) {
     stopWhen: isStepCount(5),
     maxOutputTokens: 128_000,
     prepareStep: ({ messages: stepMessages }) => {
-      if (estimateTokens(stepMessages) > COMPACTION_THRESHOLD) {
+      if (estimateTokens(stepMessages) > STEP_PRUNE_THRESHOLD) {
         return {
           messages: pruneMessages({
             messages: stepMessages,

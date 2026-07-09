@@ -201,16 +201,6 @@ export function buildToolPlan({
     "my ip",
   ]);
 
-  const asksForSubagent = includesAny(normalizedQuery, [
-    "subagent",
-    "agent",
-    "research",
-    "investigate",
-    "deep dive",
-    "multiple sources",
-    "web search",
-  ]);
-
   const asksForParallel = includesAny(normalizedQuery, [
     "compare",
     "several",
@@ -220,6 +210,18 @@ export function buildToolPlan({
     "all of",
     "batch",
   ]);
+
+  const asksForSubagent =
+    asksForCurrentInfo ||
+    includesAny(normalizedQuery, [
+      "subagent",
+      "agent",
+      "research",
+      "investigate",
+      "deep dive",
+      "multiple sources",
+      "web search",
+    ]);
 
   const complexTask = includesAny(normalizedQuery, [
     "implement",
@@ -236,52 +238,70 @@ export function buildToolPlan({
   if (supportsTools && asksForArtifact) {
     groups.push("artifacts");
     promptSections.push(artifactsPrompt);
-    rationale.push("Artifact tools are relevant to create, inspect, or update visible work.");
+    rationale.push(
+      "Artifact tools are relevant to create, inspect, or update visible work."
+    );
   }
 
   if (supportsTools && asksForProjectFiles) {
     groups.push("projectFiles");
     promptSections.push(projectFilesPrompt);
-    rationale.push("Project file tools are relevant because the query asks about project context or uploaded files.");
+    rationale.push(
+      "Project file tools are relevant because the query asks about project context or uploaded files."
+    );
   }
 
   if (supportsTools && hasMemory) {
     groups.push("memory");
-    rationale.push("Memory tools remain available for user preferences and durable context.");
+    rationale.push(
+      "Memory tools remain available for user preferences and durable context."
+    );
   }
 
   if (supportsTools && hasSearchTools && asksForCurrentInfo) {
     groups.push("search");
     promptSections.push(searchToolsPrompt);
-    rationale.push("Search tools are relevant for current, external, or multi-source information.");
+    rationale.push(
+      "Search tools are relevant for current, external, or multi-source information."
+    );
   }
 
   if (supportsTools && asksForHttp) {
     groups.push("http");
     promptSections.push(httpToolsPrompt);
-    rationale.push("HTTP tools are relevant because the query mentions APIs or direct requests.");
+    rationale.push(
+      "HTTP tools are relevant because the query mentions APIs or direct requests."
+    );
   }
 
   if (supportsTools && asksForSubagent) {
     groups.push("subagents");
-    rationale.push("Subagents are relevant for delegated research or API execution.");
+    rationale.push(
+      "Subagents are relevant for delegated research, current information, or API execution."
+    );
   }
 
   if (supportsTools && asksForParallel) {
     groups.push("parallel");
     promptSections.push(parallelPromptSection);
-    rationale.push("Parallel execution is relevant because independent tool calls may be batched.");
+    rationale.push(
+      "Parallel execution is relevant because independent tool calls may be batched."
+    );
   }
 
   if (supportsTools && complexTask) {
     groups.push("todo");
     promptSections.push(todoPrompt);
-    rationale.push("Todo tracking is relevant because the task has multiple implementation steps.");
+    rationale.push(
+      "Todo tracking is relevant because the task has multiple implementation steps."
+    );
   }
 
   if (supportsTools && mcpToolNames.length > 0) {
     groups.push("mcp");
-    rationale.push("Configured MCP tools are available and may provide user-specific capabilities.");
+    rationale.push(
+      "Configured MCP tools are available and may provide user-specific capabilities."
+    );
   }
 
   if (supportsTools && !promptSections.includes(httpToolsPrompt)) {

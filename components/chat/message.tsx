@@ -1,5 +1,6 @@
 "use client";
 import type { UseChatHelpers } from "@ai-sdk/react";
+import type { ToolUIPart } from "ai";
 import { CodeBlock } from "@/components/ai-elements/code-block";
 import {
   MessageContent,
@@ -11,7 +12,9 @@ import {
   ToolHeader,
   ToolInput,
   ToolOutput,
+  type ToolPart,
 } from "@/components/ai-elements/tool";
+import { AgentContextPanel } from "@/components/chat/agent-context-panel";
 import { Calculator } from "@/components/chat/calculator";
 import { CardCarousel } from "@/components/chat/card-carousel";
 import { CurrencyConverter } from "@/components/chat/currency-converter";
@@ -492,12 +495,12 @@ const PurePreviewMessage = ({
             )}
             {state === "output-available" && out?.results && (
               <div className="space-y-4">
-                {out.results.map((result, idx) => {
+                {out.results.map((result) => {
                   const sc = result.response?.status;
                   return (
                     <div
                       className="rounded-lg border p-3"
-                      key={`${result.request.method}-${result.request.url}-${idx}`}
+                      key={`${result.request.method}-${result.request.url}-${sc ?? "pending"}`}
                     >
                       {/* Request line */}
                       <div className="mb-2 flex items-center gap-2">
@@ -569,10 +572,10 @@ const PurePreviewMessage = ({
               state !== "output-error" &&
               inp?.requests && (
                 <div className="space-y-3">
-                  {inp.requests.map((req, idx) => (
+                  {inp.requests.map((req) => (
                     <div
                       className="flex items-center gap-2"
-                      key={`${req.method}-${req.url}-${idx}`}
+                      key={`${req.method}-${req.url}`}
                     >
                       <span
                         className={cn(
@@ -589,6 +592,44 @@ const PurePreviewMessage = ({
                   ))}
                 </div>
               )}
+          </ToolContent>
+        </Tool>
+      );
+    }
+
+    if (type.startsWith("tool-")) {
+      const toolPart = part as {
+        toolCallId?: string;
+        state?: string;
+        input?: unknown;
+        output?: unknown;
+        errorText?: string;
+      };
+      const toolName = type.replace("tool-", "");
+      const state = (toolPart.state ?? "input-available") as ToolPart["state"];
+      const toolType = type as ToolUIPart["type"];
+
+      return (
+        <Tool
+          className="w-[min(100%,680px)] overflow-hidden border-border/60 bg-card/70 shadow-sm"
+          defaultOpen={state !== "output-available"}
+          key={toolPart.toolCallId ?? key}
+        >
+          <ToolHeader state={state} title={toolName} type={toolType} />
+          <ToolContent>
+            {(state === "input-streaming" ||
+              state === "input-available" ||
+              state === "approval-requested" ||
+              state === "approval-responded") &&
+              toolPart.input !== undefined && (
+                <ToolInput input={toolPart.input as ToolPart["input"]} />
+              )}
+            {(state === "output-available" || state === "output-error") && (
+              <ToolOutput
+                errorText={toolPart.errorText}
+                output={toolPart.output as ToolPart["output"]}
+              />
+            )}
           </ToolContent>
         </Tool>
       );
@@ -615,6 +656,9 @@ const PurePreviewMessage = ({
   ) : (
     <>
       {attachments}
+      {isAssistant && isLoading && (
+        <AgentContextPanel chatId={chatId} className="mb-1" />
+      )}
       {isAssistant && hasImages && <ImageCarousel images={imageResults} />}
       {parts}
       {isAssistant && hasSources && (

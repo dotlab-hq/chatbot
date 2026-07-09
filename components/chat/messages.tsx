@@ -1,7 +1,6 @@
 import type { UseChatHelpers } from "@ai-sdk/react";
 import { ArrowDownIcon } from "lucide-react";
 import { useEffect, useRef } from "react";
-import { AgentContextPanel } from "@/components/chat/agent-context-panel";
 import { useDataStream } from "@/components/chat/data-stream-provider";
 import { Greeting } from "@/components/chat/greeting";
 import { PreviewMessage, ThinkingMessage } from "@/components/chat/message";
@@ -84,8 +83,6 @@ function PureMessages({
           style={isArtifactVisible ? { scrollbarWidth: "none" } : undefined}
         >
           <div className="mx-auto flex min-h-full min-w-0 max-w-4xl flex-col gap-5 px-2 py-6 md:gap-7 md:px-4">
-            {/* Todo list rendered above the messages when items exist */}
-            <AgentContextPanel chatId={chatId} />
             <TodoList />
 
             {messages.map((message, index) => (

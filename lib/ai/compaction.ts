@@ -70,21 +70,22 @@ export function sumTokenUsage(messages: DBMessage[]): {
  * These are conservative estimates.
  */
 const MODEL_CONTEXT_WINDOWS: Record<string, number> = {
-  "claude-edge": 200_000,
+  "claude-edge": 64_000,
   "claude-3-5-sonnet": 200_000,
   "claude-3-opus": 200_000,
   "gpt-4o": 128_000,
   "gpt-4o-mini": 128_000,
   "gpt-4.1-mini": 1_000_000,
   "gpt-4.1-nano": 1_000_000,
+  "moonshotai/kimi-k2.5": 128_000,
 };
 
-const DEFAULT_CONTEXT_WINDOW = 200_000;
+const DEFAULT_CONTEXT_WINDOW = 64_000;
 
 /**
  * Threshold (fraction of context window) at which compaction triggers.
  */
-const COMPACTION_THRESHOLD = 0.75;
+const COMPACTION_THRESHOLD = 0.45;
 
 /**
  * Get the context window size for a model.
@@ -137,7 +138,7 @@ export async function compactConversation({
   chatId: string;
 }): Promise<CompactResult> {
   // Keep the last N messages intact (recent context), summarize the rest
-  const KEEP_RECENT = 4;
+  const KEEP_RECENT = 6;
   if (messages.length <= KEEP_RECENT + 1) {
     return { summary: "", messageCount: 0, tokensSaved: 0 };
   }
