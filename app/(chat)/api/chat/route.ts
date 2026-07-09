@@ -33,6 +33,11 @@ import {
   type RequestHints,
   systemPrompt,
 } from "@/lib/ai/prompts";
+import {
+  buildToolPlan,
+  getLatestUserQuery,
+  writeToolPlanEvent,
+} from "@/lib/ai/tool-planner";
 import { db } from "@/lib/db";
 import {
   createStreamId,
@@ -317,6 +322,7 @@ export async function POST(request: Request) {
     });
 
     const hasProject = Boolean(projectVectorStoreId);
+    const latestUserQuery = getLatestUserQuery(uiMessages);
 
     // Fetch personalization for system prompt
     let personalizationData: PersonalizationHints | undefined;
@@ -401,6 +407,19 @@ export async function POST(request: Request) {
     const stream = createUIMessageStream({
       originalMessages: isToolApprovalFlow ? uiMessages : undefined,
       execute: async ({ writer: dataStream }) => {
+        const toolPlan = buildToolPlan({
+          query: latestUserQuery,
+          supportsTools,
+          hasProject,
+          hasMemory: Boolean(process.env.MONGODB_URI),
+          hasSearchTools: Boolean(
+            process.env.OPENSERP_API_KEY || process.env.OPENSERP_BASE_URL
+          ),
+          mcpToolNames: [],
+        });
+
+        writeToolPlanEvent(dataStream, toolPlan);
+
         const instructions = systemPrompt({
           requestHints,
           supportsTools,
@@ -410,6 +429,13 @@ export async function POST(request: Request) {
             process.env.OPENSERP_API_KEY || process.env.OPENSERP_BASE_URL
           ),
           personalization: personalizationData,
+          toolPromptSections: toolPlan.promptSections,
+          toolPlanSummary: {
+            groups: toolPlan.groups,
+            activeTools: toolPlan.activeTools,
+            rationale: toolPlan.rationale,
+            contextManagement: toolPlan.contextManagement,
+          },
         });
 
         const { agent } = await createChatAgent({
@@ -423,6 +449,7 @@ export async function POST(request: Request) {
           projectId,
           chatProjectId: chat?.projectId,
           enabledSkillsForInference,
+          toolPlan,
         });
 
         const result = await agent.stream({ messages: modelMessages });

@@ -19,9 +19,17 @@ export type SubagentStepState = Record<
   }
 >;
 
+export type ToolPlanState = {
+  groups: string[];
+  tools: string[];
+  rationale: string[];
+  contextManagement: string[];
+};
+
 // Global state so multiple consumers can access the latest subagent state
 const globalSubagentSteps: SubagentStepState = {};
 const listeners = new Set<() => void>();
+let globalToolPlan: ToolPlanState | null = null;
 
 function notifyListeners() {
   for (const listener of listeners) {
@@ -31,11 +39,25 @@ function notifyListeners() {
 
 export function subscribeToSubagentSteps(cb: () => void) {
   listeners.add(cb);
-  return () => listeners.delete(cb);
+  return () => {
+    listeners.delete(cb);
+  };
 }
 
 export function getSubagentSteps(): SubagentStepState {
   return globalSubagentSteps;
+}
+
+export function getToolPlan(): ToolPlanState | null {
+  return globalToolPlan;
+}
+
+export function resetAgentContext() {
+  globalToolPlan = null;
+  for (const key of Object.keys(globalSubagentSteps)) {
+    delete globalSubagentSteps[key];
+  }
+  notifyListeners();
 }
 
 // ─── Global todo list state ─────────────────────────────────────────────────
@@ -60,7 +82,9 @@ function notifyTodoListeners() {
 
 export function subscribeToTodoUpdates(cb: () => void) {
   todoListeners.add(cb);
-  return () => todoListeners.delete(cb);
+  return () => {
+    todoListeners.delete(cb);
+  };
 }
 
 export function getTodoItems(): TodoUpdate["items"] {
@@ -85,6 +109,19 @@ export function DataStreamHandler() {
       if (delta.type === "data-chat-title") {
         document.title = delta.data;
         mutate(unstable_serialize(getChatHistoryPaginationKey));
+        continue;
+      }
+      if (delta.type === "data-tool-plan") {
+        globalToolPlan = {
+          groups: delta.data.groups,
+          tools: delta.data.tools,
+          rationale: delta.data.rationale,
+          contextManagement: delta.data.contextManagement,
+        };
+        for (const key of Object.keys(globalSubagentSteps)) {
+          delete globalSubagentSteps[key];
+        }
+        notifyListeners();
         continue;
       }
       if (delta.type === "data-subagent-step") {

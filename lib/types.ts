@@ -69,6 +69,12 @@ export type CustomUIDataTypes = {
   clear: null;
   finish: null;
   "chat-title": string;
+  "tool-plan": {
+    groups: string[];
+    tools: string[];
+    rationale: string[];
+    contextManagement: string[];
+  };
   "subagent-step": {
     tool: string;
     status: "running" | "streaming" | "complete" | "error";

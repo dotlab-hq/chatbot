@@ -1,6 +1,5 @@
 import type { Geo } from "@vercel/functions";
 import type { ArtifactKind } from "@/components/chat/artifact";
-import { parallelPromptSection } from "@/lib/ai/parallel-executioner";
 
 export const artifactsPrompt = `
 Artifacts is a side panel that displays content alongside the conversation. It supports scripts (code), documents (text), spreadsheets, SVG graphics, HTML pages (Tailwind CSS only), diagrams (Excalidraw flowcharts, architecture diagrams, wireframes), and video content (interactive video player using react-player — supports YouTube, Vimeo, direct .mp4/.webm/.mov files, HLS .m3u8 streams, Dailymotion, Twitch, Facebook Video, and more). Changes appear in real-time.
@@ -346,6 +345,8 @@ export const systemPrompt = ({
   hasMemory,
   hasSearchTools,
   personalization,
+  toolPromptSections,
+  toolPlanSummary,
 }: {
   requestHints: RequestHints;
   supportsTools: boolean;
@@ -353,14 +354,17 @@ export const systemPrompt = ({
   hasMemory?: boolean;
   hasSearchTools?: boolean;
   personalization?: PersonalizationHints;
+  toolPromptSections?: string[];
+  toolPlanSummary?: {
+    groups: string[];
+    activeTools: string[] | "all";
+    rationale: string[];
+    contextManagement: string[];
+  };
 }) => {
   const requestPrompt = getRequestPromptFromHints(requestHints);
 
   let prompt = regularPrompt;
-
-  if (hasProject) {
-    prompt += `\n\n${projectFilesPrompt}`;
-  }
 
   if (hasMemory) {
     prompt += memoryPrompt;
@@ -368,23 +372,30 @@ export const systemPrompt = ({
 
   prompt += `\n\n${requestPrompt}`;
 
-  if (supportsTools) {
-    prompt += `\n\n${artifactsPrompt}`;
+  if (supportsTools && toolPlanSummary) {
+    prompt += `\n\n## Dynamic Tool Preparation
+
+Before answering, use this prepared tool plan as the source of truth for tool availability.
+
+Selected tool groups: ${toolPlanSummary.groups.join(", ") || "core"}
+Active tools: ${
+      toolPlanSummary.activeTools === "all"
+        ? "all registered tools"
+        : toolPlanSummary.activeTools.join(", ")
+    }
+
+Why these tools were selected:
+${toolPlanSummary.rationale.map((item) => `- ${item}`).join("\n")}
+
+Context management rules:
+${toolPlanSummary.contextManagement.map((item) => `- ${item}`).join("\n")}
+
+If the user's request changes during the turn, adapt within the active tools instead of forcing unrelated tools into the response.`;
   }
 
-  if (hasSearchTools) {
-    prompt += `\n\n${searchToolsPrompt}`;
+  if (supportsTools && toolPromptSections?.length) {
+    prompt += `\n\n${toolPromptSections.join("\n\n")}`;
   }
-
-  if (supportsTools) {
-    prompt += `\n\n${parallelPromptSection}`;
-  }
-
-  if (supportsTools) {
-    prompt += `\n\n${todoPrompt}`;
-  }
-
-  prompt += `\n\n${httpToolsPrompt}`;
 
   if (personalization) {
     prompt += buildPersonalizationPrompt(personalization);

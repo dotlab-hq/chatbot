@@ -44,6 +44,7 @@ import { isProductionEnvironment } from "@/lib/constants";
 import { getMcpServersByUserId } from "@/lib/db/queries";
 import { connectToMcpServer, getToolSets } from "@/lib/mcp/client";
 import type { ChatMessage } from "@/lib/types";
+import type { ToolPlan } from "./tool-planner";
 
 /** Rough token estimate: ~4 chars per token */
 const estimateTokens = (messages: ModelMessage[]) =>
@@ -103,6 +104,7 @@ export type CreateChatAgentParams = {
   projectId?: string | null;
   chatProjectId?: string | null;
   enabledSkillsForInference: Array<{ providerReference: string | null }>;
+  toolPlan?: ToolPlan;
 };
 
 /**
@@ -124,6 +126,7 @@ export async function createChatAgent(params: CreateChatAgentParams) {
     projectId,
     chatProjectId,
     enabledSkillsForInference,
+    toolPlan,
   } = params;
 
   const modelConfig = chatModels.find((m) => m.id === chatModel);
@@ -253,9 +256,11 @@ export async function createChatAgent(params: CreateChatAgentParams) {
   const enabledServers = mcpServers.filter((s) => s.enabled);
   await Promise.all(enabledServers.map((s) => connectToMcpServer(s)));
   const mcpTools = getToolSets();
+  const mcpToolNames: string[] = [];
   for (const [toolName, toolDef] of Object.entries(mcpTools)) {
     tools[toolName] = toolDef;
     activeTools.push(toolName);
+    mcpToolNames.push(toolName);
   }
 
   // ── Provider skill references (providerOptions) ───────────────────────
@@ -315,6 +320,11 @@ export async function createChatAgent(params: CreateChatAgentParams) {
     activeTools.push("runParallel");
   }
 
+  const plannedActiveTools =
+    toolPlan?.activeTools === "all" || !toolPlan
+      ? activeTools
+      : activeTools.filter((toolName) => toolPlan.activeTools.includes(toolName));
+
   // ── Reasoning effort ──────────────────────────────────────────────────
 
   const reasoning = modelConfig?.reasoningEffort;
@@ -325,7 +335,7 @@ export async function createChatAgent(params: CreateChatAgentParams) {
     model: getLanguageModel(chatModel),
     instructions,
     tools,
-    activeTools: isReasoningModel && !supportsTools ? [] : activeTools,
+    activeTools: isReasoningModel && !supportsTools ? [] : plannedActiveTools,
     stopWhen: isStepCount(5),
     maxOutputTokens: 128_000,
     prepareStep: ({ messages: stepMessages }) => {
@@ -348,5 +358,5 @@ export async function createChatAgent(params: CreateChatAgentParams) {
     },
   });
 
-  return { agent, activeTools };
+  return { agent, activeTools: plannedActiveTools, mcpToolNames };
 }
