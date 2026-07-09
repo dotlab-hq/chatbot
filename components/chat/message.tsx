@@ -1,6 +1,8 @@
 "use client";
 import type { UseChatHelpers } from "@ai-sdk/react";
 import type { ToolUIPart } from "ai";
+import { ChevronDownIcon } from "lucide-react";
+import { useMemo, useState } from "react";
 import { CodeBlock } from "@/components/ai-elements/code-block";
 import {
   MessageContent,
@@ -14,6 +16,8 @@ import {
   ToolOutput,
   type ToolPart,
 } from "@/components/ai-elements/tool";
+import type { ActivityItem } from "@/components/chat/activity-panel-context";
+import { useActivityPanel } from "@/components/chat/activity-panel-context";
 import { AgentContextPanel } from "@/components/chat/agent-context-panel";
 import { Calculator } from "@/components/chat/calculator";
 import { CardCarousel } from "@/components/chat/card-carousel";
@@ -44,6 +48,138 @@ import { ShimmeringText } from "@/components/ui/shimmering-text";
 import type { Vote } from "@/lib/db/schema";
 import type { ChatMessage } from "@/lib/types";
 import { cn, sanitizeText } from "@/lib/utils";
+
+function formatToolName(type: string) {
+  return type
+    .replace(/^tool-/, "")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/^./, (char) => char.toUpperCase());
+}
+
+function getOutputDomains(output: unknown) {
+  if (!Array.isArray(output)) {
+    return [];
+  }
+
+  return [
+    ...new Set(
+      output
+        .map((item) => {
+          if (!item || typeof item !== "object") {
+            return null;
+          }
+          const value =
+            "domain" in item
+              ? item.domain
+              : "url" in item
+                ? getDomain(String(item.url))
+                : "pageUrl" in item
+                  ? getDomain(String(item.pageUrl))
+                  : null;
+          return typeof value === "string" ? value : null;
+        })
+        .filter((domain): domain is string => Boolean(domain))
+    ),
+  ];
+}
+
+function buildActivityItems(message: ChatMessage, reasoning: string) {
+  const items: ActivityItem[] = [];
+
+  if (reasoning.trim()) {
+    const chunks = reasoning
+      .split(/\n{2,}/)
+      .map((chunk) => chunk.trim())
+      .filter(Boolean);
+
+    for (const [index, chunk] of chunks.entries()) {
+      const [firstLine, ...rest] = chunk.split("\n");
+      items.push({
+        id: `reasoning-${index}`,
+        title: firstLine.slice(0, 90),
+        body: rest.join("\n").trim() || undefined,
+      });
+    }
+  }
+
+  for (const [index, part] of message.parts.entries()) {
+    if (!part.type.startsWith("tool-") || !("state" in part)) {
+      continue;
+    }
+
+    const domains = getOutputDomains(
+      "output" in part ? part.output : undefined
+    );
+    const state = String(part.state);
+    const partType = String(part.type);
+    const isSearch =
+      partType === "tool-webSearch" ||
+      partType === "tool-webSearchExtract" ||
+      partType === "tool-webImageSearch";
+
+    items.push({
+      id: `tool-${index}`,
+      title: isSearch
+        ? state === "output-available"
+          ? "Searched the web"
+          : "Browsing sources"
+        : formatToolName(partType),
+      body:
+        state === "output-available"
+          ? undefined
+          : "Waiting for this tool to finish.",
+      domains,
+      status: state === "output-available" ? "complete" : "running",
+    });
+  }
+
+  return items.length > 0
+    ? items
+    : [
+        {
+          id: "thinking",
+          title: "Constructing a concise answer",
+          body: "No detailed thinking transcript was saved for this message.",
+        },
+      ];
+}
+
+function CollapsibleUserMessage({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const isLong = text.length > 420 || text.split("\n").length > 8;
+
+  return (
+    <MessageContent
+      className={cn(
+        "w-fit max-w-[min(80%,56ch)] overflow-hidden wrap-break-word rounded-2xl rounded-br-lg border border-border/30 bg-linear-to-br from-secondary to-muted px-3.5 py-2 shadow-(--shadow-card) text-sm leading-[1.65]",
+        !expanded && isLong && "max-h-72"
+      )}
+      data-testid="message-content"
+    >
+      <div className="relative">
+        <MessageResponse>{sanitizeText(text)}</MessageResponse>
+        {!expanded && isLong && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-linear-to-t from-muted to-transparent" />
+        )}
+      </div>
+      {isLong && (
+        <button
+          className="mt-2 flex items-center gap-1 text-muted-foreground text-xs font-medium transition-colors hover:text-foreground"
+          onClick={() => setExpanded((value) => !value)}
+          type="button"
+        >
+          {expanded ? "Show less" : "Show more"}
+          <ChevronDownIcon
+            className={cn(
+              "size-3.5 transition-transform",
+              expanded && "rotate-180"
+            )}
+          />
+        </button>
+      )}
+    </MessageContent>
+  );
+}
 
 const PurePreviewMessage = ({
   addToolApprovalResponse,
@@ -76,6 +212,8 @@ const PurePreviewMessage = ({
 
   const isUser = message.role === "user";
   const isAssistant = message.role === "assistant";
+  const { messageId: activeActivityMessageId, openPanel: openActivityPanel } =
+    useActivityPanel();
 
   const hasAnyContent = message.parts?.some(
     (part) =>
@@ -125,16 +263,37 @@ const PurePreviewMessage = ({
   const mergedReasoning = message.parts?.reduce(
     (acc, part) => {
       if (part.type === "reasoning" && part.text?.trim().length > 0) {
+        const providerMetadata = (
+          part as {
+            providerMetadata?: { thinkingDurationSeconds?: number };
+          }
+        ).providerMetadata;
         return {
           text: acc.text ? `${acc.text}\n\n${part.text}` : part.text,
           isStreaming: "state" in part ? part.state === "streaming" : false,
+          durationSeconds:
+            providerMetadata?.thinkingDurationSeconds ?? acc.durationSeconds,
           rendered: false,
         };
       }
       return acc;
     },
-    { text: "", isStreaming: false, rendered: false }
-  ) ?? { text: "", isStreaming: false, rendered: false };
+    {
+      text: "",
+      isStreaming: false,
+      durationSeconds: undefined as number | undefined,
+      rendered: false,
+    }
+  ) ?? {
+    text: "",
+    isStreaming: false,
+    durationSeconds: undefined,
+    rendered: false,
+  };
+  const activityItems = useMemo(
+    () => buildActivityItems(message, mergedReasoning.text),
+    [message, mergedReasoning.text]
+  );
 
   // Deduplicate: only show the last createDocument tool call
   const lastCreateDocIndex =
@@ -152,8 +311,18 @@ const PurePreviewMessage = ({
         return (
           <MessageReasoning
             isLoading={isLoading || mergedReasoning.isStreaming}
+            isOpen={activeActivityMessageId === message.id}
             key={key}
+            onOpenActivity={(durationSeconds) =>
+              openActivityPanel(
+                activityItems,
+                message.id,
+                durationSeconds ?? mergedReasoning.durationSeconds
+              )
+            }
             reasoning={mergedReasoning.text}
+            savedDurationSeconds={mergedReasoning.durationSeconds}
+            timelineItems={activityItems}
           />
         );
       }
@@ -161,6 +330,10 @@ const PurePreviewMessage = ({
     }
 
     if (type === "text") {
+      if (isUser) {
+        return <CollapsibleUserMessage key={key} text={part.text} />;
+      }
+
       return (
         <MessageContent
           className={cn("text-sm leading-[1.65]", {

@@ -119,20 +119,25 @@ export const SearchSourcesBar = memo(function SearchSourcesBar({
       onClick={onToggle}
       type="button"
     >
-      <div className="flex -space-x-1.5">
-        {domains.slice(0, 4).map((domain) => (
-          <img
-            alt={domain}
-            className="size-4 rounded-sm ring-1 ring-background"
+      <div className="flex flex-wrap gap-1.5">
+        {domains.slice(0, 3).map((domain) => (
+          <span
+            className="inline-flex max-w-[150px] items-center gap-1 rounded-full bg-muted px-2 py-1 text-[11px] text-foreground"
             key={domain}
-            src={faviconUrl(domain)}
-          />
+          >
+            <img
+              alt=""
+              className="size-3 rounded-sm"
+              src={faviconUrl(domain)}
+            />
+            <span className="truncate">{domain}</span>
+          </span>
         ))}
-        {/* Note: using <img> for external favicons; Next.js Image requires remotePatterns config */}
       </div>
-      {domains.length > 4 && (
-        <span className="text-[10px] text-muted-foreground/70">
-          +{domains.length - 4}
+      {/* Note: using <img> for external favicons; Next.js Image requires remotePatterns config */}
+      {domains.length > 3 && (
+        <span className="rounded-full bg-muted px-2 py-1 text-[11px] text-muted-foreground">
+          +{domains.length - 3}
         </span>
       )}
       <span className="text-xs font-medium">

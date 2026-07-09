@@ -403,6 +403,7 @@ export async function POST(request: Request) {
     // Mutable reference shared between execute and onEnd for token usage capture
     let capturedUsagePromise: Promise<ReturnType<typeof extractTokenUsage>> =
       Promise.resolve(null);
+    const responseStartedAt = Date.now();
 
     const stream = createUIMessageStream({
       originalMessages: isToolApprovalFlow ? uiMessages : undefined,
@@ -481,9 +482,36 @@ export async function POST(request: Request) {
       },
       generateId: generateUUID,
       onEnd: async ({ messages: finishedMessages }) => {
+        const thinkingDurationSeconds = Math.max(
+          1,
+          Math.ceil((Date.now() - responseStartedAt) / 1000)
+        );
+        const messagesWithTiming = finishedMessages.map((finishedMessage) =>
+          finishedMessage.role === "assistant"
+            ? {
+                ...finishedMessage,
+                parts: finishedMessage.parts.map((part) =>
+                  part.type === "reasoning"
+                    ? {
+                        ...part,
+                        providerMetadata: {
+                          ...((
+                            part as {
+                              providerMetadata?: Record<string, unknown>;
+                            }
+                          ).providerMetadata ?? {}),
+                          thinkingDurationSeconds,
+                        },
+                      }
+                    : part
+                ),
+              }
+            : finishedMessage
+        );
+
         await disconnectAll();
         if (isToolApprovalFlow) {
-          for (const finishedMsg of finishedMessages) {
+          for (const finishedMsg of messagesWithTiming) {
             const existingMsg = uiMessages.find((m) => m.id === finishedMsg.id);
             if (existingMsg) {
               await updateMessage({
@@ -507,9 +535,9 @@ export async function POST(request: Request) {
               });
             }
           }
-        } else if (finishedMessages.length > 0) {
+        } else if (messagesWithTiming.length > 0) {
           await saveMessages({
-            messages: finishedMessages.map((currentMessage) => ({
+            messages: messagesWithTiming.map((currentMessage) => ({
               id: currentMessage.id,
               role: currentMessage.role,
               parts: currentMessage.parts,

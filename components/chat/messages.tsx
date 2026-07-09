@@ -1,6 +1,11 @@
 import type { UseChatHelpers } from "@ai-sdk/react";
 import { ArrowDownIcon } from "lucide-react";
 import { useEffect, useRef } from "react";
+import { ActivityPanel } from "@/components/chat/activity-panel";
+import {
+  ActivityPanelProvider,
+  useActivityPanel,
+} from "@/components/chat/activity-panel-context";
 import { useDataStream } from "@/components/chat/data-stream-provider";
 import { Greeting } from "@/components/chat/greeting";
 import { PreviewMessage, ThinkingMessage } from "@/components/chat/message";
@@ -134,8 +139,23 @@ function PureMessages({
       </div>
 
       {/* Sources side panel */}
+      <ActivityPanelSlot />
       <SourcesPanelSlot />
     </div>
+  );
+}
+
+function ActivityPanelSlot() {
+  const { open, items, durationSeconds, closePanel } = useActivityPanel();
+  if (!open) {
+    return null;
+  }
+  return (
+    <ActivityPanel
+      durationSeconds={durationSeconds}
+      items={items}
+      onClose={closePanel}
+    />
   );
 }
 
@@ -156,7 +176,9 @@ function SourcesPanelSlot() {
 function WrappedMessages(props: MessagesProps) {
   return (
     <SearchSourcesProvider>
-      <PureMessages {...props} />
+      <ActivityPanelProvider>
+        <PureMessages {...props} />
+      </ActivityPanelProvider>
     </SearchSourcesProvider>
   );
 }
