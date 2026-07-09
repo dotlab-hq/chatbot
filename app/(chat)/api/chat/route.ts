@@ -230,6 +230,13 @@ export async function POST(request: Request) {
       ];
     }
 
+    console.log(
+      "[chat-debug] 4. uiMessages built:",
+      uiMessages.length,
+      "msgs, roles:",
+      uiMessages.map((m) => m.role).join(", ")
+    );
+
     const { longitude, latitude, city, country } = geolocation(request);
 
     const requestHints: RequestHints = {
@@ -267,6 +274,17 @@ export async function POST(request: Request) {
     const modelMessages = await convertToModelMessages(uiMessages, {
       ignoreIncompleteToolCalls: true,
     });
+
+    console.log(
+      "[chat-debug] 5. modelMessages built:",
+      modelMessages.length,
+      "msgs, roles:",
+      modelMessages.map((m) => m.role).join(", "),
+      ", isToolApprovalFlow:",
+      isToolApprovalFlow,
+      ", messagesFromDb count:",
+      messagesFromDb.length
+    );
 
     const hasProject = Boolean(projectVectorStoreId);
     const latestUserQuery = getLatestUserQuery(uiMessages);
@@ -420,6 +438,12 @@ export async function POST(request: Request) {
       },
       generateId: generateUUID,
       onEnd: async ({ messages: finishedMessages }) => {
+        console.log(
+          "[chat-debug] 6. onEnd fired:",
+          finishedMessages.length,
+          "finished msgs, roles:",
+          finishedMessages.map((m) => m.role).join(", ")
+        );
         const thinkingDurationSeconds = Math.max(
           1,
           Math.ceil((Date.now() - responseStartedAt) / 1000)
@@ -476,18 +500,32 @@ export async function POST(request: Request) {
             }
           }
         } else if (messagesWithTiming.length > 0) {
-          await saveMessages({
-            messages: messagesWithTiming.map((currentMessage) => ({
-              id: currentMessage.id,
-              role: currentMessage.role,
-              parts: currentMessage.parts,
-              createdAt: new Date(),
-              attachments: [],
-              chatId: id,
-              speechKey: "",
-              usage: null,
-            })),
-          });
+          // Only save assistant messages here — user messages are already
+          // persisted before the stream starts (see the saveMessages call
+          // above the createUIMessageStream). Saving them again would cause
+          // a unique-constraint violation that silently crashes onEnd and
+          // prevents the assistant message from being persisted at all.
+          const assistantMessages = messagesWithTiming.filter(
+            (m) => m.role === "assistant"
+          );
+          if (assistantMessages.length > 0) {
+            await saveMessages({
+              messages: assistantMessages.map((currentMessage) => ({
+                id: currentMessage.id,
+                role: currentMessage.role,
+                parts: currentMessage.parts,
+                createdAt: new Date(),
+                attachments: [],
+                chatId: id,
+                speechKey: "",
+                usage: null,
+              })),
+            });
+            console.log(
+              "[chat-debug] 7. Assistant messages saved:",
+              assistantMessages.length
+            );
+          }
         }
 
         // Persist token usage to messages and chat totals
