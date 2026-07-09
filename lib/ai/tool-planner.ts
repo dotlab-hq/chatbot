@@ -201,6 +201,18 @@ export function buildToolPlan({
     "my ip",
   ]);
 
+  // Stricter signal: only when the user EXPLICITLY wants a client/browser-side
+  // request (their IP, their machine) — NOT a generic API/HTTP mention.
+  const asksForClientSide = includesAny(normalizedQuery, [
+    "client",
+    "browser",
+    "my ip",
+    "from my machine",
+    "from my side",
+    "client-side",
+    "client side",
+  ]);
+
   const asksForParallel = includesAny(normalizedQuery, [
     "compare",
     "several",
@@ -274,6 +286,17 @@ export function buildToolPlan({
     );
   }
 
+  // Only surface the client-side HTTP tool when the user explicitly asks for a
+  // client/browser-side request. Otherwise it must NOT be auto-included, so the
+  // model defaults to web search tools for information retrieval.
+  if (supportsTools && asksForClientSide && !groups.includes("http")) {
+    groups.push("http");
+    promptSections.push(httpToolsPrompt);
+    rationale.push(
+      "Client-side HTTP tool is relevant because the user explicitly requested a browser/client-side request."
+    );
+  }
+
   if (supportsTools && asksForSubagent) {
     groups.push("subagents");
     rationale.push(
@@ -317,7 +340,7 @@ export function buildToolPlan({
           ...(groups.includes("projectFiles") ? PROJECT_TOOLS : []),
           ...(groups.includes("memory") ? MEMORY_TOOLS : []),
           ...(groups.includes("search") ? SEARCH_TOOLS : []),
-          ...(groups.includes("http") ? HTTP_TOOLS : ["clientHttpRequest"]),
+          ...(groups.includes("http") ? HTTP_TOOLS : []),
           ...(groups.includes("subagents") ? SUBAGENT_TOOLS : []),
           ...(groups.includes("parallel") ? PARALLEL_TOOLS : []),
           ...(groups.includes("todo") ? TODO_TOOLS : []),

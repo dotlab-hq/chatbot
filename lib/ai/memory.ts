@@ -199,18 +199,25 @@ export async function searchMemories(params: {
 }): Promise<MemorySearchResult[]> {
   await ensureIndexes();
 
-  const { userId, tier, query, embedding, maxResults = 10, projectId } = params;
+  const { userId, tier, query, embedding, maxResults = 5, projectId } = params;
   const coll = getCollection(tier);
 
-  // All tiers are now user-scoped for search — only filter by userId + tier.
+  // All tiers are user-scoped for search — always filter by userId + tier.
   // chatId is stored on save for organizational/TTL purposes but does not
   // gate retrieval so that session/scratchpad memories from other chats
   // can still be recalled.
+  //
+  // Project isolation: when a projectId is provided we ONLY return memories
+  // scoped to that project. When NO projectId is provided (a general/non-project
+  // context) we explicitly EXCLUDE project-scoped memories so a project's
+  // memories can never leak into a general chat. This prevents users from
+  // accessing memories they shouldn't.
   const matchStage: Document = { userId, tier };
 
-  // If projectId is provided, also filter by projectId
   if (projectId) {
     matchStage.projectId = projectId;
+  } else {
+    matchStage.projectId = { $in: [null, undefined] };
   }
 
   // If we have embeddings, use vector search via $vectorSearch (Atlas)
@@ -328,14 +335,20 @@ export async function listMemories(params: {
   const { userId, tier, limit = 50, projectId } = params;
   const coll = getCollection(tier || "semantic");
 
-  // All tiers are user-scoped for listing — only filter by userId.
+  // All tiers are user-scoped for listing — always filter by userId.
   // chatId is stored on the document for provenance but does not restrict listing.
+  //
+  // Project isolation: when a projectId is provided we ONLY list memories
+  // scoped to that project; when absent we EXCLUDE project-scoped memories so
+  // they can never leak into a general listing.
   const filter: Document = { userId };
   if (tier) {
     filter.tier = tier;
   }
   if (projectId) {
     filter.projectId = projectId;
+  } else {
+    filter.projectId = { $in: [null, undefined] };
   }
 
   return coll.find(filter).sort({ updatedAt: -1 }).limit(limit).toArray();
@@ -417,10 +430,15 @@ export async function clearMemories(params: {
   for (const t of tiers) {
     const coll = getCollection(t);
 
-    // All tiers are user-scoped for clearing — only scope by userId.
+    // All tiers are user-scoped for clearing — always scope by userId.
+    // Project isolation: when a projectId is provided we ONLY clear that
+    // project's memories; when absent we EXCLUDE project-scoped memories so
+    // clearing a general context never wipes project memories.
     const filter: Document = { userId };
     if (projectId) {
       filter.projectId = projectId;
+    } else {
+      filter.projectId = { $in: [null, undefined] };
     }
 
     const result = await coll.deleteMany(filter);
@@ -434,6 +452,24 @@ export async function clearMemories(params: {
 const EMBEDDING_MODEL = "text-embedding-3-small";
 
 /**
+ * Generate an embedding for an arbitrary query string (used for similarity
+ * search at recall time). Returns null if embedding fails so callers can
+ * fall back to text search.
+ */
+export async function embedQuery(text: string): Promise<number[] | null> {
+  try {
+    const { embedding } = await embed({
+      model: openai.embedding(EMBEDDING_MODEL),
+      value: text,
+    });
+    return embedding;
+  } catch {
+    // Embedding generation failed — caller will fall back to text search
+    return null;
+  }
+}
+
+/**
  * Generate an embedding for a single memory entry.
  * Uses label + content as the text to embed.
  */
@@ -444,17 +480,7 @@ async function generateEmbeddingForMemory(
     return entry.embedding; // already has one
   }
 
-  try {
-    const text = [entry.label, entry.content].filter(Boolean).join(" — ");
-    const { embedding } = await embed({
-      model: openai.embedding(EMBEDDING_MODEL),
-      value: text,
-    });
-    return embedding;
-  } catch {
-    // Embedding generation failed — will fall back to text search
-    return null;
-  }
+  return await embedQuery([entry.label, entry.content].filter(Boolean).join(" — "));
 }
 
 // ─── Backfill ──────────────────────────────────────────────────────────────

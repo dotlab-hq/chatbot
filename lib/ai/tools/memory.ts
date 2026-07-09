@@ -18,6 +18,7 @@ import { z } from "zod";
 import {
   clearMemories,
   deleteMemory,
+  embedQuery,
   listMemories,
   type MemoryTier,
   saveMemory,
@@ -119,19 +120,25 @@ export function createMemoryTools(params: {
       }),
       execute: async ({ tier, query, maxResults }) => {
         try {
+          // Embed the query once for similarity (vector) search. Falls back to
+          // text search inside searchMemories if embedding fails.
+          const embedding = await embedQuery(query);
+
           if (tier) {
             const results = await searchMemories({
               userId,
               chatId,
               tier: tier as MemoryTier,
               query,
+              embedding,
               maxResults,
               projectId,
             });
             return formatSearchResults(results, tier);
           }
 
-          // Search across all tiers
+          // Search across all tiers using similarity search, capped at 5 total
+          // results to conserve context.
           const allTiers: MemoryTier[] = [
             "semantic",
             "procedural",
@@ -146,7 +153,8 @@ export function createMemoryTools(params: {
                 chatId,
                 tier: t,
                 query,
-                maxResults: 3,
+                embedding,
+                maxResults: 5,
                 projectId,
               });
               return results.map((r) => ({ ...r, tier: t }));

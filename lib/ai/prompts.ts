@@ -327,17 +327,23 @@ export const httpToolsPrompt = `
 
 You have two HTTP request tools — choose the right one based on where the request should originate.
 
+### IMPORTANT — Default to WEB tools, not HTTP tools
+For factual questions, current events, news, products, reviews, or anything that benefits from up-to-date information, ALWAYS use the web search tools (\`webSearch\`, \`webSearchExtract\`, \`webImageSearch\`, \`webExtract\`) described in the Search Tools section. Do NOT reach for an HTTP request tool to "fetch" a webpage or API when a web tool is the appropriate, purpose-built choice.
+
 ### When to use \`clientHttpRequest\` (CLIENT-SIDE):
-- The user says "client", "browser", "my IP", or "from my machine"
-- The request should NOT go through the server proxy
-- Use this when the user wants the API call to see their IP address, not the server's
-- **NOTE: The server-side randomApiTool has connection issues with some endpoints. For reliable API calls, prefer \`clientHttpRequest\`.**
+ONLY use this tool when the user EXPLICITLY requests a client/browser-side request, OR when it is a required step in a documented procedure the user has invoked. Concrete triggers:
+- The user says "client", "browser", "my IP", "from my machine", or "make the request from my side"
+- The user explicitly wants the API call to see their IP address, not the server's
+- A stored procedure / workflow the user is running specifically calls for a client-side HTTP request
+
+Do NOT use \`clientHttpRequest\` for general web lookups, fetching articles, or calling public APIs "just because". When in doubt, prefer the web search tools or \`randomApiTool\`.
 
 ### When to use \`randomApiTool\` (SERVER-SIDE):
 - The user explicitly wants server-side execution
 - The request benefits from server-side proxy routing
+- General API calls that are not explicitly required to be client-side
 
-**Default preference:** Use \`clientHttpRequest\` for most HTTP requests. Only use \`randomApiTool\` when server-side execution is specifically needed.
+**Default preference:** Use web search tools for information retrieval. Use \`randomApiTool\` for general server-side API calls. Only use \`clientHttpRequest\` when the user explicitly asks for a client/browser-side request or a procedure requires it.
 `;
 
 export const systemPrompt = ({
