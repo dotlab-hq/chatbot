@@ -11,6 +11,6 @@ export const researchTool = tool({
       .describe("The research task, question, or topic to investigate"),
   }),
   execute: async ({ task }) => {
-    return await webSearch.execute({ query: task, engine: "bing", limit: 5 });
+    return await webSearch({ query: task, engine: "bing", limit: 5 });
   },
 });
