@@ -29,9 +29,7 @@ export async function PATCH(request: Request) {
     }
 
     const result = await betterAuthInstance.api.changePassword({
-      userId: session.user.id,
-      newPassword,
-      currentPassword,
+      body: { newPassword, currentPassword },
     });
 
     return NextResponse.json({ message: "Password updated successfully", ...result });

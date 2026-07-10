@@ -88,7 +88,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
   const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<
-    "account" | "projects" | "mcp"
+    "account" | "projects" | "mcp-servers"
   >("account");
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
   const [renameTarget, setRenameTarget] = useState<{

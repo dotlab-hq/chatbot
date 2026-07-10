@@ -41,7 +41,7 @@ export function McpAppsPage() {
           command: server.command,
           enabled: server.enabled,
           appToolCount: 0, // Would need to fetch actual app tool count
-          lastConnectedAt: server.lastConnectedAt,
+          lastConnectedAt: server.lastConnectedAt ? new Date(server.lastConnectedAt).toLocaleString() : null,
         }));
 
         setServers(apps);

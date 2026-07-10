@@ -658,7 +658,7 @@ const PurePreviewMessage = ({
     if (isMCPAppPart(part)) {
       const appMeta = getMCPAppMetadata(part);
       if (appMeta) {
-        const { state } = part;
+        const { state } = part as { state?: string };
         const widthClass = "w-[min(100%,650px)]";
 
         if (state === "output-available") {

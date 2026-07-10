@@ -3,6 +3,7 @@
 import {
   BrainIcon,
   CheckIcon,
+  ClockIcon,
   FileIcon,
   FolderIcon,
   GlobeIcon,
@@ -41,6 +42,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,

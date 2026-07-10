@@ -4,6 +4,12 @@ import { useEffect, useRef, useState } from "react";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
+export type MCPAppMetadata = {
+  resourceUri: string;
+  serverId: string;
+  mimeType?: string;
+};
+
 type MCPAppResource = {
   uri: string;
   mimeType: string;
@@ -29,11 +35,7 @@ type MCPAppBridgeHandlers = {
 
 type MCPAppRendererProps = {
   toolCallId: string;
-  metadata: {
-    resourceUri: string;
-    serverId: string;
-    mimeType?: string;
-  };
+  metadata: MCPAppMetadata;
   input?: Record<string, unknown>;
   output?: unknown;
   sandbox?: {
@@ -260,7 +262,8 @@ export function isMCPAppPart(part: {
   providerMetadata?: Record<string, unknown>;
 }): boolean {
   const mcpMeta = part.providerMetadata?.mcp as Record<string, unknown> | undefined;
-  return Boolean(mcpMeta?.app?.resourceUri);
+  const appMeta = mcpMeta?.app as Record<string, unknown> | undefined;
+  return Boolean(appMeta?.resourceUri);
 }
 
 export function getMCPAppMetadata(part: {
@@ -274,7 +277,8 @@ export function getMCPAppMetadata(part: {
 
   return {
     resourceUri: appMeta.resourceUri as string,
-    mimeType: appMeta.mimeType as string,
+    serverId: appMeta.serverId as string,
+    mimeType: appMeta.mimeType as string | undefined,
     ...appMeta,
   } as MCPAppMetadata;
 }
