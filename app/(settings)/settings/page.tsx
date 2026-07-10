@@ -6,6 +6,7 @@ import {
   FileIcon,
   FolderIcon,
   GlobeIcon,
+  KeyIcon,
   LinkIcon,
   LoaderIcon,
   LogOutIcon,
@@ -24,6 +25,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { McpAppsPage } from "@/app/(settings)/mcp-apps-page";
 import { GeneralTab } from "@/components/chat/general-tab";
 import { PersonalizationTab } from "@/components/chat/personalize-tab";
 import { SkillsTab } from "@/components/chat/skills-tab";
@@ -48,16 +50,25 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { authClient, useSession } from "@/lib/auth-client";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 type TabId =
   | "account"
+  | "security"
   | "projects"
-  | "mcp"
+  | "mcp-servers"
+  | "mcp-apps"
   | "skills"
   | "general"
   | "personalize";
@@ -98,6 +109,7 @@ type McpServer = {
   url: string | null;
   command: string | null;
   args: string[] | null;
+  headers: Record<string, string> | null;
   enabled: boolean;
   lastConnectedAt: string | null;
   createdAt: string;
@@ -107,8 +119,10 @@ type McpServer = {
 
 const tabs: { id: TabId; label: string; icon: typeof UserIcon | null }[] = [
   { id: "account", label: "Account", icon: UserIcon },
+  { id: "security", label: "Security", icon: KeyIcon },
   { id: "projects", label: "Projects", icon: FolderIcon },
-  { id: "mcp", label: "MCP Servers", icon: ServerIcon },
+  { id: "mcp-servers", label: "MCP Servers", icon: ServerIcon },
+  { id: "mcp-apps", label: "MCP Apps", icon: ServerIcon },
   { id: "skills", label: "Skills", icon: BrainIcon },
   { id: "general", label: "General", icon: SettingsIcon },
   { id: "personalize", label: "Personalization", icon: UserRoundPenIcon },
@@ -166,8 +180,10 @@ export default function SettingsPage() {
 
       {/* Tab Content */}
       {activeTab === "account" && <AccountTab />}
+      {activeTab === "security" && <SecurityTab />}
       {activeTab === "projects" && <ProjectsTab />}
-      {activeTab === "mcp" && <McpTab />}
+      {activeTab === "mcp-servers" && <McpTab />}
+      {activeTab === "mcp-apps" && <McpAppsTab />}
       {activeTab === "skills" && <SkillsTab />}
       {activeTab === "general" && <GeneralTab />}
       {activeTab === "personalize" && <PersonalizationTab />}
@@ -327,6 +343,189 @@ function AccountTab() {
           </Button>
         </div>
       </section>
+    </div>
+  );
+}
+
+// ─── Security Tab ────────────────────────────────────────────────────────────
+
+function SecurityTab() {
+  const router = useRouter();
+  const session = useSession();
+  const user = session?.data?.user;
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [updatingPassword, setUpdatingPassword] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const handlePasswordUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (newPassword !== confirmPassword) {
+      toast.error("New passwords don't match");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      toast.error("Password must be at least 8 characters");
+      return;
+    }
+
+    setUpdatingPassword(true);
+
+    try {
+      const response = await fetch("/api/user/password", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to update password");
+      }
+
+      toast.success("Password updated successfully");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch {
+      toast.error("Failed to update password");
+    } finally {
+      setUpdatingPassword(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    try {
+      const response = await fetch("/api/user/account", {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete account");
+      }
+
+      toast.success("Account deleted. Redirecting...");
+      authClient.signOut({
+        fetchOptions: {
+          onSuccess: () => {
+            router.push("/login");
+          },
+        },
+      });
+      setShowDeleteDialog(false);
+    } catch {
+      toast.error("Failed to delete account");
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Update Password */}
+      <section className="rounded-xl border border-border/50 bg-card p-6">
+        <h2 className="mb-4 text-sm font-medium text-muted-foreground">
+          Update Password
+        </h2>
+        <form className="space-y-4" onSubmit={handlePasswordUpdate}>
+          <div className="space-y-2">
+            <label className="text-sm font-medium" htmlFor="current-password">
+              Current Password
+            </label>
+            <Input
+              id="current-password"
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="Enter your current password"
+              type="password"
+              value={currentPassword}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium" htmlFor="new-password">
+              New Password
+            </label>
+            <Input
+              id="new-password"
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Enter new password"
+              type="password"
+              value={newPassword}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium" htmlFor="confirm-password">
+              Confirm New Password
+            </label>
+            <Input
+              id="confirm-password"
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Confirm new password"
+              type="password"
+              value={confirmPassword}
+            />
+          </div>
+          <div className="flex justify-end">
+            <Button disabled={updatingPassword} type="submit">
+              {updatingPassword ? (
+                <LoaderIcon className="size-4 animate-spin" />
+              ) : (
+                <CheckIcon className="size-4" />
+              )}
+              Update Password
+            </Button>
+          </div>
+        </form>
+      </section>
+
+      {/* Danger Zone */}
+      <section className="rounded-xl border border-destructive/50 bg-card p-6">
+        <h2 className="mb-4 text-sm font-medium text-destructive">Danger Zone</h2>
+        <div className="flex items-start gap-4">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-destructive/10">
+            <TrashIcon className="size-5 text-destructive" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-medium">Delete Account</h3>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Permanently delete your account and all associated data. This cannot be undone.
+            </p>
+          </div>
+          <Button
+            className="shrink-0 gap-1.5"
+            onClick={() => setShowDeleteDialog(true)}
+            size="sm"
+            variant="destructive"
+          >
+            <TrashIcon className="size-3.5" />
+            Delete Account
+          </Button>
+        </div>
+      </section>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Account</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete your account? This action cannot be undone. Your chats, projects, and all associated data will be permanently removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleDeleteAccount}
+            >
+              Delete Account
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -863,6 +1062,7 @@ function McpTab() {
   const [formUrl, setFormUrl] = useState("");
   const [formCommand, setFormCommand] = useState("");
   const [formArgs, setFormArgs] = useState("");
+  const [formHeaders, setFormHeaders] = useState("");
 
   const loadServers = useCallback(async () => {
     try {
@@ -889,6 +1089,7 @@ function McpTab() {
     setFormUrl("");
     setFormCommand("");
     setFormArgs("");
+    setFormHeaders("");
   };
 
   const openCreate = () => {
@@ -905,6 +1106,13 @@ function McpTab() {
     setFormUrl(server.url ?? "");
     setFormCommand(server.command ?? "");
     setFormArgs(server.args?.join(" ") ?? "");
+    setFormHeaders(
+      server.headers
+        ? Object.entries(server.headers)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join("\n")
+        : ""
+    );
     setShowCreate(true);
   };
 
@@ -923,6 +1131,19 @@ function McpTab() {
         url: formUrl.trim() || undefined,
         command: formCommand.trim() || undefined,
         args: formArgs.trim() ? formArgs.trim().split(/\s+/) : undefined,
+        headers: formHeaders.trim()
+          ? formHeaders
+              .split("\n")
+              .filter((line) => line.includes(":"))
+              .reduce(
+                (acc, line) => {
+                  const [key, ...values] = line.split(":");
+                  acc[key.trim()] = values.join(":").trim();
+                  return acc;
+                },
+                {} as Record<string, string>
+              )
+          : undefined,
       };
 
       const url = editingServer
@@ -1162,20 +1383,23 @@ function McpTab() {
               <label className="text-sm font-medium" htmlFor="mcp-transport">
                 Transport
               </label>
-              <select
-                className="h-9 w-full min-w-0 rounded-4xl border border-input bg-input/30 px-3 py-1 text-base outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm"
-                id="mcp-transport"
-                onChange={(e) =>
-                  setFormTransport(
-                    e.target.value as "stdio" | "sse" | "streamable-http"
-                  )
+              <Select
+                onValueChange={(value: "stdio" | "sse" | "streamable-http") =>
+                  setFormTransport(value)
                 }
                 value={formTransport}
               >
-                <option value="sse">SSE (Server-Sent Events)</option>
-                <option value="streamable-http">Streamable HTTP</option>
-                <option value="stdio">Stdio (Local Process)</option>
-              </select>
+                <SelectTrigger id="mcp-transport">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sse">SSE (Server-Sent Events)</SelectItem>
+                  <SelectItem value="streamable-http">
+                    Streamable HTTP
+                  </SelectItem>
+                  <SelectItem value="stdio">Stdio (Local Process)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {formTransport === "stdio" ? (
@@ -1221,6 +1445,24 @@ function McpTab() {
                   }
                   value={formUrl}
                 />
+              </div>
+            )}
+            {formTransport !== "stdio" && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium" htmlFor="mcp-headers">
+                  Headers{" "}
+                  <span className="text-muted-foreground">(optional)</span>
+                </label>
+                <Textarea
+                  id="mcp-headers"
+                  onChange={(e) => setFormHeaders(e.target.value)}
+                  placeholder={"Authorization: Bearer token\nX-Custom: value"}
+                  rows={3}
+                  value={formHeaders}
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  One header per line, format: Key: Value
+                </p>
               </div>
             )}
 
@@ -1314,5 +1556,141 @@ function TransportBadge({ transport }: { transport: McpServer["transport"] }) {
     <Badge className="text-[10px]" variant="secondary">
       {labels[transport] ?? transport}
     </Badge>
+  );
+}
+
+// ─── MCP Apps Tab ──────────────────────────────────────────────────────────
+
+function McpAppsTab() {
+  const [servers, setServers] = useState<McpServer[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadServers = async () => {
+      try {
+        const response = await fetch("/api/mcp-servers");
+        if (response.ok) {
+          const data = (await response.json()) as { servers: McpServer[] };
+          setServers(data.servers);
+        }
+      } catch {
+        // silent
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadServers();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <LoaderIcon className="size-5 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h2 className="text-xl font-semibold tracking-tight">MCP Apps</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          View and manage Model Context Protocol server apps that provide interactive UI components.
+        </p>
+      </div>
+
+      <Tabs defaultValue="apps" className="w-full">
+        <TabsList>
+          <TabsTrigger value="apps">Apps List</TabsTrigger>
+          <TabsTrigger value="info">About MCP Apps</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="apps" className="mt-6">
+          {servers.length === 0 ? (
+            <Card className="border-dashed">
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <ServerIcon className="mb-3 size-8 text-muted-foreground/50" />
+                <p className="text-sm font-medium text-muted-foreground">
+                  No MCP apps configured
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground/60">
+                  Configure MCP servers to extend the chatbot with interactive apps.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {servers.map((app) => (
+                <Card key={app.name} className="hover:bg-muted/50 transition-colors">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base font-medium truncate max-w-[160px]">{app.name}</CardTitle>
+                      <Badge variant="outline" className="text-[10px] h-5">
+                        {app.transport.toUpperCase()}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2 text-xs text-muted-foreground">
+                      {app.transport === "stdio" ? (
+                        <div className="flex items-center gap-1">
+                          <TerminalIcon className="size-3" />
+                          <span className="font-mono truncate max-w-[180px]">{app.command}</span>
+                        </div>
+                      ) : app.url && (
+                        <div className="flex items-center gap-1">
+                          <GlobeIcon className="size-3" />
+                          <span className="truncate max-w-[180px]">{app.url}</span>
+                        </div>
+                      )}
+
+                      {app.lastConnectedAt && (
+                        <div className="flex items-center gap-1">
+                          <ClockIcon className="size-3" />
+                          <span>Last connected {new Date(app.lastConnectedAt).toLocaleDateString()}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="mt-3 flex items-center justify-between">
+                      <Badge variant={app.enabled ? "default" : "secondary"} className="text-[10px] h-4">
+                        {app.enabled ? "Enabled" : "Disabled"}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {app.enabled ? "Active" : "Inactive"}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="info" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>About MCP Apps</CardTitle>
+            </CardHeader>
+            <CardContent className="prose prose-sm text-sm space-y-3">
+              <p>
+                MCP Apps extend Model Context Protocol tools with interactive UI resources. When a tool has <code>_meta.ui.resourceUri</code>, the model calls it and you can render its <code>ui://</code> HTML in a sandboxed iframe.
+              </p>
+              <h4>Key Features:</h4>
+              <ul className="list-disc pl-5 space-y-1">
+                <li><strong>Split Tool Visibility:</strong> Tools marked with <code>visibility: ["model", "app"]</code> can be shown to the model while interactive UIs stay separate</li>
+                <li><strong>Sandboxed Rendering:</strong> MCP App resources are rendered in iframes with proper security policies</li>
+                <li><strong>Host Bridge:</strong> Your app acts as a bridge between the model and interactive UI components</li>
+                <li><strong>Tool Bridging:</strong> Model-initiated tool calls to app-visible tools are proxied back to the original MCP server</li>
+              </ul>
+              <p>
+                This enables complex interactive interfaces (dashboards, forms, charts) while keeping the LLM focused on tool calls rather than UI rendering.
+              </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }

@@ -527,6 +527,7 @@ export const mcpServer = chatbot.table(
     command: text("command"),
     args: json("args").$type<string[]>(),
     env: json("env").$type<Record<string, string>>(),
+    headers: json("headers").$type<Record<string, string>>(),
     userId: text("userId")
       .notNull()
       .references(() => user.id),

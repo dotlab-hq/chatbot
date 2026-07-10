@@ -67,7 +67,7 @@ export async function POST(request: Request) {
   return Response.json({ server }, { status: 201 });
 }
 
-export async function PUT(request: Request) {
+export async function PATCH(request: Request) {
   const session = await auth();
   if (!session?.user) {
     return new ChatbotError("unauthorized:chat").toResponse();

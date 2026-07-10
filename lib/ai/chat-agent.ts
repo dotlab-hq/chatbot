@@ -9,25 +9,27 @@ import type { Session } from "@/app/(auth)/auth";
 import { chatModels, getCapabilities } from "@/lib/ai/models";
 import { createParallelTool } from "@/lib/ai/parallel-executioner";
 import { getLanguageModel } from "@/lib/ai/providers";
-import { calculator } from "@/lib/ai/tools/calculator";
-import { clientHttpRequest } from "@/lib/ai/tools/client-http-request";
-import { createDocument } from "@/lib/ai/tools/create-document";
-import { currencyConverter } from "@/lib/ai/tools/currency-converter";
-import { editDocument } from "@/lib/ai/tools/edit-document";
-import { getWeather } from "@/lib/ai/tools/get-weather";
-import { localTime } from "@/lib/ai/tools/local-time";
-import { createMemoryTools } from "@/lib/ai/tools/memory";
-import { playVideo } from "@/lib/ai/tools/play-video";
-import { randomApiTool } from "@/lib/ai/tools/random-api";
-import { readArtifact } from "@/lib/ai/tools/read-artifact";
-import { renderCards } from "@/lib/ai/tools/render-cards";
-import { requestSuggestions } from "@/lib/ai/tools/request-suggestions";
-import { researchTool } from "@/lib/ai/tools/research";
-import { timer } from "@/lib/ai/tools/timer";
-import { createTodoTool } from "@/lib/ai/tools/todo-list";
-import { unitConverter } from "@/lib/ai/tools/unit-converter";
-import { updateDocument } from "@/lib/ai/tools/update-document";
-import { verifyContent } from "@/lib/ai/tools/verify";
+import {
+  calculator,
+  clientHttpRequest,
+  createDocument,
+  currencyConverter,
+  editDocument,
+  getWeather,
+  localTime,
+  createMemoryTools,
+  playVideo,
+  randomApiTool,
+  readArtifact,
+  renderCards,
+  requestSuggestions,
+  researchTool,
+  timer,
+  createTodoTool,
+  unitConverter,
+  updateDocument,
+  verifyContent,
+} from "@/lib/ai/tools";
 import {
   rankTracker,
   webExtract,
@@ -42,7 +44,8 @@ import {
 } from "@/lib/ai/vector-store";
 import { isProductionEnvironment } from "@/lib/constants";
 import { getMcpServersByUserId } from "@/lib/db/queries";
-import { connectToMcpServer, getToolSets } from "@/lib/mcp/client";
+import { connectToMcpServer, getToolSets, getClient } from "@/lib/mcp/client";
+import { splitMCPAppTools, type MCPAppResource } from "@ai-sdk/mcp";
 import type { ChatMessage } from "@/lib/types";
 import type { ToolPlan } from "./tool-planner";
 
@@ -255,12 +258,38 @@ export async function createChatAgent(params: CreateChatAgentParams) {
   const mcpServers = await getMcpServersByUserId({ userId });
   const enabledServers = mcpServers.filter((s) => s.enabled);
   await Promise.all(enabledServers.map((s) => connectToMcpServer(s)));
-  const mcpTools = getToolSets();
+
   const mcpToolNames: string[] = [];
-  for (const [toolName, toolDef] of Object.entries(mcpTools)) {
-    tools[toolName] = toolDef;
-    activeTools.push(toolName);
-    mcpToolNames.push(toolName);
+  const mcpAppToolNames: string[] = [];
+
+  for (const server of enabledServers) {
+    const client = getClient(server.id);
+    if (!client) continue;
+
+    try {
+      // List tools and split by visibility
+      const definitions = await client.listTools();
+      const { modelVisible, appVisible } = splitMCPAppTools(definitions);
+
+      // Add model-visible tools
+      const modelTools = client.toolsFromDefinitions(modelVisible);
+      for (const [toolName, toolDef] of Object.entries(modelTools)) {
+        tools[toolName] = toolDef;
+        activeTools.push(toolName);
+        mcpToolNames.push(toolName);
+      }
+
+      // Also add app-visible tools to the tools set (they still need to
+      // execute on the server; the UI decides whether to render an iframe)
+      const appTools = client.toolsFromDefinitions(appVisible);
+      for (const [toolName, toolDef] of Object.entries(appTools)) {
+        tools[toolName] = toolDef;
+        activeTools.push(toolName);
+        mcpAppToolNames.push(toolName);
+      }
+    } catch (error) {
+      console.error(`[MCP] Error processing server ${server.name}:`, error);
+    }
   }
 
   // ── Provider skill references (providerOptions) ───────────────────────
@@ -360,5 +389,5 @@ export async function createChatAgent(params: CreateChatAgentParams) {
     },
   });
 
-  return { agent, activeTools: plannedActiveTools, mcpToolNames };
+  return { agent, activeTools: plannedActiveTools, mcpToolNames, mcpAppToolNames };
 }

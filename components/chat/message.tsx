@@ -43,6 +43,11 @@ import { Timer } from "@/components/chat/timer";
 import { UnitConverter } from "@/components/chat/unit-converter";
 import { VideoInline } from "@/components/chat/video-inline";
 import { Weather } from "@/components/chat/weather";
+import {
+  MCPAppRenderer,
+  isMCPAppPart,
+  getMCPAppMetadata,
+} from "@/components/chat/mcp-app-renderer";
 import { ShimmeringText } from "@/components/ui/shimmering-text";
 import type { Vote } from "@/lib/db/schema";
 import type { ChatMessage } from "@/lib/types";
@@ -647,6 +652,65 @@ const PurePreviewMessage = ({
           </ToolContent>
         </Tool>
       );
+    }
+
+    // Check for MCP App tools and render them in iframe
+    if (isMCPAppPart(part)) {
+      const appMeta = getMCPAppMetadata(part);
+      if (appMeta) {
+        const { state } = part;
+        const widthClass = "w-[min(100%,650px)]";
+
+        if (state === "output-available") {
+          return (
+            <div className={widthClass} key={key}>
+              <Tool className="w-full" defaultOpen={true}>
+                <ToolHeader state={state} type={type} />
+                <ToolContent>
+                  <MCPAppRenderer
+                    toolCallId={part.toolCallId}
+                    metadata={appMeta}
+                    input={part.input}
+                    output={part.output}
+                    handlers={{
+                      callTool: async (params) => {
+                        const response = await fetch("/api/mcp-app-host/tool", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            name: params.name,
+                            arguments: params.arguments,
+                            serverId: appMeta.serverId,
+                          }),
+                        });
+                        if (!response.ok) {
+                          throw new Error("Tool call failed");
+                        }
+                        return response.json();
+                      },
+                    }}
+                  />
+                </ToolContent>
+              </Tool>
+            </div>
+          );
+        }
+
+        // Show loading state for MCP App tools
+        return (
+          <div className={widthClass} key={key}>
+            <Tool className="w-full" defaultOpen={true}>
+              <ToolHeader state={state} type={type} />
+              <ToolContent>
+                <ToolInput input={part.input} />
+                <div className="px-4 py-3 text-muted-foreground text-sm">
+                  Loading MCP App...
+                </div>
+              </ToolContent>
+            </Tool>
+          </div>
+        );
+      }
     }
 
     // Hide tools that don't have a custom UI component — only tools

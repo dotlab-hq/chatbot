@@ -1,4 +1,9 @@
-import { createMCPClient, type MCPClient } from "@ai-sdk/mcp";
+import {
+  createMCPClient,
+  mcpAppClientCapabilities,
+  type MCPClient,
+  type ClientCapabilities,
+} from "@ai-sdk/mcp";
 import { Experimental_StdioMCPTransport } from "@ai-sdk/mcp/mcp-stdio";
 import type { ToolSet } from "ai";
 import type { McpServer } from "@/lib/db/schema";
@@ -22,11 +27,16 @@ export async function connectToMcpServer(server: McpServer) {
   try {
     const transport = buildTransport(server);
 
+    // Extract headers from server configuration and apply them to the MCP client
+    const mcpHeaders: Record<string, string> = server.headers || {};
+
     const client = await createMCPClient({
       transport,
       maxRetries: 2,
       clientName: "chatbot",
       version: "1.0.0",
+      headers: mcpHeaders,
+      capabilities: mcpAppClientCapabilities,
     });
 
     const tools = await client.tools();
@@ -63,6 +73,14 @@ export function getToolSets(): ToolSet {
   return merged;
 }
 
+export function getClient(serverId: string): MCPClient | undefined {
+  return clients.get(serverId);
+}
+
+export function getAllClients(): Map<string, MCPClient> {
+  return clients;
+}
+
 // ─── Transport Builder ──────────────────────────────────────────────────────────
 
 function buildTransport(server: McpServer) {
@@ -75,18 +93,19 @@ function buildTransport(server: McpServer) {
         command: server.command,
         args: server.args ?? [],
         env: server.env ?? undefined,
+        headers: server.headers ?? undefined,
       });
     }
     case "sse":
       if (!server.url) {
         throw new Error("SSE transport requires a URL");
       }
-      return { type: "sse" as const, url: server.url };
+      return { type: "sse" as const, url: server.url, headers: server.headers };
     case "streamable-http":
       if (!server.url) {
         throw new Error("Streamable HTTP transport requires a URL");
       }
-      return { type: "http" as const, url: server.url };
+      return { type: "http" as const, url: server.url, headers: server.headers };
     default:
       throw new Error(`Unsupported transport: ${server.transport}`);
   }

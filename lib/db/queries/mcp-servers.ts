@@ -11,6 +11,7 @@ export async function createMcpServer({
   command,
   args,
   env,
+  headers,
   userId,
 }: {
   name: string;
@@ -20,12 +21,13 @@ export async function createMcpServer({
   command?: string;
   args?: string[];
   env?: Record<string, string>;
+  headers?: Record<string, string>;
   userId: string;
 }): Promise<McpServer> {
   try {
     const [created] = await db
       .insert(mcpServer)
-      .values({ name, description, transport, url, command, args, env, userId })
+      .values({ name, description, transport, url, command, args, env, headers, userId })
       .returning();
     return created;
   } catch (_error) {
@@ -80,6 +82,7 @@ export async function updateMcpServer({
   command,
   args,
   env,
+  headers,
   enabled,
 }: {
   id: string;
@@ -90,6 +93,7 @@ export async function updateMcpServer({
   command?: string;
   args?: string[];
   env?: Record<string, string>;
+  headers?: Record<string, string>;
   enabled?: boolean;
 }): Promise<McpServer | null> {
   try {
@@ -114,6 +118,9 @@ export async function updateMcpServer({
     }
     if (env !== undefined) {
       updates.env = env;
+    }
+    if (headers !== undefined) {
+      updates.headers = headers;
     }
     if (enabled !== undefined) {
       updates.enabled = enabled;

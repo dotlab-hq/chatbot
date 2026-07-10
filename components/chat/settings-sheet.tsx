@@ -54,12 +54,26 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import {
   Sidebar,
   SidebarContent,
@@ -70,7 +84,6 @@ import {
   SidebarMenuItem,
   SidebarProvider,
 } from "@/components/ui/sidebar";
-import { Textarea } from "@/components/ui/textarea";
 import { authClient, useSession } from "@/lib/auth-client";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -78,7 +91,8 @@ import { authClient, useSession } from "@/lib/auth-client";
 type TabId =
   | "account"
   | "projects"
-  | "mcp"
+  | "mcp-servers"
+  | "mcp-apps"
   | "skills"
   | "general"
   | "personalize";
@@ -113,6 +127,7 @@ type McpServer = {
   url: string | null;
   command: string | null;
   args: string[] | null;
+  headers: Record<string, string> | null;
   enabled: boolean;
   lastConnectedAt: string | null;
   createdAt: string;
@@ -121,7 +136,8 @@ type McpServer = {
 const navItems: { id: TabId; label: string; icon: typeof User | null }[] = [
   { id: "account", label: "Account", icon: User },
   { id: "projects", label: "Projects", icon: FolderIcon },
-  { id: "mcp", label: "MCP Servers", icon: Server },
+  { id: "mcp-servers", label: "MCP Servers", icon: Server },
+  { id: "mcp-apps", label: "MCP Apps", icon: Server },
   { id: "skills", label: "Skills", icon: LightbulbIcon },
   { id: "general", label: "General", icon: SettingsIcon },
   { id: "personalize", label: "Personalization", icon: UserRoundPenIcon },
@@ -265,7 +281,8 @@ function InnerSettings({
         <div className="flex flex-1 flex-col gap-2 overflow-y-auto p-3 md:p-4">
           {activeTab === "account" && <AccountTab />}
           {activeTab === "projects" && <ProjectsTab />}
-          {activeTab === "mcp" && <McpTab />}
+          {activeTab === "mcp-servers" && <McpTab />}
+          {activeTab === "mcp-apps" && <McpAppsTab />}
           {activeTab === "skills" && <SkillsTab />}
           {activeTab === "general" && <GeneralTab />}
           {activeTab === "personalize" && <PersonalizationTab />}
@@ -1037,6 +1054,7 @@ function McpTab() {
   const [formUrl, setFormUrl] = useState("");
   const [formCommand, setFormCommand] = useState("");
   const [formArgs, setFormArgs] = useState("");
+  const [formHeaders, setFormHeaders] = useState("");
 
   const loadServers = useCallback(async () => {
     try {
@@ -1063,6 +1081,7 @@ function McpTab() {
     setFormUrl("");
     setFormCommand("");
     setFormArgs("");
+    setFormHeaders("");
   };
   const openCreate = () => {
     resetForm();
@@ -1077,6 +1096,13 @@ function McpTab() {
     setFormUrl(server.url ?? "");
     setFormCommand(server.command ?? "");
     setFormArgs(server.args?.join(" ") ?? "");
+    setFormHeaders(
+      server.headers
+        ? Object.entries(server.headers)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join("\n")
+        : ""
+    );
     setShowCreate(true);
   };
 
@@ -1094,6 +1120,16 @@ function McpTab() {
         url: formUrl.trim() || undefined,
         command: formCommand.trim() || undefined,
         args: formArgs.trim() ? formArgs.trim().split(/\s+/) : undefined,
+        headers: formHeaders.trim()
+          ? formHeaders
+              .split(/^\s*$/gm)
+              .filter((line) => line.includes(":"))
+              .reduce((acc, line) => {
+                const [key, ...values] = line.split(":");
+                acc[key.trim()] = values.join(":").trim();
+                return acc;
+              }, {} as Record<string, string>)
+          : undefined,
       };
       const url = editingServer
         ? `/api/mcp-servers?id=${editingServer.id}`
@@ -1320,20 +1356,23 @@ function McpTab() {
               <label className="text-sm font-medium" htmlFor="mcp-transport">
                 Transport
               </label>
-              <select
-                className="h-9 w-full min-w-0 rounded-4xl border border-input bg-input/30 px-3 py-1 text-base outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm"
-                id="mcp-transport"
-                onChange={(e) =>
-                  setFormTransport(
-                    e.target.value as "stdio" | "sse" | "streamable-http"
-                  )
+              <Select
+                onValueChange={(value: "stdio" | "sse" | "streamable-http") =>
+                  setFormTransport(value)
                 }
                 value={formTransport}
               >
-                <option value="sse">SSE (Server-Sent Events)</option>
-                <option value="streamable-http">Streamable HTTP</option>
-                <option value="stdio">Stdio (Local Process)</option>
-              </select>
+                <SelectTrigger id="mcp-transport">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sse">SSE (Server-Sent Events)</SelectItem>
+                  <SelectItem value="streamable-http">
+                    Streamable HTTP
+                  </SelectItem>
+                  <SelectItem value="stdio">Stdio (Local Process)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             {formTransport === "stdio" ? (
               <>
@@ -1378,6 +1417,24 @@ function McpTab() {
                   }
                   value={formUrl}
                 />
+              </div>
+            )}
+            {formTransport !== "stdio" && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium" htmlFor="mcp-headers">
+                  Headers{" "}
+                  <span className="text-muted-foreground">(optional)</span>
+                </label>
+                <Textarea
+                  id="mcp-headers"
+                  onChange={(e) => setFormHeaders(e.target.value)}
+                  placeholder={"Authorization: Bearer token\nX-Custom: value"}
+                  rows={3}
+                  value={formHeaders}
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  One header per line, format: Key: Value
+                </p>
               </div>
             )}
             <CreateDialogFooter>
@@ -1470,5 +1527,114 @@ function TransportBadge({ transport }: { transport: McpServer["transport"] }) {
     <Badge className="text-[10px] h-4" variant="secondary">
       {labels[transport] ?? transport}
     </Badge>
+  );
+}
+
+// ─── MCP Apps Tab ──────────────────────────────────────────────────────────
+
+function McpAppsTab() {
+  const [servers, setServers] = useState<McpServer[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadServers = async () => {
+      try {
+        const response = await fetch("/api/mcp-servers");
+        if (response.ok) {
+          const data = (await response.json()) as { servers: McpServer[] };
+          setServers(data.servers);
+        }
+      } catch {
+        // silent
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadServers();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <LoaderIcon className="size-5 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h2 className="text-xl font-semibold tracking-tight">MCP Apps</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          View and manage Model Context Protocol server apps that provide interactive UI components.
+        </p>
+      </div>
+
+      <Tabs defaultValue="apps" className="w-full">
+        <TabsList>
+          <TabsTrigger value="apps">Apps List</TabsTrigger>
+          <TabsTrigger value="info">About MCP Apps</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="apps" className="mt-6">
+          {servers.length === 0 ? (
+            <div className="rounded-xl border border-border/50 bg-card p-8 text-center">
+              <Server className="mx-auto mb-3 size-8 text-muted-foreground/50" />
+              <p className="text-sm font-medium text-muted-foreground">
+                No MCP apps configured
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground/60">
+                Configure MCP servers to extend the chatbot with interactive apps.
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {servers.map((app) => (
+                <div key={app.name} className="rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/50">
+                  <div className="flex items-start justify-between">
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-medium truncate">{app.name}</h3>
+                      <div className="mt-1 flex items-center gap-2">
+                        <Badge variant="outline" className="text-[10px] h-4">
+                          {app.transport.toUpperCase()}
+                        </Badge>
+                        <Badge variant={app.enabled ? "default" : "secondary"} className="text-[10px] h-4">
+                          {app.enabled ? "Active" : "Inactive"}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                  {app.lastConnectedAt && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Last connected: {new Date(app.lastConnectedAt).toLocaleDateString()}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="info" className="mt-6">
+          <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+            <h3 className="text-lg font-medium">About MCP Apps</h3>
+            <p className="text-sm text-muted-foreground">
+              MCP Apps extend Model Context Protocol tools with interactive UI resources. When a tool has <code>_meta.ui.resourceUri</code>, the model calls it and you can render its <code>ui://</code> HTML in a sandboxed iframe.
+            </p>
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium">Key Features:</h4>
+              <ul className="text-sm text-muted-foreground space-y-1 list-disc pl-5">
+                <li><strong>Split Tool Visibility:</strong> Tools marked with <code>visibility: [&quot;model&quot;, &quot;app&quot;]</code> can be shown to the model while interactive UIs stay separate</li>
+                <li><strong>Sandboxed Rendering:</strong> MCP App resources are rendered in iframes with proper security policies</li>
+                <li><strong>Host Bridge:</strong> Your app acts as a bridge between the model and interactive UI components</li>
+                <li><strong>Tool Bridging:</strong> Model-initiated tool calls to app-visible tools are proxied back to the original MCP server</li>
+              </ul>
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }

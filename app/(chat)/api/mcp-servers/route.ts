@@ -24,14 +24,16 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { name, description, transport, url, command, args } = body as {
-    name: string;
-    description?: string;
-    transport: "stdio" | "sse" | "streamable-http";
-    url?: string;
-    command?: string;
-    args?: string[];
-  };
+  const { name, description, transport, url, command, args, headers } =
+    body as {
+      name: string;
+      description?: string;
+      transport: "stdio" | "sse" | "streamable-http";
+      url?: string;
+      command?: string;
+      args?: string[];
+      headers?: Record<string, string>;
+    };
 
   if (!name?.trim()) {
     return new ChatbotError(
@@ -62,6 +64,7 @@ export async function POST(request: Request) {
     url: url?.trim(),
     command: command?.trim(),
     args,
+    headers,
   });
 
   return Response.json({ server }, { status: 201 });
@@ -74,7 +77,7 @@ export async function PATCH(request: Request) {
   }
 
   const body = await request.json();
-  const { id, enabled, name, transport, url, command, args } = body as {
+  const { id, enabled, name, transport, url, command, args, headers } = body as {
     id: string;
     enabled?: boolean;
     name?: string;
@@ -82,6 +85,7 @@ export async function PATCH(request: Request) {
     url?: string;
     command?: string;
     args?: string[];
+    headers?: Record<string, string>;
   };
 
   if (!id) {
@@ -99,6 +103,7 @@ export async function PATCH(request: Request) {
     url,
     command,
     args,
+    headers,
   });
 
   return Response.json({ server: updated });
