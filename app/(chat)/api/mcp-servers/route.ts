@@ -77,16 +77,17 @@ export async function PATCH(request: Request) {
   }
 
   const body = await request.json();
-  const { id, enabled, name, transport, url, command, args, headers } = body as {
-    id: string;
-    enabled?: boolean;
-    name?: string;
-    transport?: "stdio" | "sse" | "streamable-http";
-    url?: string;
-    command?: string;
-    args?: string[];
-    headers?: Record<string, string>;
-  };
+  const { id, enabled, name, transport, url, command, args, headers } =
+    body as {
+      id: string;
+      enabled?: boolean;
+      name?: string;
+      transport?: "stdio" | "sse" | "streamable-http";
+      url?: string;
+      command?: string;
+      args?: string[];
+      headers?: Record<string, string>;
+    };
 
   if (!id) {
     return new ChatbotError(

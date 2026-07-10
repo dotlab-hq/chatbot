@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { auth } from "@/app/(auth)/auth";
 import { db } from "@/lib/db";
-import { user, session, ssoProvider, personalization } from "@/lib/db/schema";
+import { personalization, session, ssoProvider, user } from "@/lib/db/schema";
 
 export async function DELETE() {
   try {
@@ -25,7 +25,7 @@ export async function DELETE() {
     console.error("Failed to delete account:", error);
     return NextResponse.json(
       { message: "Failed to delete account" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

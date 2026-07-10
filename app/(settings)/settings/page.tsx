@@ -26,7 +26,6 @@ import {
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { McpAppsPage } from "@/app/(settings)/mcp-apps-page";
 import { GeneralTab } from "@/components/chat/general-tab";
 import { PersonalizationTab } from "@/components/chat/personalize-tab";
 import { SkillsTab } from "@/components/chat/skills-tab";
@@ -42,14 +41,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -59,15 +51,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { authClient, useSession } from "@/lib/auth-client";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -361,7 +354,7 @@ function AccountTab() {
 function SecurityTab() {
   const router = useRouter();
   const session = useSession();
-  const user = session?.data?.user;
+  const _user = session?.data?.user;
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -492,7 +485,9 @@ function SecurityTab() {
 
       {/* Danger Zone */}
       <section className="rounded-xl border border-destructive/50 bg-card p-6">
-        <h2 className="mb-4 text-sm font-medium text-destructive">Danger Zone</h2>
+        <h2 className="mb-4 text-sm font-medium text-destructive">
+          Danger Zone
+        </h2>
         <div className="flex items-start gap-4">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-destructive/10">
             <TrashIcon className="size-5 text-destructive" />
@@ -500,7 +495,8 @@ function SecurityTab() {
           <div className="flex-1 min-w-0">
             <h3 className="text-sm font-medium">Delete Account</h3>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Permanently delete your account and all associated data. This cannot be undone.
+              Permanently delete your account and all associated data. This
+              cannot be undone.
             </p>
           </div>
           <Button
@@ -516,12 +512,14 @@ function SecurityTab() {
       </section>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+      <AlertDialog onOpenChange={setShowDeleteDialog} open={showDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Account</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete your account? This action cannot be undone. Your chats, projects, and all associated data will be permanently removed.
+              Are you sure you want to delete your account? This action cannot
+              be undone. Your chats, projects, and all associated data will be
+              permanently removed.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1606,17 +1604,18 @@ function McpAppsTab() {
       <div>
         <h2 className="text-xl font-semibold tracking-tight">MCP Apps</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          View and manage Model Context Protocol server apps that provide interactive UI components.
+          View and manage Model Context Protocol server apps that provide
+          interactive UI components.
         </p>
       </div>
 
-      <Tabs defaultValue="apps" className="w-full">
+      <Tabs className="w-full" defaultValue="apps">
         <TabsList>
           <TabsTrigger value="apps">Apps List</TabsTrigger>
           <TabsTrigger value="info">About MCP Apps</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="apps" className="mt-6">
+        <TabsContent className="mt-6" value="apps">
           {servers.length === 0 ? (
             <Card className="border-dashed">
               <CardContent className="flex flex-col items-center justify-center py-12">
@@ -1625,18 +1624,24 @@ function McpAppsTab() {
                   No MCP apps configured
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground/60">
-                  Configure MCP servers to extend the chatbot with interactive apps.
+                  Configure MCP servers to extend the chatbot with interactive
+                  apps.
                 </p>
               </CardContent>
             </Card>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {servers.map((app) => (
-                <Card key={app.name} className="hover:bg-muted/50 transition-colors">
+                <Card
+                  className="hover:bg-muted/50 transition-colors"
+                  key={app.name}
+                >
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-base font-medium truncate max-w-[160px]">{app.name}</CardTitle>
-                      <Badge variant="outline" className="text-[10px] h-5">
+                      <CardTitle className="text-base font-medium truncate max-w-[160px]">
+                        {app.name}
+                      </CardTitle>
+                      <Badge className="text-[10px] h-5" variant="outline">
                         {app.transport.toUpperCase()}
                       </Badge>
                     </div>
@@ -1646,24 +1651,36 @@ function McpAppsTab() {
                       {app.transport === "stdio" ? (
                         <div className="flex items-center gap-1">
                           <TerminalIcon className="size-3" />
-                          <span className="font-mono truncate max-w-[180px]">{app.command}</span>
+                          <span className="font-mono truncate max-w-[180px]">
+                            {app.command}
+                          </span>
                         </div>
-                      ) : app.url && (
-                        <div className="flex items-center gap-1">
-                          <GlobeIcon className="size-3" />
-                          <span className="truncate max-w-[180px]">{app.url}</span>
-                        </div>
+                      ) : (
+                        app.url && (
+                          <div className="flex items-center gap-1">
+                            <GlobeIcon className="size-3" />
+                            <span className="truncate max-w-[180px]">
+                              {app.url}
+                            </span>
+                          </div>
+                        )
                       )}
 
                       {app.lastConnectedAt && (
                         <div className="flex items-center gap-1">
                           <ClockIcon className="size-3" />
-                          <span>Last connected {new Date(app.lastConnectedAt).toLocaleDateString()}</span>
+                          <span>
+                            Last connected{" "}
+                            {new Date(app.lastConnectedAt).toLocaleDateString()}
+                          </span>
                         </div>
                       )}
                     </div>
                     <div className="mt-3 flex items-center justify-between">
-                      <Badge variant={app.enabled ? "default" : "secondary"} className="text-[10px] h-4">
+                      <Badge
+                        className="text-[10px] h-4"
+                        variant={app.enabled ? "default" : "secondary"}
+                      >
                         {app.enabled ? "Enabled" : "Disabled"}
                       </Badge>
                       <span className="text-xs text-muted-foreground">
@@ -1677,24 +1694,42 @@ function McpAppsTab() {
           )}
         </TabsContent>
 
-        <TabsContent value="info" className="mt-6">
+        <TabsContent className="mt-6" value="info">
           <Card>
             <CardHeader>
               <CardTitle>About MCP Apps</CardTitle>
             </CardHeader>
             <CardContent className="prose prose-sm text-sm space-y-3">
               <p>
-                MCP Apps extend Model Context Protocol tools with interactive UI resources. When a tool has <code>_meta.ui.resourceUri</code>, the model calls it and you can render its <code>ui://</code> HTML in a sandboxed iframe.
+                MCP Apps extend Model Context Protocol tools with interactive UI
+                resources. When a tool has <code>_meta.ui.resourceUri</code>,
+                the model calls it and you can render its <code>ui://</code>{" "}
+                HTML in a sandboxed iframe.
               </p>
               <h4>Key Features:</h4>
               <ul className="list-disc pl-5 space-y-1">
-                <li><strong>Split Tool Visibility:</strong> Tools marked with <code>visibility: ["model", "app"]</code> can be shown to the model while interactive UIs stay separate</li>
-                <li><strong>Sandboxed Rendering:</strong> MCP App resources are rendered in iframes with proper security policies</li>
-                <li><strong>Host Bridge:</strong> Your app acts as a bridge between the model and interactive UI components</li>
-                <li><strong>Tool Bridging:</strong> Model-initiated tool calls to app-visible tools are proxied back to the original MCP server</li>
+                <li>
+                  <strong>Split Tool Visibility:</strong> Tools marked with{" "}
+                  <code>visibility: ["model", "app"]</code> can be shown to the
+                  model while interactive UIs stay separate
+                </li>
+                <li>
+                  <strong>Sandboxed Rendering:</strong> MCP App resources are
+                  rendered in iframes with proper security policies
+                </li>
+                <li>
+                  <strong>Host Bridge:</strong> Your app acts as a bridge
+                  between the model and interactive UI components
+                </li>
+                <li>
+                  <strong>Tool Bridging:</strong> Model-initiated tool calls to
+                  app-visible tools are proxied back to the original MCP server
+                </li>
               </ul>
               <p>
-                This enables complex interactive interfaces (dashboards, forms, charts) while keeping the LLM focused on tool calls rather than UI rendering.
+                This enables complex interactive interfaces (dashboards, forms,
+                charts) while keeping the LLM focused on tool calls rather than
+                UI rendering.
               </p>
             </CardContent>
           </Card>

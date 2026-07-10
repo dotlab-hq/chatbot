@@ -1,8 +1,7 @@
 import {
   createMCPClient,
-  mcpAppClientCapabilities,
   type MCPClient,
-  type ClientCapabilities,
+  mcpAppClientCapabilities,
 } from "@ai-sdk/mcp";
 import { Experimental_StdioMCPTransport } from "@ai-sdk/mcp/mcp-stdio";
 import type { ToolSet } from "ai";
@@ -105,7 +104,11 @@ function buildTransport(server: McpServer) {
       if (!server.url) {
         throw new Error("Streamable HTTP transport requires a URL");
       }
-      return { type: "http" as const, url: server.url, headers: server.headers };
+      return {
+        type: "http" as const,
+        url: server.url,
+        headers: server.headers,
+      };
     default:
       throw new Error(`Unsupported transport: ${server.transport}`);
   }

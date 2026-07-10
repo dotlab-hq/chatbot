@@ -349,18 +349,14 @@ Do NOT use \`clientHttpRequest\` for general web lookups, fetching articles, or 
 export const systemPrompt = ({
   requestHints,
   supportsTools,
-  hasProject,
   hasMemory,
-  hasSearchTools,
   personalization,
   toolPromptSections,
   toolPlanSummary,
 }: {
   requestHints: RequestHints;
   supportsTools: boolean;
-  hasProject?: boolean;
   hasMemory?: boolean;
-  hasSearchTools?: boolean;
   personalization?: PersonalizationHints;
   toolPromptSections?: string[];
   toolPlanSummary?: {

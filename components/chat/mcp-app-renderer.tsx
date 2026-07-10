@@ -89,7 +89,9 @@ export function MCPAppRenderer({
         const resourceData = await response.json();
         setResource(resourceData);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load resource");
+        setError(
+          err instanceof Error ? err.message : "Failed to load resource"
+        );
       } finally {
         setLoading(false);
       }
@@ -165,7 +167,13 @@ export function MCPAppRenderer({
   }, [handlers]);
 
   if (loading) {
-    return fallback || <div className="p-4 text-muted-foreground text-sm">Loading MCP App...</div>;
+    return (
+      fallback || (
+        <div className="p-4 text-muted-foreground text-sm">
+          Loading MCP App...
+        </div>
+      )
+    );
   }
 
   if (error || !resource) {
@@ -183,13 +191,15 @@ export function MCPAppRenderer({
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        ${resource.meta?.csp?.connectDomains?.length
-          ? `<meta http-equiv="Content-Security-Policy" content="connect-src 'self' ${resource.meta.csp.connectDomains.join(' ')}">`
-          : ""
+        ${
+          resource.meta?.csp?.connectDomains?.length
+            ? `<meta http-equiv="Content-Security-Policy" content="connect-src 'self' ${resource.meta.csp.connectDomains.join(" ")}">`
+            : ""
         }
-        ${resource.meta?.csp?.resourceDomains?.length
-          ? `<meta http-equiv="Content-Security-Policy" content="img-src 'self' ${resource.meta.csp.resourceDomains.join(' ')}">`
-          : ""
+        ${
+          resource.meta?.csp?.resourceDomains?.length
+            ? `<meta http-equiv="Content-Security-Policy" content="img-src 'self' ${resource.meta.csp.resourceDomains.join(" ")}">`
+            : ""
         }
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -244,10 +254,10 @@ export function MCPAppRenderer({
   return (
     <div className="rounded-lg border border-border overflow-hidden">
       <iframe
-        ref={iframeRef}
-        srcDoc={srcdoc}
-        sandbox="allow-scripts allow-popups"
         className={sandbox?.className || "w-full h-80"}
+        ref={iframeRef}
+        sandbox="allow-scripts allow-popups"
+        srcDoc={srcdoc}
         style={sandbox?.style || { border: 0 }}
         title={`MCP App: ${metadata.resourceUri}`}
       />
@@ -261,7 +271,9 @@ export function isMCPAppPart(part: {
   type: string;
   providerMetadata?: Record<string, unknown>;
 }): boolean {
-  const mcpMeta = part.providerMetadata?.mcp as Record<string, unknown> | undefined;
+  const mcpMeta = part.providerMetadata?.mcp as
+    | Record<string, unknown>
+    | undefined;
   const appMeta = mcpMeta?.app as Record<string, unknown> | undefined;
   return Boolean(appMeta?.resourceUri);
 }
@@ -270,10 +282,14 @@ export function getMCPAppMetadata(part: {
   type: string;
   providerMetadata?: Record<string, unknown>;
 }): MCPAppMetadata | null {
-  const mcpMeta = part.providerMetadata?.mcp as Record<string, unknown> | undefined;
+  const mcpMeta = part.providerMetadata?.mcp as
+    | Record<string, unknown>
+    | undefined;
   const appMeta = mcpMeta?.app as Record<string, unknown> | undefined;
 
-  if (!appMeta?.resourceUri) return null;
+  if (!appMeta?.resourceUri) {
+    return null;
+  }
 
   return {
     resourceUri: appMeta.resourceUri as string,

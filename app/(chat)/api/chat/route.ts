@@ -380,11 +380,7 @@ export async function POST(request: Request) {
         const instructions = systemPrompt({
           requestHints,
           supportsTools,
-          hasProject,
           hasMemory: Boolean(process.env.MONGODB_URI),
-          hasSearchTools: Boolean(
-            process.env.OPENSERP_API_KEY || process.env.OPENSERP_BASE_URL
-          ),
           personalization: personalizationData,
           toolPromptSections: toolPlan.promptSections,
           toolPlanSummary: {

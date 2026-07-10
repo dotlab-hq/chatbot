@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { betterAuthInstance, auth } from "@/app/(auth)/auth";
+import { auth, betterAuthInstance } from "@/app/(auth)/auth";
 
 export async function PATCH(request: Request) {
   try {
@@ -11,14 +11,14 @@ export async function PATCH(request: Request) {
     if (!currentPassword || !newPassword) {
       return NextResponse.json(
         { message: "Current and new passwords are required" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     if (newPassword.length < 8) {
       return NextResponse.json(
         { message: "Password must be at least 8 characters" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -32,7 +32,10 @@ export async function PATCH(request: Request) {
       body: { newPassword, currentPassword },
     });
 
-    return NextResponse.json({ message: "Password updated successfully", ...result });
+    return NextResponse.json({
+      message: "Password updated successfully",
+      ...result,
+    });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to update password";

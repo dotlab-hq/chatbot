@@ -28,6 +28,11 @@ import { DocumentPreview } from "@/components/chat/document-preview";
 import { SparklesIcon } from "@/components/chat/icons";
 import { ImageCarousel } from "@/components/chat/image-carousel";
 import { LocalTime } from "@/components/chat/local-time";
+import {
+  getMCPAppMetadata,
+  isMCPAppPart,
+  MCPAppRenderer,
+} from "@/components/chat/mcp-app-renderer";
 import { MessageActions } from "@/components/chat/message-actions";
 import { PreviewAttachment } from "@/components/chat/preview-attachment";
 import {
@@ -43,11 +48,6 @@ import { Timer } from "@/components/chat/timer";
 import { UnitConverter } from "@/components/chat/unit-converter";
 import { VideoInline } from "@/components/chat/video-inline";
 import { Weather } from "@/components/chat/weather";
-import {
-  MCPAppRenderer,
-  isMCPAppPart,
-  getMCPAppMetadata,
-} from "@/components/chat/mcp-app-renderer";
 import { ShimmeringText } from "@/components/ui/shimmering-text";
 import type { Vote } from "@/lib/db/schema";
 import type { ChatMessage } from "@/lib/types";
@@ -660,18 +660,15 @@ const PurePreviewMessage = ({
       if (appMeta) {
         const { state } = part as { state?: string };
         const widthClass = "w-[min(100%,650px)]";
+        const partType = (part as { type?: string }).type || "dynamic-tool";
 
         if (state === "output-available") {
           return (
             <div className={widthClass} key={key}>
               <Tool className="w-full" defaultOpen={true}>
-                <ToolHeader state={state} type={type} />
+                <ToolHeader state={state} type={partType as any} />
                 <ToolContent>
                   <MCPAppRenderer
-                    toolCallId={part.toolCallId}
-                    metadata={appMeta}
-                    input={part.input}
-                    output={part.output}
                     handlers={{
                       callTool: async (params) => {
                         const response = await fetch("/api/mcp-app-host/tool", {
@@ -689,6 +686,10 @@ const PurePreviewMessage = ({
                         return response.json();
                       },
                     }}
+                    input={part.input}
+                    metadata={appMeta}
+                    output={part.output}
+                    toolCallId={part.toolCallId}
                   />
                 </ToolContent>
               </Tool>
@@ -700,7 +701,7 @@ const PurePreviewMessage = ({
         return (
           <div className={widthClass} key={key}>
             <Tool className="w-full" defaultOpen={true}>
-              <ToolHeader state={state} type={type} />
+              <ToolHeader state={state} type={partType as any} />
               <ToolContent>
                 <ToolInput input={part.input} />
                 <div className="px-4 py-3 text-muted-foreground text-sm">

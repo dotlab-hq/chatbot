@@ -1,6 +1,5 @@
-import { callAppTool, getAppToolMeta } from "@/lib/mcp/apps";
-import { ChatbotError } from "@/lib/errors";
 import { NextResponse } from "next/server";
+import { callAppTool, getAppToolMeta } from "@/lib/mcp/apps";
 
 export async function POST(req: Request) {
   try {
@@ -42,7 +41,10 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error("[MCP Apps] Failed to call tool:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to call app tool" },
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to call app tool",
+      },
       { status: 500 }
     );
   }

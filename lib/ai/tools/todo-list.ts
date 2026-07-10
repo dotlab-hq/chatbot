@@ -18,7 +18,7 @@ const todoStore = new Map<string, TodoItem[]>();
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function generateId(): string {
-  return `todo-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  return `todo-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
 function getTodos(chatId: string): TodoItem[] {

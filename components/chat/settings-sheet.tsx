@@ -54,7 +54,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -69,12 +68,6 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
@@ -84,6 +77,8 @@ import {
   SidebarMenuItem,
   SidebarProvider,
 } from "@/components/ui/sidebar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { authClient, useSession } from "@/lib/auth-client";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -1124,11 +1119,14 @@ function McpTab() {
           ? formHeaders
               .split(/^\s*$/gm)
               .filter((line) => line.includes(":"))
-              .reduce((acc, line) => {
-                const [key, ...values] = line.split(":");
-                acc[key.trim()] = values.join(":").trim();
-                return acc;
-              }, {} as Record<string, string>)
+              .reduce(
+                (acc, line) => {
+                  const [key, ...values] = line.split(":");
+                  acc[key.trim()] = values.join(":").trim();
+                  return acc;
+                },
+                {} as Record<string, string>
+              )
           : undefined,
       };
       const url = editingServer
@@ -1568,17 +1566,18 @@ function McpAppsTab() {
       <div>
         <h2 className="text-xl font-semibold tracking-tight">MCP Apps</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          View and manage Model Context Protocol server apps that provide interactive UI components.
+          View and manage Model Context Protocol server apps that provide
+          interactive UI components.
         </p>
       </div>
 
-      <Tabs defaultValue="apps" className="w-full">
+      <Tabs className="w-full" defaultValue="apps">
         <TabsList>
           <TabsTrigger value="apps">Apps List</TabsTrigger>
           <TabsTrigger value="info">About MCP Apps</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="apps" className="mt-6">
+        <TabsContent className="mt-6" value="apps">
           {servers.length === 0 ? (
             <div className="rounded-xl border border-border/50 bg-card p-8 text-center">
               <Server className="mx-auto mb-3 size-8 text-muted-foreground/50" />
@@ -1586,21 +1585,30 @@ function McpAppsTab() {
                 No MCP apps configured
               </p>
               <p className="mt-1 text-xs text-muted-foreground/60">
-                Configure MCP servers to extend the chatbot with interactive apps.
+                Configure MCP servers to extend the chatbot with interactive
+                apps.
               </p>
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {servers.map((app) => (
-                <div key={app.name} className="rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/50">
+                <div
+                  className="rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/50"
+                  key={app.name}
+                >
                   <div className="flex items-start justify-between">
                     <div className="min-w-0">
-                      <h3 className="text-sm font-medium truncate">{app.name}</h3>
+                      <h3 className="text-sm font-medium truncate">
+                        {app.name}
+                      </h3>
                       <div className="mt-1 flex items-center gap-2">
-                        <Badge variant="outline" className="text-[10px] h-4">
+                        <Badge className="text-[10px] h-4" variant="outline">
                           {app.transport.toUpperCase()}
                         </Badge>
-                        <Badge variant={app.enabled ? "default" : "secondary"} className="text-[10px] h-4">
+                        <Badge
+                          className="text-[10px] h-4"
+                          variant={app.enabled ? "default" : "secondary"}
+                        >
                           {app.enabled ? "Active" : "Inactive"}
                         </Badge>
                       </div>
@@ -1608,7 +1616,8 @@ function McpAppsTab() {
                   </div>
                   {app.lastConnectedAt && (
                     <p className="mt-2 text-xs text-muted-foreground">
-                      Last connected: {new Date(app.lastConnectedAt).toLocaleDateString()}
+                      Last connected:{" "}
+                      {new Date(app.lastConnectedAt).toLocaleDateString()}
                     </p>
                   )}
                 </div>
@@ -1617,19 +1626,35 @@ function McpAppsTab() {
           )}
         </TabsContent>
 
-        <TabsContent value="info" className="mt-6">
+        <TabsContent className="mt-6" value="info">
           <div className="rounded-xl border border-border bg-card p-6 space-y-4">
             <h3 className="text-lg font-medium">About MCP Apps</h3>
             <p className="text-sm text-muted-foreground">
-              MCP Apps extend Model Context Protocol tools with interactive UI resources. When a tool has <code>_meta.ui.resourceUri</code>, the model calls it and you can render its <code>ui://</code> HTML in a sandboxed iframe.
+              MCP Apps extend Model Context Protocol tools with interactive UI
+              resources. When a tool has <code>_meta.ui.resourceUri</code>, the
+              model calls it and you can render its <code>ui://</code> HTML in a
+              sandboxed iframe.
             </p>
             <div className="space-y-2">
               <h4 className="text-sm font-medium">Key Features:</h4>
               <ul className="text-sm text-muted-foreground space-y-1 list-disc pl-5">
-                <li><strong>Split Tool Visibility:</strong> Tools marked with <code>visibility: [&quot;model&quot;, &quot;app&quot;]</code> can be shown to the model while interactive UIs stay separate</li>
-                <li><strong>Sandboxed Rendering:</strong> MCP App resources are rendered in iframes with proper security policies</li>
-                <li><strong>Host Bridge:</strong> Your app acts as a bridge between the model and interactive UI components</li>
-                <li><strong>Tool Bridging:</strong> Model-initiated tool calls to app-visible tools are proxied back to the original MCP server</li>
+                <li>
+                  <strong>Split Tool Visibility:</strong> Tools marked with{" "}
+                  <code>visibility: [&quot;model&quot;, &quot;app&quot;]</code>{" "}
+                  can be shown to the model while interactive UIs stay separate
+                </li>
+                <li>
+                  <strong>Sandboxed Rendering:</strong> MCP App resources are
+                  rendered in iframes with proper security policies
+                </li>
+                <li>
+                  <strong>Host Bridge:</strong> Your app acts as a bridge
+                  between the model and interactive UI components
+                </li>
+                <li>
+                  <strong>Tool Bridging:</strong> Model-initiated tool calls to
+                  app-visible tools are proxied back to the original MCP server
+                </li>
               </ul>
             </div>
           </div>

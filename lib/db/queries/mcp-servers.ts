@@ -27,7 +27,17 @@ export async function createMcpServer({
   try {
     const [created] = await db
       .insert(mcpServer)
-      .values({ name, description, transport, url, command, args, env, headers, userId })
+      .values({
+        name,
+        description,
+        transport,
+        url,
+        command,
+        args,
+        env,
+        headers,
+        userId,
+      })
       .returning();
     return created;
   } catch (_error) {

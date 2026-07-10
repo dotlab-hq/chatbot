@@ -115,7 +115,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
   const [projectsOpen, setProjectsOpen] = useState(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("sidebar-projects-open");
-      return saved !== null ? JSON.parse(saved) : false;
+      return saved === null ? false : JSON.parse(saved);
     }
     return false;
   });

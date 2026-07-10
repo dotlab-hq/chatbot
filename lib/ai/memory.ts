@@ -480,7 +480,9 @@ async function generateEmbeddingForMemory(
     return entry.embedding; // already has one
   }
 
-  return await embedQuery([entry.label, entry.content].filter(Boolean).join(" — "));
+  return await embedQuery(
+    [entry.label, entry.content].filter(Boolean).join(" — ")
+  );
 }
 
 // ─── Backfill ──────────────────────────────────────────────────────────────

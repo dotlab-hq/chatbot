@@ -1,3 +1,4 @@
+import { splitMCPAppTools } from "@ai-sdk/mcp";
 import {
   isStepCount,
   type ModelMessage,
@@ -13,11 +14,12 @@ import {
   calculator,
   clientHttpRequest,
   createDocument,
+  createMemoryTools,
+  createTodoTool,
   currencyConverter,
   editDocument,
   getWeather,
   localTime,
-  createMemoryTools,
   playVideo,
   randomApiTool,
   readArtifact,
@@ -25,7 +27,6 @@ import {
   requestSuggestions,
   researchTool,
   timer,
-  createTodoTool,
   unitConverter,
   updateDocument,
   verifyContent,
@@ -44,8 +45,7 @@ import {
 } from "@/lib/ai/vector-store";
 import { isProductionEnvironment } from "@/lib/constants";
 import { getMcpServersByUserId } from "@/lib/db/queries";
-import { connectToMcpServer, getToolSets, getClient } from "@/lib/mcp/client";
-import { splitMCPAppTools, type MCPAppResource } from "@ai-sdk/mcp";
+import { connectToMcpServer, getClient } from "@/lib/mcp/client";
 import type { ChatMessage } from "@/lib/types";
 import type { ToolPlan } from "./tool-planner";
 
@@ -264,7 +264,9 @@ export async function createChatAgent(params: CreateChatAgentParams) {
 
   for (const server of enabledServers) {
     const client = getClient(server.id);
-    if (!client) continue;
+    if (!client) {
+      continue;
+    }
 
     try {
       // List tools and split by visibility
@@ -389,5 +391,10 @@ export async function createChatAgent(params: CreateChatAgentParams) {
     },
   });
 
-  return { agent, activeTools: plannedActiveTools, mcpToolNames, mcpAppToolNames };
+  return {
+    agent,
+    activeTools: plannedActiveTools,
+    mcpToolNames,
+    mcpAppToolNames,
+  };
 }

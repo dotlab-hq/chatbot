@@ -1,27 +1,34 @@
 import {
-  mcpAppClientCapabilities,
+  type MCPAppResource,
   readMCPAppResource,
   splitMCPAppTools,
-  type MCPAppResource,
 } from "@ai-sdk/mcp";
 import type { McpServer } from "@/lib/db/schema";
 import { connectToMcpServer, getClient } from "./client";
-import type { ListToolsResult } from "@ai-sdk/mcp";
 
 // ─── App-visible tool tracking ──────────────────────────────────────────────
 
 const appToolMeta = new Map<
   string,
-  { serverId: string; toolName: string; resourceUri: string; visibility: string[] }
+  {
+    serverId: string;
+    toolName: string;
+    resourceUri: string;
+    visibility: string[];
+  }
 >();
 
 export async function connectWithApps(server: McpServer) {
   const result = await connectToMcpServer(server);
 
-  if (result.error) return result;
+  if (result.error) {
+    return result;
+  }
 
   const client = getClient(server.id);
-  if (!client) return { serverId: server.id, error: "Client not found" };
+  if (!client) {
+    return { serverId: server.id, error: "Client not found" };
+  }
 
   const definitions = await client.listTools();
   const { modelVisible, appVisible } = splitMCPAppTools(definitions);
@@ -65,7 +72,7 @@ export function clearAppToolMeta() {
   appToolMeta.clear();
 }
 
-export async function readAppResource(
+export function readAppResource(
   uri: string,
   serverId: string
 ): Promise<MCPAppResource> {
@@ -76,7 +83,7 @@ export async function readAppResource(
   return readMCPAppResource({ client, uri });
 }
 
-export async function callAppTool(
+export function callAppTool(
   name: string,
   args: Record<string, unknown>,
   serverId: string

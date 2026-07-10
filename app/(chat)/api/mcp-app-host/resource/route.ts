@@ -1,5 +1,5 @@
-import { readAppResource } from "@/lib/mcp/apps";
 import { ChatbotError } from "@/lib/errors";
+import { readAppResource } from "@/lib/mcp/apps";
 
 export async function POST(request: Request) {
   try {
