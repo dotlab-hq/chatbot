@@ -193,7 +193,7 @@ ${conversationText}`,
   const summaryMessage: DBMessage = {
     id: crypto.randomUUID(),
     chatId,
-    role: "system",
+    role: "assistant",
     parts: [
       {
         type: "text",
