@@ -1201,9 +1201,9 @@ function McpTab() {
   const [deleteTarget, setDeleteTarget] = useState<McpServer | null>(null);
   const [formName, setFormName] = useState("");
   const [formDescription, setFormDescription] = useState("");
-  const [formTransport, setFormTransport] = useState<
-    "sse" | "streamable-http"
-  >("sse");
+  const [formTransport, setFormTransport] = useState<"sse" | "streamable-http">(
+    "sse"
+  );
   const [formUrl, setFormUrl] = useState("");
   const [formCommand, setFormCommand] = useState("");
   const [formArgs, setFormArgs] = useState("");
@@ -1535,15 +1535,15 @@ function McpTab() {
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">
+                <label className="text-sm font-medium" htmlFor="mcp-headers">
                   Headers (optional)
                 </label>
                 <Button
                   className="h-7 text-xs gap-1"
                   onClick={() => setShowHeaders(!showHeaders)}
                   size="sm"
-                  variant="outline"
                   type="button"
+                  variant="outline"
                 >
                   {showHeaders ? "Hide" : "Add"}
                 </Button>
