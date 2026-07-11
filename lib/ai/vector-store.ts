@@ -132,7 +132,7 @@ export async function searchVectorStore({
     rewrite_query: true,
   });
 
-  return response.data.map((result) => ({
+  let results = response.data.map((result) => ({
     fileId: result.file_id,
     filename: result.filename ?? "",
     score: result.score ?? 0,
@@ -144,6 +144,93 @@ export async function searchVectorStore({
       .map((c) => c.text)
       .join("\n"),
   }));
+
+  // Try to rerank results if Cohere reranking is available
+  try {
+    const rerankResults = await rerankVectorStoreResults({
+      query,
+      results,
+      maxResults,
+    });
+    if (rerankResults.length > 0) {
+      results = rerankResults;
+    }
+  } catch (error) {
+    // If reranking fails, fall back to the original results
+    console.warn("Reranking failed, using original scores:", error);
+  }
+
+  return results;
+}
+
+// ─── Cohere Reranking ──────────────────────────────────────────────────────
+
+/**
+ * Rerank vector store results using Cohere's reranking model.
+ * Falls back to original results if Cohere API is unavailable.
+ */
+export async function rerankVectorStoreResults({
+  query,
+  results,
+  maxResults = 5,
+}: {
+  query: string;
+  results: VectorSearchResult[];
+  maxResults?: number;
+}): Promise<VectorSearchResult[]> {
+  if (results.length === 0) {
+    return [];
+  }
+
+  const cohereApiKey = process.env.COHERE_API_KEY;
+  if (!cohereApiKey) {
+    // No Cohere API key available, return original results
+    return results.slice(0, maxResults);
+  }
+
+  // Prepare documents for reranking
+  const documents = results.map((r) => r.content);
+
+  try {
+    const response = await fetch("https://api.cohere.com/v2/rerank", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${cohereApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "rerank-v3.5",
+        query,
+        documents,
+        top_n: maxResults,
+        max_tokens_per_doc: 4096,
+      }),
+    });
+
+    if (!response.ok) {
+      console.warn(`Cohere rerank API error: ${response.status}`);
+      return results.slice(0, maxResults);
+    }
+
+    const data = await response.json();
+    const rerankedResults: VectorSearchResult[] = [];
+
+    // Map reranked results back to original structure
+    for (const result of data.results) {
+      const originalResult = results[result.index];
+      if (originalResult) {
+        rerankedResults.push({
+          ...originalResult,
+          score: result.relevance_score,
+        });
+      }
+    }
+
+    return rerankedResults;
+  } catch (error) {
+    console.warn("Cohere reranking failed:", error);
+    return results.slice(0, maxResults);
+  }
 }
 
 // ─── AI Tool Factories ──────────────────────────────────────────────────────

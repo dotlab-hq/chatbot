@@ -44,6 +44,7 @@ import {
   deleteChatById,
   getChatById,
   getEnabledUserSkills,
+  getMcpServersByUserId,
   getMessagesByChatId,
   getProjectById,
   incrementChatTokenUsage,
@@ -55,12 +56,17 @@ import {
 } from "@/lib/db/queries";
 import { type DBMessage, personalization } from "@/lib/db/schema";
 import { ChatbotError } from "@/lib/errors";
-import { disconnectAll, connectToMcpServer, getClient } from "@/lib/mcp/client";
+import { connectToMcpServer, disconnectAll, getClient } from "@/lib/mcp/client";
 import { checkIpRateLimit } from "@/lib/ratelimit";
 import type { ChatMessage } from "@/lib/types";
 import { convertToUIMessages, generateUUID } from "@/lib/utils";
 
 export const maxDuration = 300;
+
+/** Rough token estimate: ~4 chars per token */
+function estimateTokens(messages: Array<unknown>) {
+  return Math.round(JSON.stringify(messages).length / 4);
+}
 
 function getStreamContext() {
   try {
@@ -289,6 +295,39 @@ export async function POST(request: Request) {
     const hasProject = Boolean(projectVectorStoreId);
     const latestUserQuery = getLatestUserQuery(uiMessages);
 
+    // ── Session Memory Context ────────────────────────────────────────────
+    // For long conversations, build compact context from session memory
+    // instead of passing full message history. This saves context window space.
+
+    let sessionContext = "";
+    if (process.env.MONGODB_URI && modelMessages.length > 10) {
+      try {
+        const estimatedTokens = estimateTokens(modelMessages);
+        const shouldUseMemory = estimatedTokens > 30_000 || modelMessages.length > 25;
+
+        if (shouldUseMemory) {
+          const { buildSessionContext } = await import(
+            "@/lib/ai/session-memory-tracker"
+          );
+          sessionContext = await buildSessionContext({
+            userId: session.user.id,
+            chatId: id,
+            projectId: chat?.projectId ?? projectId ?? undefined,
+            currentQuery: latestUserQuery,
+            maxTokens: 3000,
+          });
+
+          if (sessionContext) {
+            console.log(
+              `[session-memory] Built context from memory: ~${Math.ceil(sessionContext.length / 4)} tokens`
+            );
+          }
+        }
+      } catch (err) {
+        console.warn("[session-memory] Failed to build session context:", err);
+      }
+    }
+
     // Fetch personalization for system prompt
     let personalizationData: PersonalizationHints | undefined;
     try {
@@ -365,15 +404,19 @@ export async function POST(request: Request) {
       originalMessages: isToolApprovalFlow ? uiMessages : undefined,
       execute: async ({ writer: dataStream }) => {
         // Pre-fetch MCP tool names so the tool planner can include them
-        let mcpToolNamesForPlan: string[] = [];
+        const mcpToolNamesForPlan: string[] = [];
         if (supportsTools) {
           try {
-            const mcpServers = await getMcpServersByUserId({ userId: session.user.id });
+            const mcpServers = await getMcpServersByUserId({
+              userId: session.user.id,
+            });
             const enabledServers = mcpServers.filter((s) => s.enabled);
             await Promise.all(enabledServers.map((s) => connectToMcpServer(s)));
             for (const server of enabledServers) {
               const client = getClient(server.id);
-              if (!client) continue;
+              if (!client) {
+                continue;
+              }
               const definitions = await client.listTools();
               for (const tool of definitions.tools) {
                 mcpToolNamesForPlan.push(tool.name);
@@ -409,6 +452,7 @@ export async function POST(request: Request) {
             rationale: toolPlan.rationale,
             contextManagement: toolPlan.contextManagement,
           },
+          sessionContext,
         });
 
         const { agent } = await createChatAgent({
@@ -576,6 +620,70 @@ export async function POST(request: Request) {
         } catch (err) {
           console.error("[usage] Failed to persist token usage:", err);
           // Non-fatal, don't break the response
+        }
+
+        // ── Auto-save session memory after response ────────────────────────
+        // Save a compact summary of this exchange to session memory so
+        // future turns can recall context without full message history.
+        try {
+          if (process.env.MONGODB_URI) {
+            const { saveSessionMemory } = await import(
+              "@/lib/ai/session-memory-tracker"
+            );
+
+            // Extract user message content
+            const userMsg = finishedMessages.find((m) => m.role === "user");
+            const userText =
+              userMsg?.parts
+                ?.filter(
+                  (p): p is { type: "text"; text: string } => p.type === "text"
+                )
+                .map((p) => p.text)
+                .join(" ")
+                .slice(0, 300) ?? "";
+
+            // Extract assistant response summary
+            const assistantMsg = finishedMessages.find(
+              (m) => m.role === "assistant"
+            );
+            const assistantText =
+              assistantMsg?.parts
+                ?.filter(
+                  (p): p is { type: "text"; text: string } => p.type === "text"
+                )
+                .map((p) => p.text)
+                .join(" ")
+                .slice(0, 300) ?? "";
+
+            // Check if any tools were used
+            const toolParts =
+              assistantMsg?.parts?.filter(
+                (p) => p.type?.startsWith("tool-") && "state" in p
+              ) ?? [];
+            const toolsUsed = toolParts
+              .map((p) => (p as { type: string }).type.replace("tool-", ""))
+              .filter(Boolean);
+
+            const content = [
+              `User: ${userText}`,
+              assistantText ? `AI: ${assistantText}` : "",
+              toolsUsed.length > 0 ? `Tools used: ${toolsUsed.join(", ")}` : "",
+            ]
+              .filter(Boolean)
+              .join("\n");
+
+            if (content.length > 10) {
+              saveSessionMemory({
+                userId: session.user.id,
+                chatId: id,
+                projectId: chat?.projectId ?? projectId ?? undefined,
+                content,
+                label: `Exchange: ${userText.slice(0, 60)}`,
+              }).catch(() => {}); // fire-and-forget
+            }
+          }
+        } catch {
+          // Non-critical, don't break the response
         }
       },
       onError: (error) => {

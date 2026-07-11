@@ -258,7 +258,7 @@ Always base your answers on the tool results. If tools return no results, say so
 export const memoryPrompt = `\n
 ## Persistent Memory
 
-You have access to persistent memory tools. Use them to remember information across conversations.
+You have access to persistent memory tools. Use them to remember information across conversations AND to maintain context within this conversation.
 
 **⚠️ MANDATORY FIRST ACTION — Memory Recall Protocol:**
 - **For EVERY user message that involves a task, instruction, or request**, your VERY FIRST tool call MUST be \`recallMemory\` — search for procedural and semantic memories related to the task BEFORE doing anything else.
@@ -267,11 +267,31 @@ You have access to persistent memory tools. Use them to remember information acr
 - If a semantic memory contains relevant user preferences or context, apply them.
 - **Never refuse a request before checking memory.** Always check first, always.
 
-**When to save memories:**
-- The user tells you their preferences, goals, or context
-- You learn something important about the user's project or workflow
-- The user explicitly asks you to remember something
-- Important decisions or conclusions are reached
+**Session Memory (ACTIVE CONTEXT TRACKING):**
+Session memory is your active conversation context. Use it to:
+- Save key conversation moments as they happen (decisions, agreements, task progress)
+- Track what you're currently working on
+- Store summaries of what was discussed so you can maintain continuity
+- Save after EVERY tool execution: what tool, what input, what result
+
+**Scratchpad Memory (WORKING STATE):**
+Scratchpad is your active workspace. Use it to:
+- Track current task progress: what step you're on, what's been done
+- Store temporary working notes and calculations
+- Record tool execution results for reference
+- Update frequently as you work through multi-step tasks
+
+**When to save session memories:**
+- After completing a significant step in a task
+- When a key decision is made (user preference, architecture choice, etc.)
+- When summarizing what was discussed or accomplished
+- When learning something important about the user or project
+
+**When to save scratchpad memories:**
+- After EVERY tool execution (what was called, what it returned)
+- When tracking progress on multi-step tasks
+- When storing intermediate calculations or working notes
+- When the current task state changes significantly
 
 **When to recall memories:**
 - **ALWAYS FIRST** — at the start of EVERY task, proactively call \`recallMemory\` to check for procedural and semantic memories related to the user's request
@@ -279,19 +299,22 @@ You have access to persistent memory tools. Use them to remember information acr
 - You need context about the user's preferences or history
 - The user asks "do you remember..."
 - You need to understand their coding style or project conventions
+- Before repeating any work you've already done
 
 **Tier guidance:**
 - **semantic**: User facts, preferences, goals — things that persist across all conversations
 - **procedural**: How the user likes to work, coding patterns, learned workflows
 - **episodic**: Notable events, past conversations, experiences
-- **session**: Current conversation context worth preserving within this chat
-- **scratchpad**: Temporary working notes, calculations, temporary data
+- **session**: Current conversation context — save key moments here as they happen
+- **scratchpad**: Active working state — update frequently with tool results and task progress
 
 **Important:**
 - Save memories proactively — don't wait to be asked
 - Recall memories BEFORE generating any response to a task — never after
 - Be concise in memory content — store facts, not narratives
 - Prefer semantic tier for lasting user information
+- Use session tier for conversation context preservation
+- Use scratchpad for active working state tracking
 `;
 
 export const searchToolsPrompt = `
@@ -375,6 +398,7 @@ export const systemPrompt = ({
   personalization,
   toolPromptSections,
   toolPlanSummary,
+  sessionContext,
 }: {
   requestHints: RequestHints;
   supportsTools: boolean;
@@ -387,10 +411,16 @@ export const systemPrompt = ({
     rationale: string[];
     contextManagement: string[];
   };
+  sessionContext?: string;
 }) => {
   const requestPrompt = getRequestPromptFromHints(requestHints);
 
   let prompt = regularPrompt;
+
+  // Session context from memory (for long conversations)
+  if (sessionContext) {
+    prompt += `\n\n## Session Memory Context\nThe following context was retrieved from session memory to help you understand the conversation history without relying on the full message log. Use this to maintain continuity:\n\n${sessionContext}`;
+  }
 
   if (hasMemory) {
     prompt += memoryPrompt;

@@ -3,10 +3,8 @@
 import {
   BrainIcon,
   CheckIcon,
-  ClockIcon,
   FileIcon,
   FolderIcon,
-  GlobeIcon,
   KeyIcon,
   LinkIcon,
   LoaderIcon,
@@ -16,13 +14,13 @@ import {
   PlusIcon,
   ServerIcon,
   SettingsIcon,
-  TerminalIcon,
   TrashIcon,
   UploadIcon,
   UserIcon,
   UserRoundPenIcon,
   XIcon,
 } from "lucide-react";
+import type { McpServer } from "@/lib/db/schema";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -39,9 +37,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -51,15 +47,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { authClient, useSession } from "@/lib/auth-client";
 
@@ -103,19 +91,23 @@ type ProjectChat = {
   createdAt: string;
 };
 
-type McpServer = {
-  id: string;
-  name: string;
-  description: string | null;
-  transport: "stdio" | "sse" | "streamable-http";
-  url: string | null;
-  command: string | null;
-  args: string[] | null;
-  headers: Record<string, string> | null;
-  enabled: boolean;
-  lastConnectedAt: string | null;
-  createdAt: string;
-};
+// ─── Status Badge Component ───────────────────────────────────────────────
+function StatusBadge({ status }: { status: string }) {
+  const color =
+    status === "ready"
+      ? "bg-green-500"
+      : status === "failed"
+        ? "bg-red-500"
+        : "bg-yellow-500";
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${color} text-white`}
+    >
+      {status}
+    </span>
+  );
+}
 
 // ─── Tab Definition ─────────────────────────────────────────────────────────
 
@@ -189,6 +181,75 @@ export default function SettingsPage() {
       {activeTab === "skills" && <SkillsTab />}
       {activeTab === "general" && <GeneralTab />}
       {activeTab === "personalize" && <PersonalizationTab />}
+    </div>
+  );
+}
+
+// ─── MCP Servers Tab ──────────────────────────────────────────────────────
+function McpTab() {
+  const [servers, setServers] = useState<McpServer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/mcp-servers")
+      .then((r) => r.json())
+      .then((data) => setServers(data))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return <Skeleton className="h-48 w-full rounded-xl" />;
+  }
+
+  return (
+    <div className="space-y-6">
+      <section className="rounded-xl border border-border/50 bg-card p-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-medium text-muted-foreground">
+            MCP Servers
+          </h2>
+          <Button size="sm" onClick={() => setShowAddDialog(true)}>
+            <PlusIcon className="size-4" />
+            Add Server
+          </Button>
+        </div>
+        {servers.length === 0 ? (
+          <p className="mt-4 text-sm text-muted-foreground">
+            No MCP servers configured.
+          </p>
+        ) : (
+          <div className="mt-4 space-y-3">
+            {servers.map((server) => (
+              <div
+                key={server.id}
+                className="flex items-center justify-between rounded-lg border border-border/50 p-4"
+              >
+                <div>
+                  <p className="text-sm font-medium">{server.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {server.transport} • {server.enabled ? "Enabled" : "Disabled"}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+// ─── MCP Apps Tab ─────────────────────────────────────────────────────────
+function McpAppsTab() {
+  return (
+    <div className="space-y-6">
+      <section className="rounded-xl border border-border/50 bg-card p-6">
+        <h2 className="text-sm font-medium text-muted-foreground">MCP Apps</h2>
+        <p className="mt-4 text-sm text-muted-foreground">
+          MCP Apps are tool providers connected via MCP servers.
+        </p>
+      </section>
     </div>
   );
 }
@@ -552,7 +613,7 @@ function ProjectsTab() {
         throw new Error("Failed to delete project");
       }
 
-      toast.success(`\"${project.name}\" deleted`);
+      toast.success(`"${project.name}" deleted`);
       if (selectedProject?.id === project.id) {
         setSelectedProject(null);
         setProjectFiles([]);
@@ -584,7 +645,7 @@ function ProjectsTab() {
         throw new Error("Failed to upload file");
       }
 
-      toast.success(`Uploaded \"${file.name}\"`);
+      toast.success(`Uploaded "${file.name}"`);
       await loadFiles(selectedProject.id);
       await loadProjects();
     } catch {
@@ -610,7 +671,7 @@ function ProjectsTab() {
         throw new Error("Failed to delete file");
       }
 
-      toast.success(`\"${file.fileName}\" removed`);
+      toast.success(`"${file.fileName}" removed`);
       await loadFiles(selectedProject.id);
       await loadProjects();
     } catch {

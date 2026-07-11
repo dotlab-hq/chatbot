@@ -51,7 +51,7 @@ export interface MemoryEntry {
 }
 
 export interface MemorySearchResult {
-  entry: MemoryEntry;
+  entry: import("mongodb").WithId<MemoryEntry>;
   /** Cosine similarity score (0-1), higher = more relevant */
   score: number;
 }
@@ -244,10 +244,21 @@ export async function searchMemories(params: {
       ];
 
       const results = await coll.aggregate(pipeline).toArray();
-      return results.map((doc) => ({
-        entry: doc as unknown as MemoryEntry,
+      let memories: MemorySearchResult[] = results.map((doc) => ({
+        entry: doc as import("mongodb").WithId<MemoryEntry>,
         score: doc.score as number,
       }));
+
+      // Apply Cohere reranking to improve relevance
+      if (query && memories.length > 0) {
+        memories = await rerankMemories({
+          query,
+          memories,
+          maxResults,
+        });
+      }
+
+      return memories;
     } catch {
       // Vector search index may not exist, fall through to text search
     }
@@ -263,10 +274,19 @@ export async function searchMemories(params: {
         .toArray();
 
       if (textResults.length > 0) {
-        return textResults.map((doc) => ({
+        let memories: MemorySearchResult[] = textResults.map((doc) => ({
           entry: doc,
           score: 0.5, // Text search doesn't give scores
         }));
+
+        // Apply Cohere reranking to improve relevance
+        memories = await rerankMemories({
+          query,
+          memories,
+          maxResults,
+        });
+
+        return memories;
       }
     } catch {
       // $text index may not exist, fall through to regex
@@ -285,7 +305,10 @@ export async function searchMemories(params: {
         .sort({ updatedAt: -1 })
         .limit(maxResults)
         .toArray();
-      return recent.map((doc) => ({ entry: doc, score: 0.2 }));
+      return recent.map((doc) => ({
+        entry: doc,
+        score: 0.2,
+      }));
     }
 
     const wordRegex = words.join("|");
@@ -301,10 +324,19 @@ export async function searchMemories(params: {
       .limit(maxResults)
       .toArray();
 
-    return regexResults.map((doc) => ({
+    let memories: MemorySearchResult[] = regexResults.map((doc) => ({
       entry: doc,
       score: 0.3,
     }));
+
+    // Apply Cohere reranking to improve relevance
+    memories = await rerankMemories({
+      query,
+      memories,
+      maxResults,
+    });
+
+    return memories;
   }
 
   // No query — just return recent memories
@@ -318,6 +350,85 @@ export async function searchMemories(params: {
     entry: doc,
     score: 1.0,
   }));
+}
+
+// ─── Cohere Reranking for Memories ─────────────────────────────────────────
+
+/**
+ * Rerank memory search results using Cohere's reranking model.
+ * Falls back to original results if Cohere API is unavailable.
+ */
+async function rerankMemories({
+  query,
+  memories,
+  maxResults = 5,
+}: {
+  query: string;
+  memories: MemorySearchResult[];
+  maxResults?: number;
+}): Promise<MemorySearchResult[]> {
+  if (memories.length === 0) {
+    return [];
+  }
+
+  const cohereApiKey = process.env.COHERE_API_KEY;
+  if (!cohereApiKey) {
+    // No Cohere API key available, return original results
+    return memories.slice(0, maxResults);
+  }
+
+  // Prepare documents for reranking
+  const documents = memories.map((m) => {
+    const parts = [m.entry.label, m.entry.content].filter(Boolean);
+    return parts.join(" — ");
+  });
+
+  try {
+    const response = await fetch("https://api.cohere.com/v2/rerank", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${cohereApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "rerank-v3.5",
+        query,
+        documents,
+        top_n: maxResults,
+        max_tokens_per_doc: 4096,
+      }),
+    });
+
+    if (!response.ok) {
+      console.warn(`Cohere rerank API error: ${response.status}`);
+      return memories.slice(0, maxResults);
+    }
+
+    const data = await response.json();
+    const rerankedResults: MemorySearchResult[] = [];
+
+    // Map reranked results back to original structure
+    for (const result of data.results) {
+      const originalResult = memories[result.index];
+      if (originalResult) {
+        rerankedResults.push({
+          ...originalResult,
+          score: result.relevance_score,
+        });
+      }
+    }
+
+    return rerankedResults;
+  } catch (error) {
+    console.warn("Cohere reranking failed:", error);
+    return memories.slice(0, maxResults);
+  }
+}
+
+export interface MemorySearchResult {
+  entry: import("mongodb").WithId<MemoryEntry>;
+  /** Cosine similarity score (0-1), higher = more relevant */
+  score: number;
 }
 
 /**

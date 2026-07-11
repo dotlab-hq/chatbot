@@ -27,7 +27,7 @@ export async function connectToMcpServer(server: McpServer) {
     const transport = buildTransport(server);
 
     // Extract headers from server configuration and apply them to the MCP client
-    const mcpHeaders = server.headers ?? undefined;
+    const _mcpHeaders = server.headers ?? undefined;
 
     const client = await createMCPClient({
       transport,
@@ -97,7 +97,11 @@ function buildTransport(server: McpServer) {
       if (!server.url) {
         throw new Error("SSE transport requires a URL");
       }
-      return { type: "sse" as const, url: server.url, headers: server.headers === null ? undefined : server.headers };
+      return {
+        type: "sse" as const,
+        url: server.url,
+        headers: server.headers === null ? undefined : server.headers,
+      };
     case "streamable-http":
       if (!server.url) {
         throw new Error("Streamable HTTP transport requires a URL");

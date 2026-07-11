@@ -1,8 +1,8 @@
 "use client";
 import type { UseChatHelpers } from "@ai-sdk/react";
+import type { DynamicToolUIPart } from "ai";
 import { ChevronDownIcon } from "lucide-react";
 import { useState } from "react";
-import type { DynamicToolUIPart } from "ai";
 import { CodeBlock } from "@/components/ai-elements/code-block";
 import {
   MessageContent,
@@ -662,8 +662,7 @@ const PurePreviewMessage = ({
         const state = (part as { state?: string }).state ?? "input-available";
         const widthClass = "w-[min(100%,650px)]";
         const partType = (part as { type?: string }).type || "dynamic-tool";
-        const toolName =
-          (part as { toolName?: string }).toolName ?? "mcp-app";
+        const toolName = (part as { toolName?: string }).toolName ?? "mcp-app";
         const toolInput =
           (part as { input?: Record<string, unknown> }).input ?? {};
         const toolOutput = (part as { output?: unknown }).output;
@@ -673,7 +672,11 @@ const PurePreviewMessage = ({
           return (
             <div className={widthClass} key={key}>
               <Tool className="w-full" defaultOpen={true}>
-                <ToolHeader state={state} type={partType as "dynamic-tool"} toolName={toolName} />
+                <ToolHeader
+                  state={state}
+                  toolName={toolName}
+                  type={partType as "dynamic-tool"}
+                />
                 <ToolContent>
                   <ToolInput input={toolInput} />
                   <MCPAppRenderer
@@ -709,7 +712,11 @@ const PurePreviewMessage = ({
         return (
           <div className={widthClass} key={key}>
             <Tool className="w-full" defaultOpen={true}>
-              <ToolHeader state={state as DynamicToolUIPart["state"]} type="dynamic-tool" toolName={toolName} />
+              <ToolHeader
+                state={state as DynamicToolUIPart["state"]}
+                toolName={toolName}
+                type="dynamic-tool"
+              />
               <ToolContent>
                 <ToolInput input={toolInput} />
                 <div className="px-4 py-3 text-muted-foreground text-sm">

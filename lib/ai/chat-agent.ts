@@ -11,6 +11,12 @@ import { chatModels, getCapabilities } from "@/lib/ai/models";
 import { createParallelTool } from "@/lib/ai/parallel-executioner";
 import { getLanguageModel } from "@/lib/ai/providers";
 import {
+  saveSessionMemory,
+  saveScratchpadMemory,
+  trackToolExecution,
+  trackTaskProgress,
+} from "@/lib/ai/session-memory-tracker";
+import {
   calculator,
   clientHttpRequest,
   createDocument,
@@ -54,6 +60,57 @@ const estimateTokens = (messages: ModelMessage[]) =>
   Math.round(JSON.stringify(messages).length / 4);
 
 const STEP_PRUNE_THRESHOLD = 32_000;
+
+/**
+ * Wraps a tool to auto-track execution in scratchpad memory.
+ * Fire-and-forget: errors are logged but don't affect the tool result.
+ */
+function wrapWithMemoryTracking(
+  toolDef: Record<string, unknown>,
+  toolName: string,
+  userId: string,
+  chatId: string,
+  projectId?: string | null
+): Record<string, unknown> {
+  const originalExecute = toolDef.execute as
+    | ((input: unknown, options: unknown) => Promise<unknown>)
+    | undefined;
+  if (!originalExecute) {
+    return toolDef;
+  }
+  return {
+    ...toolDef,
+    execute: async (input: unknown, options: unknown) => {
+      const startTime = Date.now();
+      try {
+        const result = await originalExecute(input, options);
+        trackToolExecution({
+          userId,
+          chatId,
+          projectId: projectId ?? undefined,
+          toolName,
+          input,
+          result,
+          success: true,
+          durationMs: Date.now() - startTime,
+        }).catch(() => {}); // fire-and-forget
+        return result;
+      } catch (error) {
+        trackToolExecution({
+          userId,
+          chatId,
+          projectId: projectId ?? undefined,
+          toolName,
+          input,
+          result: error instanceof Error ? error.message : String(error),
+          success: false,
+          durationMs: Date.now() - startTime,
+        }).catch(() => {}); // fire-and-forget
+        throw error;
+      }
+    },
+  };
+}
 
 /**
  * Wraps a subagent tool to emit progress events via dataStream.
@@ -253,6 +310,37 @@ export async function createChatAgent(params: CreateChatAgentParams) {
       "deleteMemory",
       "clearMemories"
     );
+  }
+
+  // ── Wrap tools with session memory tracking ──────────────────────────
+  // Fire-and-forget: tracks tool executions in scratchpad for active state.
+
+  const trackedToolNames = [
+    "getWeather",
+    "calculator",
+    "createDocument",
+    "editDocument",
+    "updateDocument",
+    "searchProjectFiles",
+    "listProjectFiles",
+    "getFileContent",
+    "webSearch",
+    "webSearchExtract",
+    "webExtract",
+    "randomApiTool",
+    "researchTool",
+  ];
+
+  for (const name of trackedToolNames) {
+    if (tools[name]) {
+      tools[name] = wrapWithMemoryTracking(
+        tools[name],
+        name,
+        userId,
+        chatId,
+        projectId
+      );
+    }
   }
 
   // ── MCP server tools ──────────────────────────────────────────────────
