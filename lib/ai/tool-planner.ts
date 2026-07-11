@@ -3,6 +3,7 @@ import { parallelPromptSection } from "@/lib/ai/parallel-executioner";
 import {
   artifactsPrompt,
   httpToolsPrompt,
+  mcpToolsPrompt,
   projectFilesPrompt,
   searchToolsPrompt,
   todoPrompt,
@@ -198,15 +199,13 @@ export function buildToolPlan({
     "delete ",
     "put ",
     "patch ",
-    "my ip",
   ]);
 
-  // Stricter signal: only when the user EXPLICITLY wants a client/browser-side
-  // request (their IP, their machine) — NOT a generic API/HTTP mention.
   const asksForClientSide = includesAny(normalizedQuery, [
     "client",
     "browser",
-    "my ip",
+    "ip",
+    "ip address",
     "from my machine",
     "from my side",
     "client-side",
@@ -270,11 +269,11 @@ export function buildToolPlan({
     );
   }
 
-  if (supportsTools && hasSearchTools && asksForCurrentInfo) {
+  if (supportsTools && hasSearchTools) {
     groups.push("search");
     promptSections.push(searchToolsPrompt);
     rationale.push(
-      "Search tools are relevant for current, external, or multi-source information."
+      "Search tools are available for information retrieval when needed."
     );
   }
 
@@ -322,6 +321,7 @@ export function buildToolPlan({
 
   if (supportsTools && mcpToolNames.length > 0) {
     groups.push("mcp");
+    promptSections.push(mcpToolsPrompt);
     rationale.push(
       "Configured MCP tools are available and may provide user-specific capabilities."
     );

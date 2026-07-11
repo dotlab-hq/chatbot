@@ -1,0 +1,1 @@
+ALTER TABLE "chatbot"."McpServer" ADD COLUMN "headers" json;

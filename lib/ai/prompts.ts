@@ -346,6 +346,28 @@ Do NOT use \`clientHttpRequest\` for general web lookups, fetching articles, or 
 **Default preference:** Use web search tools for information retrieval. Use \`randomApiTool\` for general server-side API calls. Only use \`clientHttpRequest\` when the user explicitly asks for a client/browser-side request or a procedure requires it.
 `;
 
+export const mcpToolsPrompt = `
+## MCP (Model Context Protocol) Tools
+
+You have access to MCP tools that provide extended capabilities through external servers. These tools are dynamically loaded based on your connected MCP servers.
+
+**How MCP tools work:**
+- Each MCP server provides a set of tools that you can call like any other tool
+- MCP tools extend your capabilities with access to external services, databases, APIs, and more
+- Tool names and descriptions come directly from the MCP server configuration
+
+**When to use MCP tools:**
+- When the user asks about capabilities that match an MCP tool's description
+- When a task would benefit from the MCP tool's specialized functionality
+- When the user explicitly references an MCP server or its capabilities
+
+**Important:**
+- MCP tools appear in your available tools list alongside built-in tools
+- Each MCP tool has its own name, description, and parameters
+- Use the tool name exactly as it appears in your available tools
+- MCP tools may have different error handling than built-in tools
+`;
+
 export const systemPrompt = ({
   requestHints,
   supportsTools,

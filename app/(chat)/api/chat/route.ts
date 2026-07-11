@@ -55,7 +55,7 @@ import {
 } from "@/lib/db/queries";
 import { type DBMessage, personalization } from "@/lib/db/schema";
 import { ChatbotError } from "@/lib/errors";
-import { disconnectAll } from "@/lib/mcp/client";
+import { disconnectAll, connectToMcpServer, getClient } from "@/lib/mcp/client";
 import { checkIpRateLimit } from "@/lib/ratelimit";
 import type { ChatMessage } from "@/lib/types";
 import { convertToUIMessages, generateUUID } from "@/lib/utils";
@@ -364,6 +364,26 @@ export async function POST(request: Request) {
     const stream = createUIMessageStream({
       originalMessages: isToolApprovalFlow ? uiMessages : undefined,
       execute: async ({ writer: dataStream }) => {
+        // Pre-fetch MCP tool names so the tool planner can include them
+        let mcpToolNamesForPlan: string[] = [];
+        if (supportsTools) {
+          try {
+            const mcpServers = await getMcpServersByUserId({ userId: session.user.id });
+            const enabledServers = mcpServers.filter((s) => s.enabled);
+            await Promise.all(enabledServers.map((s) => connectToMcpServer(s)));
+            for (const server of enabledServers) {
+              const client = getClient(server.id);
+              if (!client) continue;
+              const definitions = await client.listTools();
+              for (const tool of definitions.tools) {
+                mcpToolNamesForPlan.push(tool.name);
+              }
+            }
+          } catch {
+            // non-catalytic, continue without MCP
+          }
+        }
+
         const toolPlan = buildToolPlan({
           query: latestUserQuery,
           supportsTools,
@@ -372,7 +392,7 @@ export async function POST(request: Request) {
           hasSearchTools: Boolean(
             process.env.OPENSERP_API_KEY || process.env.OPENSERP_BASE_URL
           ),
-          mcpToolNames: [],
+          mcpToolNames: mcpToolNamesForPlan,
         });
 
         writeToolPlanEvent(dataStream, toolPlan);

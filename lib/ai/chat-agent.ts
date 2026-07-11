@@ -108,6 +108,8 @@ export type CreateChatAgentParams = {
   chatProjectId?: string | null;
   enabledSkillsForInference: Array<{ providerReference: string | null }>;
   toolPlan?: ToolPlan;
+  /** Pre-connected MCP tool names (skips MCP connection inside createChatAgent) */
+  mcpToolNamesForAgent?: string[];
 };
 
 /**
