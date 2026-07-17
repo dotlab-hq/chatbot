@@ -159,10 +159,15 @@ function createOAuthProvider(
   const tokens = server.oauthTokens as
     | Parameters<OAuthClientProvider["saveTokens"]>[0]
     | undefined;
-  const clientInformation = server.oauthClientInformation as Awaited<
+  const storedClientInformation = server.oauthClientInformation as Awaited<
     ReturnType<NonNullable<OAuthClientProvider["clientInformation"]>>
   >;
   let codeVerifier = server.oauthCodeVerifier ?? "";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const redirectUrl = new URL(
+    `/api/mcp-servers/oauth/callback?serverId=${encodeURIComponent(server.id)}`,
+    `${appUrl.replace(/\/$/, "")}/`
+  ).toString();
   return {
     tokens: () => tokens,
     saveTokens: async (next) => {
@@ -177,7 +182,7 @@ function createOAuthProvider(
     },
     codeVerifier: () => codeVerifier,
     get redirectUrl() {
-      return `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/mcp-servers/oauth/callback?serverId=${encodeURIComponent(server.id)}`;
+      return redirectUrl;
     },
     get clientMetadata() {
       return {
@@ -188,9 +193,27 @@ function createOAuthProvider(
         token_endpoint_auth_method: "none",
       };
     },
-    clientInformation: () => clientInformation,
+    // A dynamic OAuth client is bound to the redirect URI it was registered
+    // with. If NEXT_PUBLIC_APP_URL changes, reusing the old client causes
+    // Notion to reject the authorization request with invalid_redirect_uri.
+    clientInformation: () => {
+      if (!storedClientInformation) {
+        return undefined;
+      }
+      const redirectUris =
+        (
+          storedClientInformation as typeof storedClientInformation & {
+            redirect_uris?: string[];
+          }
+        ).redirect_uris ?? [];
+      return redirectUris.includes(redirectUrl)
+        ? storedClientInformation
+        : undefined;
+    },
     saveClientInformation: async (value) => {
-      await persistOAuth(server.id, { oauthClientInformation: value });
+      await persistOAuth(server.id, {
+        oauthClientInformation: { ...value, redirect_uris: [redirectUrl] },
+      });
     },
     validateAuthorizationServerURL: (serverUrl, authorizationServerUrl) => {
       const requested = new URL(authorizationServerUrl).origin;

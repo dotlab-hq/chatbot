@@ -1578,7 +1578,7 @@ function McpTab() {
       )}
 
       <CreateDialog onOpenChange={setShowCreate} open={showCreate}>
-        <CreateDialogContent className="max-h-[85vh] overflow-y-auto">
+        <CreateDialogContent className="max-h-[85vh] max-w-[calc(100vw-2rem)] min-w-0 overflow-y-auto">
           <CreateDialogHeader>
             <CreateDialogTitle>
               {editingServer ? "Edit MCP Server" : "Add MCP Server"}
@@ -1692,8 +1692,9 @@ function McpTab() {
                 </Button>
               </div>
               {showHeaders && (
-                <div className="space-y-2 rounded-lg border border-border/50 bg-muted/20 p-4">
+                <div className="min-w-0 max-w-full space-y-2 overflow-hidden rounded-lg border border-border/50 bg-muted/20 p-4">
                   <Textarea
+                    className="max-w-full overflow-x-auto whitespace-pre"
                     id="mcp-headers"
                     onChange={(e) => setFormHeaders(e.target.value)}
                     placeholder={"Authorization: Bearer token\nX-Custom: value"}
@@ -1803,12 +1804,14 @@ function McpTab() {
         }}
         open={!!testError}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-[calc(100vw-2rem)] min-w-0">
           <AlertDialogHeader>
             <AlertDialogTitle>MCP connection failed</AlertDialogTitle>
-            <AlertDialogDescription className="whitespace-pre-wrap break-words">
-              {testError}
-            </AlertDialogDescription>
+            <div className="max-h-[50vh] max-w-full overflow-auto rounded-md border border-border/50 bg-muted/30 p-3 text-sm text-muted-foreground">
+              <AlertDialogDescription className="whitespace-pre">
+                {testError}
+              </AlertDialogDescription>
+            </div>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogAction onClick={() => setTestError(null)}>
