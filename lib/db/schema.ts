@@ -350,6 +350,11 @@ export const personalization = chatbot.table("Personalization", {
   })
     .notNull()
     .default("default"),
+  tone: varchar("tone", {
+    enum: ["default", "neutral", "warm", "direct", "playful", "formal"],
+  })
+    .notNull()
+    .default("default"),
   warm: varchar("warm", { enum: ["default", "more", "less"] })
     .notNull()
     .default("default"),

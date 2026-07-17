@@ -89,6 +89,7 @@ export const generateImageTool = tool({
 
       return {
         prompt,
+        model: "gpt-image-1",
         count: generated.length,
         images: generated,
         display,

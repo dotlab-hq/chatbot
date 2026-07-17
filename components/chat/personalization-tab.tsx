@@ -17,6 +17,7 @@ type AiSettings = {
     | "quirky"
     | "efficient"
     | "cynical";
+  tone: "default" | "neutral" | "warm" | "direct" | "playful" | "formal";
   warm: "default" | "more" | "less";
   enthusiastic: "default" | "more" | "less";
   headersAndLists: "default" | "more" | "less";
@@ -29,6 +30,7 @@ type AiSettings = {
 
 const DEFAULTS: AiSettings = {
   baseStyle: "default",
+  tone: "default",
   warm: "default",
   enthusiastic: "default",
   headersAndLists: "default",
@@ -76,6 +78,15 @@ const CHARACTERISTICS = [
   },
 ] as const;
 
+const TONES = [
+  ["default", "Default"],
+  ["neutral", "Neutral"],
+  ["warm", "Warm"],
+  ["direct", "Direct"],
+  ["playful", "Playful"],
+  ["formal", "Formal"],
+] as const;
+
 const LEVEL_OPTIONS = [
   {
     value: "more",
@@ -102,6 +113,7 @@ async function fetchAiSettings(): Promise<AiSettings> {
     baseStyle:
       (data.settings.baseStyle as AiSettings["baseStyle"]) ||
       DEFAULTS.baseStyle,
+    tone: (data.settings.tone as AiSettings["tone"]) || DEFAULTS.tone,
     warm: (data.settings.warm as AiSettings["warm"]) || DEFAULTS.warm,
     enthusiastic:
       (data.settings.enthusiastic as AiSettings["enthusiastic"]) ||
@@ -234,6 +246,28 @@ export function PersonalizationTab() {
             </svg>
           </div>
         </div>
+      </section>
+
+      {/* ── Characteristics ── */}
+      <section className="rounded-lg border border-border/50 bg-card p-3 space-y-3">
+        <div>
+          <h3 className="text-xs font-medium text-foreground">Tone</h3>
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            Choose the emotional register for responses.
+          </p>
+        </div>
+        <select
+          aria-label="Response tone"
+          className="w-full h-9 rounded-lg border border-border/50 bg-input/30 px-3 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 cursor-pointer"
+          onChange={(e) => update("tone", e.target.value as AiSettings["tone"])}
+          value={settings.tone}
+        >
+          {TONES.map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
       </section>
 
       {/* ── Characteristics ── */}

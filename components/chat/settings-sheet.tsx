@@ -27,7 +27,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { GeneralTab } from "@/components/chat/general-tab";
-import { PersonalizationTab } from "@/components/chat/personalize-tab";
+import { PersonalizationTab } from "@/components/chat/personalization-tab";
 import { SkillsTab } from "@/components/chat/skills-tab";
 import {
   AlertDialog,
@@ -445,7 +445,9 @@ function AccountTab() {
               {user?.email}
             </p>
             <span className="mt-1 inline-flex rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600">
-              {user?.emailVerified || user?.email?.endsWith("@guest.local") ? "Email verified" : "Email not verified"}
+              {user?.emailVerified || user?.email?.endsWith("@guest.local")
+                ? "Email verified"
+                : "Email not verified"}
             </span>
             <p className="text-[10px] text-muted-foreground/70 mt-0.5">
               Member since{" "}

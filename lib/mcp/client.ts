@@ -24,6 +24,11 @@ export function getAllConnections() {
 
 export async function connectToMcpServer(server: McpServer) {
   try {
+    // Replace a stale connection before reconnecting. Streamable HTTP servers
+    // commonly expire sessions while the process remains alive.
+    if (clients.has(server.id)) {
+      await disconnectFromMcpServer(server.id);
+    }
     const transport = buildTransport(server);
 
     // Extract headers from server configuration and apply them to the MCP client

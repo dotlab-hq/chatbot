@@ -14,6 +14,7 @@ type VisualSettings = {
 
 type AiSettings = {
   baseStyle: string;
+  tone: string;
   warm: string;
   enthusiastic: string;
   headersAndLists: string;
@@ -36,6 +37,7 @@ const VISUAL_DEFAULTS: VisualSettings = {
 
 const AI_DEFAULTS: AiSettings = {
   baseStyle: "default",
+  tone: "default",
   warm: "default",
   enthusiastic: "default",
   headersAndLists: "default",
@@ -74,6 +76,7 @@ export async function GET() {
         spacing: r.spacing,
         showAvatars: r.showAvatars,
         baseStyle: r.baseStyle,
+        tone: r.tone,
         warm: r.warm,
         enthusiastic: r.enthusiastic,
         headersAndLists: r.headersAndLists,
@@ -117,6 +120,9 @@ export async function PATCH(request: Request) {
     }
     if (body.baseStyle !== undefined) {
       updateData.baseStyle = body.baseStyle;
+    }
+    if (body.tone !== undefined) {
+      updateData.tone = body.tone;
     }
     if (body.warm !== undefined) {
       updateData.warm = body.warm;

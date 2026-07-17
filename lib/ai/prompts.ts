@@ -108,6 +108,7 @@ About the origin of user's request:
 
 export type PersonalizationHints = {
   baseStyle?: string;
+  tone?: string;
   warm?: string;
   enthusiastic?: string;
   headersAndLists?: string;
@@ -128,6 +129,14 @@ const STYLE_PROMPTS: Record<string, string> = {
   cynical: "Respond in a critical, sarcastic, and dry tone.",
 };
 
+const TONE_PROMPTS: Record<string, string> = {
+  neutral: "Keep the tone neutral, clear, and balanced.",
+  warm: "Use a warm, considerate, and human tone.",
+  direct: "Use a direct, confident, and no-nonsense tone.",
+  playful: "Use a light, playful tone when it fits the request.",
+  formal: "Use a formal, measured, and polished tone.",
+};
+
 function buildPersonalizationPrompt(hints: PersonalizationHints): string {
   const parts: string[] = [];
 
@@ -137,6 +146,10 @@ function buildPersonalizationPrompt(hints: PersonalizationHints): string {
     if (style) {
       parts.push(style);
     }
+  }
+
+  if (hints.tone && hints.tone !== "default" && TONE_PROMPTS[hints.tone]) {
+    parts.push(TONE_PROMPTS[hints.tone]);
   }
 
   // Characteristics
@@ -353,13 +366,11 @@ Check where a domain ranks in search results for a set of keywords. Use this for
 - You are unsure about something and search would help provide an accurate answer
 
 ### \`generateImageTool\`
-Generate images from a text prompt. Supports 1-4 parallel images rendered as a collage (\`count\`). Use this whenever the user asks you to draw, create, generate, or make an image, picture, illustration, logo, or photo — including variations or a collage.
+Generate images from a text prompt using the configured native image model. Use this whenever the user asks you to draw, create, generate, or make an image, picture, illustration, logo, or photo. When reporting the result, identify the model returned by the tool.
 
-**Display control:** the tool accepts a \`display\` input.
-- \`display: "on"\` — the generated images render as a collage directly in the chat UI.
-- \`display: "off"\` (default) — images are generated but not shown; describe what you made in your response text instead.
+If an enabled MCP server exposes an image-generation tool in the MCP Tool Context, use that MCP tool when it is the relevant match. Never claim an imagegen MCP exists unless it appears there, and never invent a model name when the tool did not return model metadata.
 
-Pass \`display: "on"\` only when the user explicitly wants to see the images inline. By default keep it \`"off"\` and summarize what you generated in your own words.
+The native image model returns generated image data for the chat UI. Do not describe an unsupported fast-generation mode or resolution tier; this app uses its configured image model and its supported sizes.
 `;
 
 export const httpToolsPrompt = `
@@ -462,7 +473,7 @@ ${toolPlanSummary.rationale.map((item) => `- ${item}`).join("\n")}
 If the user's request changes during the turn, adapt within the active tools instead of forcing unrelated tools into the response.`;
 
     if (toolPlanSummary.mcpToolDescriptions?.length) {
-      prompt += `\n\n## MCP Tool Context\n${toolPlanSummary.mcpToolDescriptions.map((item) => `- ${item}`).join("\n")}`;
+      prompt += `\n\n## MCP Tool Context\nThe following MCP servers and tools are configured for this request. Treat a discovered tool as available and use it when relevant. If a server is marked connection failed or tool discovery pending, explain that connection state instead of claiming the server was never configured.\n${toolPlanSummary.mcpToolDescriptions.map((item) => `- ${item}`).join("\n")}`;
     }
   }
 

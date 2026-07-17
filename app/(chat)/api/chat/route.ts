@@ -357,6 +357,7 @@ export async function POST(request: Request) {
         const p = pRow[0];
         personalizationData = {
           baseStyle: p.baseStyle,
+          tone: p.tone,
           warm: p.warm,
           enthusiastic: p.enthusiastic,
           headersAndLists: p.headersAndLists,
@@ -431,6 +432,11 @@ export async function POST(request: Request) {
             userId: session.user.id,
           });
           const enabledServers = mcpServers.filter((s) => s.enabled);
+          for (const server of enabledServers) {
+            mcpToolDescriptions.push(
+              `${server.name} (MCP server): configured with ${server.transport}${server.url ? ` at ${server.url}` : ""}; tool discovery pending`
+            );
+          }
           await Promise.all(
             enabledServers.map((s) =>
               connectToMcpServer(s).then((res) => {
@@ -438,6 +444,9 @@ export async function POST(request: Request) {
                   console.error(
                     `[MCP] connect failed for ${s.name}:`,
                     res.error
+                  );
+                  mcpToolDescriptions.push(
+                    `${s.name} (MCP server): connection failed — ${res.error}`
                   );
                 }
               })
@@ -452,7 +461,9 @@ export async function POST(request: Request) {
               const definitions = await client.listTools();
               for (const tool of definitions.tools) {
                 mcpToolNamesForPlan.push(tool.name);
-                mcpToolDescriptions.push(`${server.name}.${tool.name}: ${tool.description || "No description provided"}`);
+                mcpToolDescriptions.push(
+                  `${server.name} (MCP): ${tool.name} — ${tool.description || "No description provided"}`
+                );
               }
             } catch (error) {
               console.error(

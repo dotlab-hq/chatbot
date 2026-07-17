@@ -215,13 +215,12 @@ export function GeneralTab() {
       setSettings(merged);
       applyToDOM(merged);
       writeLocal(merged);
-      setMode("light");
       setLoaded(true);
     })();
     return () => {
       cancelled = true;
     };
-  }, [setMode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const scheduleSave = useCallback((next: Settings) => {
     if (saveTimer.current) {
@@ -255,14 +254,13 @@ export function GeneralTab() {
       clearDOM();
       setSettings(defaults);
       writeLocal(defaults);
-      setMode("light");
       toast.success("Settings reset to defaults");
     } catch {
       toast.error("Failed to reset settings");
     } finally {
       setResetting(false);
     }
-  }, [setMode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!loaded) {
     return (

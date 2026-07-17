@@ -1,0 +1,1 @@
+ALTER TABLE "chatbot"."Personalization" ADD COLUMN "tone" varchar DEFAULT 'default' NOT NULL;
