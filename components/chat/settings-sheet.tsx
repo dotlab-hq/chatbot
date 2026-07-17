@@ -124,6 +124,7 @@ type McpServer = {
   command: string | null;
   args: string[] | null;
   headers: Record<string, string> | null;
+  oauthEnabled?: boolean;
   enabled: boolean;
   lastConnectedAt: string | null;
   createdAt: string;
@@ -1215,6 +1216,8 @@ function McpTab() {
   const [formArgs, setFormArgs] = useState("");
   const [formHeaders, setFormHeaders] = useState("");
   const [showHeaders, setShowHeaders] = useState(true);
+  const [formOAuth, setFormOAuth] = useState(false);
+  const [testError, setTestError] = useState<string | null>(null);
   const [testState, setTestState] = useState<
     | { status: "idle" }
     | { status: "testing" }
@@ -1249,6 +1252,8 @@ function McpTab() {
     setFormArgs("");
     setFormHeaders("");
     setShowHeaders(true);
+    setFormOAuth(false);
+    setTestError(null);
     setTestState({ status: "idle" });
   };
   const openCreate = () => {
@@ -1272,6 +1277,7 @@ function McpTab() {
         : ""
     );
     setShowHeaders(!!server.headers && Object.keys(server.headers).length > 0);
+    setFormOAuth(Boolean(server.oauthEnabled));
     setShowCreate(true);
   };
 
@@ -1302,6 +1308,7 @@ function McpTab() {
                 {} as Record<string, string>
               )
           : undefined,
+        oauthEnabled: formOAuth,
       };
       const url = editingServer
         ? `/api/mcp-servers?id=${editingServer.id}`
@@ -1339,9 +1346,16 @@ function McpTab() {
       toast.error("Command is required for stdio transport");
       return;
     }
+    if (formOAuth && !editingServer) {
+      setTestError(
+        "Save this MCP server first, then reopen it to authorize OAuth."
+      );
+      return;
+    }
     setTestState({ status: "testing" });
     try {
       const payload = {
+        id: editingServer?.id,
         name: formName.trim(),
         transport: formTransport,
         url: formUrl.trim() || undefined,
@@ -1360,6 +1374,7 @@ function McpTab() {
                 {} as Record<string, string>
               )
           : undefined,
+        oauthEnabled: formOAuth,
       };
       const r = await fetch("/api/mcp-servers?action=test", {
         method: "POST",
@@ -1370,6 +1385,7 @@ function McpTab() {
         ok?: boolean;
         toolCount?: number;
         error?: string;
+        authorizationUrl?: string;
       };
       if (data.ok) {
         setTestState({ status: "ok", toolCount: data.toolCount ?? 0 });
@@ -1379,13 +1395,22 @@ function McpTab() {
             : "Connected (no tools exposed)"
         );
       } else {
+        setTestError(data.error ?? "Connection failed");
+        if (data.authorizationUrl) {
+          window.open(
+            data.authorizationUrl,
+            "mcp-oauth",
+            "width=600,height=760"
+          );
+        }
         setTestState({
           status: "error",
           error: data.error ?? "Connection failed",
         });
-        toast.error("Connection failed — see details below");
+        toast.error("Connection failed — see details in the dialog");
       }
     } catch {
+      setTestError("Request failed");
       setTestState({ status: "error", error: "Request failed" });
       toast.error("Connection test failed");
     }
@@ -1681,6 +1706,16 @@ function McpTab() {
                 </div>
               )}
             </div>
+            {formTransport !== "stdio" && (
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  checked={formOAuth}
+                  onChange={(e) => setFormOAuth(e.target.checked)}
+                  type="checkbox"
+                />
+                Use OAuth for this MCP server
+              </label>
+            )}
             <CreateDialogFooter className="flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-between">
               <Button
                 disabled={testState.status === "testing"}
@@ -1693,21 +1728,13 @@ function McpTab() {
                 ) : (
                   <Server className="size-4" />
                 )}
-                Test connection
+                {formOAuth ? "Authorize with OAuth" : "Test connection"}
               </Button>
               <div className="flex items-center gap-2">
                 {testState.status === "ok" && (
                   <span className="text-xs text-green-600">
                     ✓ {testState.toolCount} tool
                     {testState.toolCount === 1 ? "" : "s"}
-                  </span>
-                )}
-                {testState.status === "error" && (
-                  <span
-                    className="max-w-[220px] truncate text-xs text-destructive"
-                    title={testState.error}
-                  >
-                    ✕ {testState.error}
                   </span>
                 )}
                 <Button
@@ -1763,6 +1790,29 @@ function McpTab() {
               }}
             >
               Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        onOpenChange={(open) => {
+          if (!open) {
+            setTestError(null);
+          }
+        }}
+        open={!!testError}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>MCP connection failed</AlertDialogTitle>
+            <AlertDialogDescription className="whitespace-pre-wrap break-words">
+              {testError}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setTestError(null)}>
+              Close
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -536,6 +536,13 @@ export const mcpServer = chatbot.table(
     args: json("args").$type<string[]>(),
     env: json("env").$type<Record<string, string>>(),
     headers: json("headers").$type<Record<string, string>>(),
+    oauthEnabled: boolean("oauth_enabled").notNull().default(false),
+    oauthTokens: json("oauth_tokens").$type<Record<string, unknown>>(),
+    oauthClientInformation: json("oauth_client_information").$type<
+      Record<string, unknown>
+    >(),
+    oauthCodeVerifier: text("oauth_code_verifier"),
+    oauthState: text("oauth_state"),
     userId: text("userId")
       .notNull()
       .references(() => user.id),

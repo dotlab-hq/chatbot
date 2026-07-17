@@ -35,7 +35,16 @@ export async function POST(request: Request) {
     if (body.id) {
       config = await getMcpServerById({ id: String(body.id) });
     } else {
-      const { name, transport, url, command, args, env, headers } = body;
+      const {
+        name,
+        transport,
+        url,
+        command,
+        args,
+        env,
+        headers,
+        oauthEnabled,
+      } = body;
       if (!transport) {
         return new ChatbotError(
           "bad_request:api",
@@ -52,6 +61,7 @@ export async function POST(request: Request) {
         args: args ?? null,
         env: env ?? null,
         headers: headers ?? null,
+        oauthEnabled: oauthEnabled ?? false,
         userId: session.user.id,
         enabled: true,
         lastConnectedAt: null,
@@ -68,22 +78,35 @@ export async function POST(request: Request) {
     // Best-effort cleanup of the throwaway test client; ignore if already gone.
     await disconnectFromMcpServer("test").catch(() => undefined);
     if (result.error) {
-      return Response.json({ ok: false, error: result.error });
+      return Response.json({
+        ok: false,
+        error: result.error,
+        authorizationUrl: result.authorizationUrl,
+      });
     }
     return Response.json({ ok: true, toolCount: result.toolCount ?? 0 });
   }
 
   const body = await request.json();
-  const { name, description, transport, url, command, args, headers } =
-    body as {
-      name: string;
-      description?: string;
-      transport: "stdio" | "sse" | "streamable-http";
-      url?: string;
-      command?: string;
-      args?: string[];
-      headers?: Record<string, string>;
-    };
+  const {
+    name,
+    description,
+    transport,
+    url,
+    command,
+    args,
+    headers,
+    oauthEnabled,
+  } = body as {
+    name: string;
+    description?: string;
+    transport: "stdio" | "sse" | "streamable-http";
+    url?: string;
+    command?: string;
+    args?: string[];
+    headers?: Record<string, string>;
+    oauthEnabled?: boolean;
+  };
 
   if (!name?.trim()) {
     return new ChatbotError(
@@ -115,6 +138,7 @@ export async function POST(request: Request) {
     command: command?.trim(),
     args,
     headers,
+    oauthEnabled,
   });
 
   return Response.json({ server }, { status: 201 });
@@ -127,17 +151,27 @@ export async function PATCH(request: Request) {
   }
 
   const body = await request.json();
-  const { id, enabled, name, transport, url, command, args, headers } =
-    body as {
-      id?: string;
-      enabled?: boolean;
-      name?: string;
-      transport?: "stdio" | "sse" | "streamable-http";
-      url?: string;
-      command?: string;
-      args?: string[];
-      headers?: Record<string, string>;
-    };
+  const {
+    id,
+    enabled,
+    name,
+    transport,
+    url,
+    command,
+    args,
+    headers,
+    oauthEnabled,
+  } = body as {
+    id?: string;
+    enabled?: boolean;
+    name?: string;
+    transport?: "stdio" | "sse" | "streamable-http";
+    url?: string;
+    command?: string;
+    args?: string[];
+    headers?: Record<string, string>;
+    oauthEnabled?: boolean;
+  };
 
   // Support id from query params as well
   const { searchParams } = new URL(request.url);
@@ -159,6 +193,7 @@ export async function PATCH(request: Request) {
     command,
     args,
     headers,
+    oauthEnabled,
   });
 
   return Response.json({ server: updated });

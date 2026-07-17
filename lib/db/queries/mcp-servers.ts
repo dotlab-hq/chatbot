@@ -12,6 +12,7 @@ export async function createMcpServer({
   args,
   env,
   headers,
+  oauthEnabled,
   userId,
 }: {
   name: string;
@@ -22,6 +23,7 @@ export async function createMcpServer({
   args?: string[];
   env?: Record<string, string>;
   headers?: Record<string, string>;
+  oauthEnabled?: boolean;
   userId: string;
 }): Promise<McpServer> {
   try {
@@ -36,6 +38,7 @@ export async function createMcpServer({
         args,
         env,
         headers,
+        oauthEnabled,
         userId,
       })
       .returning();
@@ -93,6 +96,7 @@ export async function updateMcpServer({
   args,
   env,
   headers,
+  oauthEnabled,
   enabled,
 }: {
   id: string;
@@ -104,6 +108,7 @@ export async function updateMcpServer({
   args?: string[];
   env?: Record<string, string> | null;
   headers?: Record<string, string> | null;
+  oauthEnabled?: boolean;
   enabled?: boolean;
 }): Promise<McpServer | null> {
   try {
@@ -131,6 +136,9 @@ export async function updateMcpServer({
     }
     if (headers !== undefined) {
       updates.headers = headers;
+    }
+    if (oauthEnabled !== undefined) {
+      updates.oauthEnabled = oauthEnabled;
     }
     if (enabled !== undefined) {
       updates.enabled = enabled;

@@ -2,6 +2,7 @@ import {
   createMCPClient,
   type MCPClient,
   mcpAppClientCapabilities,
+  type OAuthClientProvider,
 } from "@ai-sdk/mcp";
 import { Experimental_StdioMCPTransport } from "@ai-sdk/mcp/mcp-stdio";
 import type { ToolSet } from "ai";
@@ -23,13 +24,16 @@ export function getAllConnections() {
 // ─── Connect / Disconnect ───────────────────────────────────────────────────────
 
 export async function connectToMcpServer(server: McpServer) {
+  let authorizationUrl: string | undefined;
   try {
     // Replace a stale connection before reconnecting. Streamable HTTP servers
     // commonly expire sessions while the process remains alive.
     if (clients.has(server.id)) {
       await disconnectFromMcpServer(server.id);
     }
-    const transport = buildTransport(server);
+    const transport = buildTransport(server, (url) => {
+      authorizationUrl = url.toString();
+    });
 
     // Extract headers from server configuration and apply them to the MCP client
     const client = await createMCPClient({
@@ -48,9 +52,28 @@ export async function connectToMcpServer(server: McpServer) {
   } catch (error) {
     return {
       serverId: server.id,
+      authorizationUrl,
       error: error instanceof Error ? error.message : "Unknown error",
     };
   }
+}
+
+export async function completeMcpOAuth(
+  server: McpServer,
+  authorizationCode: string,
+  callbackState?: string
+) {
+  const { auth } = await import("@ai-sdk/mcp");
+  let authorizationUrl: string | undefined;
+  const provider = createOAuthProvider(server, (url) => {
+    authorizationUrl = url.toString();
+  });
+  const result = await auth(provider, {
+    serverUrl: server.url ?? "",
+    authorizationCode,
+    callbackState,
+  });
+  return { result, authorizationUrl };
 }
 
 export async function disconnectFromMcpServer(serverId: string) {
@@ -84,7 +107,13 @@ export function getAllClients(): Map<string, MCPClient> {
 
 // ─── Transport Builder ──────────────────────────────────────────────────────────
 
-function buildTransport(server: McpServer) {
+function buildTransport(
+  server: McpServer,
+  onAuthorizationUrl: (url: URL) => void
+) {
+  const authProvider: OAuthClientProvider | undefined = server.oauthEnabled
+    ? createOAuthProvider(server, onAuthorizationUrl)
+    : undefined;
   switch (server.transport) {
     case "stdio": {
       if (!server.command) {
@@ -104,6 +133,8 @@ function buildTransport(server: McpServer) {
         type: "sse" as const,
         url: server.url,
         headers: server.headers === null ? undefined : server.headers,
+        authProvider,
+        redirect: "follow" as const,
       };
     case "streamable-http":
       if (!server.url) {
@@ -113,8 +144,70 @@ function buildTransport(server: McpServer) {
         type: "http" as const,
         url: server.url,
         headers: server.headers === null ? undefined : server.headers,
+        authProvider,
+        redirect: "follow" as const,
       };
     default:
       throw new Error(`Unsupported transport: ${server.transport}`);
   }
+}
+
+function createOAuthProvider(
+  server: McpServer,
+  onAuthorizationUrl: (url: URL) => void
+): OAuthClientProvider {
+  const tokens = server.oauthTokens as
+    | Parameters<OAuthClientProvider["saveTokens"]>[0]
+    | undefined;
+  const clientInformation = server.oauthClientInformation as Awaited<
+    ReturnType<NonNullable<OAuthClientProvider["clientInformation"]>>
+  >;
+  let codeVerifier = server.oauthCodeVerifier ?? "";
+  return {
+    tokens: () => tokens,
+    saveTokens: async (next) => {
+      await persistOAuth(server.id, { oauthTokens: next });
+    },
+    redirectToAuthorization: (url) => {
+      onAuthorizationUrl(url);
+    },
+    saveCodeVerifier: async (value) => {
+      codeVerifier = value;
+      await persistOAuth(server.id, { oauthCodeVerifier: value });
+    },
+    codeVerifier: () => codeVerifier,
+    get redirectUrl() {
+      return `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/mcp-servers/oauth/callback?serverId=${encodeURIComponent(server.id)}`;
+    },
+    get clientMetadata() {
+      return {
+        client_name: "Watt AI",
+        redirect_uris: [this.redirectUrl.toString()],
+        grant_types: ["authorization_code", "refresh_token"],
+        response_types: ["code"],
+        token_endpoint_auth_method: "none",
+      };
+    },
+    clientInformation: () => clientInformation,
+    saveClientInformation: async (value) => {
+      await persistOAuth(server.id, { oauthClientInformation: value });
+    },
+    validateAuthorizationServerURL: (serverUrl, authorizationServerUrl) => {
+      const requested = new URL(authorizationServerUrl).origin;
+      const serverOrigin = new URL(serverUrl).origin;
+      if (requested !== serverOrigin && !requested.endsWith(".notion.so")) {
+        throw new Error("OAuth authorization server is not trusted");
+      }
+    },
+  };
+}
+
+async function persistOAuth(id: string, values: Record<string, unknown>) {
+  const { db } = await import("@/lib/db");
+  const { mcpServer } = await import("@/lib/db/schema");
+  const { eq } = await import("drizzle-orm");
+  await db
+    .update(mcpServer)
+    .set({ ...values, updatedAt: new Date() })
+    .where(eq(mcpServer.id, id));
 }
