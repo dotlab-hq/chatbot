@@ -19,6 +19,7 @@ import {
   createTodoTool,
   currencyConverter,
   editDocument,
+  generateImageTool,
   getWeather,
   localTime,
   playVideo,
@@ -242,6 +243,7 @@ export async function createChatAgent(params: CreateChatAgentParams) {
     ),
     clientHttpRequest,
     playVideo,
+    generateImageTool,
     manageTodoList: createTodoTool(dataStream),
     ...(process.env.OPENSERP_API_KEY || process.env.OPENSERP_BASE_URL
       ? {
@@ -272,6 +274,7 @@ export async function createChatAgent(params: CreateChatAgentParams) {
     "researchTool",
     "clientHttpRequest",
     "playVideo",
+    "generateImageTool",
     "manageTodoList",
     ...(process.env.OPENSERP_API_KEY || process.env.OPENSERP_BASE_URL
       ? [

@@ -27,6 +27,7 @@ import { DocumentToolResult } from "@/components/chat/document";
 import { DocumentPreview } from "@/components/chat/document-preview";
 import { SparklesIcon } from "@/components/chat/icons";
 import { ImageCarousel } from "@/components/chat/image-carousel";
+import { ImageGrid } from "@/components/chat/image-grid";
 import { LocalTime } from "@/components/chat/local-time";
 import {
   getMCPAppMetadata,
@@ -49,6 +50,7 @@ import { UnitConverter } from "@/components/chat/unit-converter";
 import { VideoInline } from "@/components/chat/video-inline";
 import { Weather } from "@/components/chat/weather";
 import { ShimmeringText } from "@/components/ui/shimmering-text";
+import type { GeneratedImage } from "@/lib/ai/tools/generate-image";
 import type { Vote } from "@/lib/db/schema";
 import type { ChatMessage } from "@/lib/types";
 import { cn, sanitizeText } from "@/lib/utils";
@@ -461,6 +463,23 @@ const PurePreviewMessage = ({
           </ToolContent>
         </Tool>
       );
+    }
+
+    if ((type as string) === "tool-generateImageTool") {
+      const { state } = part as { state?: string };
+
+      if (
+        state === "output-available" &&
+        (part as { output?: unknown }).output
+      ) {
+        const images = (part as { output?: { images?: GeneratedImage[] } })
+          .output?.images;
+        if (images?.length) {
+          return <ImageGrid images={images} key={key} />;
+        }
+      }
+
+      return null;
     }
 
     if (type === "tool-renderCards") {

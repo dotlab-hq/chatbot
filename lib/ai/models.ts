@@ -28,6 +28,12 @@ export const chatModels: ChatModel[] = [
     provider: "anthropic",
     description: "Flagship model with tool use and vision",
   },
+  {
+    id: "gpt-image-1",
+    name: "GPT Image 1",
+    provider: "openai",
+    description: "Image generation model — generate images from text prompts",
+  },
   // {
   //   id: "gpt-4.1-mini",
   //   name: "GPT 4.1 Mini",

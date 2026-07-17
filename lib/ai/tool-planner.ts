@@ -20,7 +20,8 @@ export type ToolPlanGroup =
   | "subagents"
   | "parallel"
   | "todo"
-  | "mcp";
+  | "mcp"
+  | "image";
 
 export type ToolPlan = {
   query: string;
@@ -65,6 +66,8 @@ const PROJECT_TOOLS = [
   "listProjectFiles",
   "getFileContent",
 ];
+
+const IMAGE_TOOLS = ["generateImageTool"];
 
 const MEMORY_TOOLS = [
   "saveMemory",
@@ -212,6 +215,22 @@ export function buildToolPlan({
     "client side",
   ]);
 
+  const asksForImage = includesAny(normalizedQuery, [
+    "image",
+    "picture",
+    "photo",
+    "draw",
+    "generate an image",
+    "create an image",
+    "make an image",
+    "illustration",
+    "logo",
+    "artwork",
+    "paint",
+    "render an image",
+    "collage",
+  ]);
+
   const asksForParallel = includesAny(normalizedQuery, [
     "compare",
     "several",
@@ -327,6 +346,13 @@ export function buildToolPlan({
     );
   }
 
+  if (supportsTools && asksForImage) {
+    groups.push("image");
+    rationale.push(
+      "Image generation is relevant because the user asked for an image/picture/illustration."
+    );
+  }
+
   if (supportsTools && !promptSections.includes(httpToolsPrompt)) {
     promptSections.push(httpToolsPrompt);
   }
@@ -344,6 +370,7 @@ export function buildToolPlan({
           ...(groups.includes("subagents") ? SUBAGENT_TOOLS : []),
           ...(groups.includes("parallel") ? PARALLEL_TOOLS : []),
           ...(groups.includes("todo") ? TODO_TOOLS : []),
+          ...(groups.includes("image") ? IMAGE_TOOLS : []),
           ...mcpToolNames,
         ]);
 

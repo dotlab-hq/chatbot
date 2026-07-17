@@ -3,6 +3,7 @@ export { clientHttpRequest } from "./client-http-request";
 export { createDocument } from "./create-document";
 export { currencyConverter } from "./currency-converter";
 export { editDocument } from "./edit-document";
+export { generateImageTool } from "./generate-image";
 export { getWeather } from "./get-weather";
 export { localTime } from "./local-time";
 export { createMemoryTools } from "./memory";
