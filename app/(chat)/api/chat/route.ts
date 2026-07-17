@@ -119,6 +119,14 @@ export async function POST(request: Request) {
       return new ChatbotError("unauthorized:chat").toResponse();
     }
 
+    const isGuest = session.user.email.endsWith("@guest.local");
+    if (!session.user.emailVerified && !isGuest) {
+      return new ChatbotError(
+        "forbidden:chat",
+        "Verify your email before generating responses"
+      ).toResponse();
+    }
+
     const chatModel = allowedModelIds.has(selectedChatModel)
       ? selectedChatModel
       : DEFAULT_CHAT_MODEL;
@@ -417,6 +425,7 @@ export async function POST(request: Request) {
         // agent register an identical set — a mismatch would cause the
         // agent's MCP tools to be filtered out by the planner.
         const mcpToolNamesForPlan: string[] = [];
+        const mcpToolDescriptions: string[] = [];
         if (supportsTools) {
           const mcpServers = await getMcpServersByUserId({
             userId: session.user.id,
@@ -443,6 +452,7 @@ export async function POST(request: Request) {
               const definitions = await client.listTools();
               for (const tool of definitions.tools) {
                 mcpToolNamesForPlan.push(tool.name);
+                mcpToolDescriptions.push(`${server.name}.${tool.name}: ${tool.description || "No description provided"}`);
               }
             } catch (error) {
               console.error(
@@ -476,6 +486,7 @@ export async function POST(request: Request) {
             activeTools: toolPlan.activeTools,
             rationale: toolPlan.rationale,
             contextManagement: toolPlan.contextManagement,
+            mcpToolDescriptions,
           },
           sessionContext,
           compactionSummary,

@@ -3,6 +3,7 @@ import { sso } from "@better-auth/sso";
 import { betterAuth } from "better-auth";
 import { admin, organization } from "better-auth/plugins";
 import { db } from "@/lib/db";
+import { sendEmail } from "@/lib/email";
 import {
   chat as chatModel,
   document as documentModel,
@@ -57,6 +58,17 @@ const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     autoLogin: false,
+    requireEmailVerification: true,
+    sendResetPassword: async ({ user, url }) => {
+      await sendEmail({ to: user.email, subject: "Reset your Watt AI password", text: `Reset your password: ${url}` });
+    },
+  },
+  emailVerification: {
+    sendOnSignUp: true,
+    sendOnSignIn: true,
+    sendVerificationEmail: async ({ user, url }) => {
+      await sendEmail({ to: user.email, subject: "Verify your Watt AI email", text: `Verify your email: ${url}` });
+    },
   },
   advanced: {
     defaultCookieAttributes: {

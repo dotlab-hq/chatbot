@@ -7,6 +7,7 @@ import { nextCookies } from "better-auth/next-js";
 import { admin, organization } from "better-auth/plugins";
 import { headers } from "next/headers";
 import { db } from "@/lib/db";
+import { sendEmail } from "@/lib/email";
 import {
   account,
   invitation,
@@ -35,6 +36,7 @@ export interface Session {
     email: string;
     name: string;
     image: string | null;
+    emailVerified: boolean;
     type: UserType;
     role: string;
   };
@@ -75,6 +77,17 @@ export const betterAuthInstance = betterAuth({
   emailAndPassword: {
     enabled: true,
     autoLogin: false,
+    requireEmailVerification: true,
+    sendResetPassword: async ({ user, url }) => {
+      await sendEmail({ to: user.email, subject: "Reset your Watt AI password", text: `Reset your password: ${url}` });
+    },
+  },
+  emailVerification: {
+    sendOnSignUp: true,
+    sendOnSignIn: true,
+    sendVerificationEmail: async ({ user, url }) => {
+      await sendEmail({ to: user.email, subject: "Verify your Watt AI email", text: `Verify your email: ${url}` });
+    },
   },
   advanced: {
     defaultCookieAttributes: {
@@ -106,6 +119,7 @@ export async function auth(): Promise<Session | null> {
       email: session.user.email || "",
       name: session.user.name || "",
       image: (u.image as string) || null,
+      emailVerified: u.emailVerified === true,
       type: (u.type as UserType) || "regular",
       role: (u.role as string) || "user",
     },

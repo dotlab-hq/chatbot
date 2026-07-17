@@ -1,6 +1,9 @@
 import { generateId } from "ai";
 import { NextResponse } from "next/server";
 import { auth, betterAuthInstance } from "@/app/(auth)/auth";
+import { eq } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { user as userTable } from "@/lib/db/schema";
 
 /**
  * Fire a request through the Better Auth handler without any wrapper.
@@ -72,6 +75,7 @@ export async function GET(request: Request) {
     } catch {
       // Non-critical — guest type just won't be persisted in the DB
     }
+    await db.update(userTable).set({ type: "guest", emailVerified: true }).where(eq(userTable.id, user.id));
   }
 
   // 4. Redirect and forward the session cookie so the browser is logged in

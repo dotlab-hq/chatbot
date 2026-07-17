@@ -48,6 +48,7 @@ function apply() {
 
 export function PersonalizationApplier() {
   useEffect(() => {
+    apply();
     fetch("/api/user/personalization")
       .then((r) => (r.ok ? r.json() : null))
       .then((data: { settings?: Record<string, string | boolean> } | null) => {

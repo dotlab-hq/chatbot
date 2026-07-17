@@ -426,6 +426,7 @@ export const systemPrompt = ({
     activeTools: string[] | "all";
     rationale: string[];
     contextManagement: string[];
+    mcpToolDescriptions?: string[];
   };
   sessionContext?: string;
   compactionSummary?: string | null;
@@ -459,6 +460,10 @@ Why these tools were selected:
 ${toolPlanSummary.rationale.map((item) => `- ${item}`).join("\n")}
 
 If the user's request changes during the turn, adapt within the active tools instead of forcing unrelated tools into the response.`;
+
+    if (toolPlanSummary.mcpToolDescriptions?.length) {
+      prompt += `\n\n## MCP Tool Context\n${toolPlanSummary.mcpToolDescriptions.map((item) => `- ${item}`).join("\n")}`;
+    }
   }
 
   if (personalization) {

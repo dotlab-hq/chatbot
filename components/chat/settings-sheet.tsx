@@ -444,6 +444,9 @@ function AccountTab() {
             <p className="text-xs text-muted-foreground truncate">
               {user?.email}
             </p>
+            <span className="mt-1 inline-flex rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600">
+              {user?.emailVerified || user?.email?.endsWith("@guest.local") ? "Email verified" : "Email not verified"}
+            </span>
             <p className="text-[10px] text-muted-foreground/70 mt-0.5">
               Member since{" "}
               {new Date(user?.createdAt ?? Date.now()).toLocaleDateString()}

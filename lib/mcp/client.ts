@@ -27,8 +27,6 @@ export async function connectToMcpServer(server: McpServer) {
     const transport = buildTransport(server);
 
     // Extract headers from server configuration and apply them to the MCP client
-    const _mcpHeaders = server.headers ?? undefined;
-
     const client = await createMCPClient({
       transport,
       maxRetries: 2,

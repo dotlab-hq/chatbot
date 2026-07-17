@@ -5,6 +5,7 @@ import { Toaster } from "sonner";
 import { auth } from "@/app/(auth)/auth";
 import { AppSidebar } from "@/components/chat/app-sidebar";
 import { DataStreamProvider } from "@/components/chat/data-stream-provider";
+import { EmailVerificationGate } from "@/components/email-verification-gate";
 import { ChatShell } from "@/components/chat/shell";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -68,6 +69,7 @@ async function SidebarShell({ children }: { children: React.ReactNode }) {
     <SidebarProvider defaultOpen={!isCollapsed}>
       <AppSidebar user={session?.user} />
       <SidebarInset>
+        <EmailVerificationGate />
         <Toaster
           position="top-center"
           theme="system"

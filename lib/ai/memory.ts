@@ -81,7 +81,17 @@ type ClientWithTopology = MongoClient & {
 
 async function connectMemory(): Promise<Db> {
   if (_db && _client && !(_client as ClientWithTopology).topology?.isClosed()) {
-    return _db;
+    try {
+      await _db.command({ ping: 1 });
+      return _db;
+    } catch {
+      // The driver can retain a client while its topology has been closed.
+      // Force a fresh connection instead of returning a dead Db handle.
+      await _client.close().catch(() => undefined);
+      _client = null;
+      _db = null;
+      _indexesEnsured = false;
+    }
   }
 
   // Topology went away — drop the dead client and rebuild.
@@ -137,6 +147,7 @@ let _indexesEnsured = false;
 
 export async function ensureIndexes(): Promise<void> {
   if (_indexesEnsured) {
+    await connectMemory();
     return;
   }
 
