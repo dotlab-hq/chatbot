@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { ArtifactKind } from "@/components/chat/artifact";
 import type { calculator } from "@/lib/ai/tools/calculator";
 import type { clientHttpRequest } from "@/lib/ai/tools/client-http-request";
+import { generateImageTool } from "@/lib/ai/tools/generate-image";
 import type { createDocument } from "@/lib/ai/tools/create-document";
 import type { currencyConverter } from "@/lib/ai/tools/currency-converter";
 import type { getWeather } from "@/lib/ai/tools/get-weather";
@@ -35,6 +36,7 @@ type requestSuggestionsTool = InferUITool<
 type playVideoTool = InferUITool<typeof playVideo>;
 type renderCardsTool = InferUITool<typeof renderCards>;
 type clientHttpRequestTool = InferUITool<typeof clientHttpRequest>;
+type generateImageToolType = InferUITool<typeof generateImageTool>;
 
 export type ChatTools = {
   getWeather: weatherTool;
@@ -49,6 +51,7 @@ export type ChatTools = {
   requestSuggestions: requestSuggestionsTool;
   renderCards: renderCardsTool;
   clientHttpRequest: clientHttpRequestTool;
+  generateImageTool: generateImageToolType;
 };
 
 export type CustomUIDataTypes = {

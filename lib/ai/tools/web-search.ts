@@ -35,8 +35,14 @@ export const webSearch = tool({
     limit: z.number().min(1).max(20).default(10).describe("Number of results"),
     region: REGION,
     lang: LANG,
+    display: z
+      .enum(["on", "off"])
+      .default("off")
+      .describe(
+        "Whether to show a search results bar in the chat UI. Default 'off'. Set to 'on' only when the user explicitly wants to see source links inline."
+      ),
   }),
-  execute: async ({ query, engine, limit, region, lang }) => {
+  execute: async ({ query, engine, limit, region, lang, display = "off" }) => {
     const client = getClient();
     const now = new Date();
     const monthYear = now.toLocaleDateString("en-US", {
@@ -134,6 +140,12 @@ export const webImageSearch = tool({
       .describe("Number of image results"),
     region: REGION,
     lang: LANG,
+    display: z
+      .enum(["on", "off"])
+      .default("off")
+      .describe(
+        "Whether to show image results inline in the chat. Default 'off'. Set to 'on' only when the user explicitly asks to see images inline."
+      ),
   }),
   execute: async ({ query, engine, limit, region, lang }) => {
     const client = getClient();

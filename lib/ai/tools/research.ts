@@ -12,7 +12,7 @@ export const researchTool = tool({
   }),
   execute: async ({ task }) => {
     return await webSearch.execute(
-      { query: task, engine: "bing", limit: 5 },
+      { query: task, engine: "bing", limit: 5, display: "off" },
       {} as any
     );
   },

@@ -19,6 +19,13 @@ export function extractSearchResults(message: ChatMessage) {
   }[] = [];
   for (const part of message.parts) {
     if (SEARCH_TOOL_TYPES.has(part.type) && "output" in part) {
+      // Only surface the sources bar when the LLM explicitly opted in via
+      // the tool's `display: "on"` input. Default is hidden.
+      const display = (part as { input?: { display?: string } }).input
+        ?.display;
+      if (display !== "on") {
+        continue;
+      }
       const output = part.output;
       if (Array.isArray(output)) {
         for (const item of output) {
@@ -65,6 +72,13 @@ export function extractImageSearchResults(message: ChatMessage) {
   }[] = [];
   for (const part of message.parts) {
     if (IMAGE_SEARCH_TOOL_TYPES.has(part.type) && "output" in part) {
+      // Only surface the image carousel when the LLM explicitly opted in
+      // via `display: "on"`. Default is hidden.
+      const display = (part as { input?: { display?: string } }).input
+        ?.display;
+      if (display !== "on") {
+        continue;
+      }
       const output = part.output;
       if (Array.isArray(output)) {
         for (const item of output) {

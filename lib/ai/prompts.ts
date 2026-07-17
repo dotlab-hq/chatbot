@@ -327,11 +327,17 @@ You have access to web search tools powered by OpenSERP. Use them proactively �
 ### \`webSearch\`
 Search the web and return results with titles, URLs, and snippets. Use this when the user asks a factual question, current events, or any question that benefits from up-to-date information.
 
+**Display control:** Both \`webSearch\` and \`webImageSearch\` accept an optional \`display\` input:
+- \`display: "on"\` — surfaces the results bar (search links / image carousel) directly in the chat UI.
+- \`display: "off"\` (default) — results stay hidden in the UI; you summarize and present findings in your response text.
+
+Only pass \`display: "on"\` when the user explicitly asks to see the source links or images inline. By default keep it \`"off"\` and describe results in your own words.
+
 ### \`webSearchExtract\`
 Search the web and extract cleaned page content from the top results. Use this when you need in-depth information from actual pages, not just snippets.
 
 ### \`webImageSearch\`
-Search for images related to a query. Returns image URLs, thumbnails, dimensions, and source pages. **Use this whenever the user asks about images, pictures, photos, or visual content.** Also proactively use it alongside \`webSearch\` when a search result would benefit from visual context — for example: "show me what this looks like", "find pictures of X", product searches, design inspiration, travel destinations, food, animals, art, architecture, or any topic where images add value. Pairing \`webImageSearch\` with \`webSearch\` gives the user both text answers and a visual carousel.
+Search for images related to a query. Returns image URLs, thumbnails, dimensions, and source pages. **Use this whenever the user asks about images, pictures, photos, or visual content.** Also proactively use it alongside \`webSearch\` when a search result would benefit from visual context — for example: "show me what this looks like", "find pictures of X", product searches, design inspiration, travel destinations, food, animals, art, architecture, or any topic where images add value. Pair with \`webSearch\` and summarize the visual findings in your text; set \`display: "on"\` only if the user explicitly wants the image carousel inline.
 
 ### \`webExtract\`
 Extract cleaned page content from a single URL as markdown. Use this when the user gives you a specific link and wants to read or summarize it.
@@ -345,6 +351,15 @@ Check where a domain ranks in search results for a set of keywords. Use this for
 - The user asks about products, services, or reviews
 - The user wants images, photos, or visual references — call \`webImageSearch\` alongside \`webSearch\`
 - You are unsure about something and search would help provide an accurate answer
+
+### \`generateImageTool\`
+Generate images from a text prompt. Supports 1-4 parallel images rendered as a collage (\`count\`). Use this whenever the user asks you to draw, create, generate, or make an image, picture, illustration, logo, or photo — including variations or a collage.
+
+**Display control:** the tool accepts a \`display\` input.
+- \`display: "on"\` — the generated images render as a collage directly in the chat UI.
+- \`display: "off"\` (default) — images are generated but not shown; describe what you made in your response text instead.
+
+Pass \`display: "on"\` only when the user explicitly wants to see the images inline. By default keep it \`"off"\` and summarize what you generated in your own words.
 `;
 
 export const httpToolsPrompt = `

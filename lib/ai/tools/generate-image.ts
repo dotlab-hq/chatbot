@@ -43,8 +43,14 @@ export const generateImageTool = tool({
       .enum(["1024x1024", "1536x1024", "1024x1536"])
       .optional()
       .describe("Image size. Default 1024x1024 (square)."),
+    display: z
+      .enum(["on", "off"])
+      .default("off")
+      .describe(
+        "Whether to render the generated images directly in the UI as a collage. Default 'off'. Set to 'on' when the user wants to see the images inline."
+      ),
   }),
-  execute: async ({ prompt, count = 1, size }) => {
+  execute: async ({ prompt, count = 1, size, display = "off" }) => {
     try {
       const { images } = await generateImage({
         model: IMAGE_MODEL,
@@ -85,6 +91,7 @@ export const generateImageTool = tool({
         prompt,
         count: generated.length,
         images: generated,
+        display,
       };
     } catch (error) {
       if (NoImageGeneratedError.isInstance(error)) {

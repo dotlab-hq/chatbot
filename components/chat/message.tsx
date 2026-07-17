@@ -148,12 +148,25 @@ const PurePreviewMessage = ({
     ...new Set(searchResults.map((r) => r.domain ?? getDomain(r.url))),
   ];
 
+  const hasImageGenTool = message.parts?.some(
+    (part) => part.type === "tool-generateImageTool"
+  );
+
   const attachments = attachmentsFromMessage.length > 0 && (
     <div
       className="flex flex-row justify-end gap-2"
       data-testid={"message-attachments"}
     >
       {attachmentsFromMessage.map((attachment) => {
+        // Skip image attachments when the message already renders a
+        // generateImage tool output (collage) — avoids duplicate images.
+        if (
+          hasImageGenTool &&
+          attachment.mediaType?.startsWith("image/")
+        ) {
+          return null;
+        }
+
         const name =
           "name" in attachment && typeof attachment.name === "string"
             ? attachment.name
@@ -182,49 +195,51 @@ const PurePreviewMessage = ({
       return part.type === "tool-createDocument" ? i : acc;
     }, -1) ?? -1;
 
-  const renderedReasoningTextRef = useRef<string | null>(null);
-
-  const mergedReasoning = message.parts?.reduce(
-    (acc, part) => {
-      if (part.type === "reasoning" && part.text?.trim().length > 0) {
-        const providerMetadata = (
-          part as {
-            providerMetadata?: {
-              chatbot?: { thinkingDurationSeconds?: number };
-            };
-          }
-        ).providerMetadata;
-        return {
-          text: acc.text ? `${acc.text}\n\n${part.text}` : part.text,
-          isStreaming: "state" in part ? part.state === "streaming" : false,
-          durationSeconds:
-            providerMetadata?.chatbot?.thinkingDurationSeconds ??
-            acc.durationSeconds,
-        };
-      }
-      return acc;
-    },
-    {
-      text: "",
-      isStreaming: false,
-      durationSeconds: undefined as number | undefined,
-    }
-  ) ?? {
-    text: "",
-    isStreaming: false,
-    durationSeconds: undefined,
-  };
-
   const parts = message.parts?.map((part, index) => {
     const { type } = part;
     const key = `message-${message.id}-part-${index}`;
 
     if (type === "reasoning") {
-      if (
-        renderedReasoningTextRef.current !== mergedReasoning.text &&
-        mergedReasoning.text
+      const mergedReasoning = message.parts!.reduce(
+        (acc, p) => {
+          if (p.type === "reasoning" && p.text?.trim().length > 0) {
+            const providerMetadata = (
+              p as {
+                providerMetadata?: {
+                  chatbot?: { thinkingDurationSeconds?: number };
+                };
+              }
+            ).providerMetadata;
+            return {
+              text: acc.text
+                ? `${acc.text}\n\n${p.text}`
+                : p.text,
+              isStreaming:
+                "state" in p ? p.state === "streaming" : false,
+              durationSeconds:
+                providerMetadata?.chatbot?.thinkingDurationSeconds ??
+                acc.durationSeconds,
+            };
+          }
+          return acc;
+        },
+        {
+          text: "",
+          isStreaming: false,
+          durationSeconds: undefined as number | undefined,
+        }
+      );
+
+      // Only render the merged reasoning block once — on the first
+      // reasoning part. Subsequent reasoning parts return null so we
+      // don't duplicate the block.
+      if (index !==
+        message.parts!.findIndex((p) => p.type === "reasoning")
       ) {
-        renderedReasoningTextRef.current = mergedReasoning.text;
+        return null;
+      }
+
+      if (mergedReasoning.text) {
         return (
           <Reasoning
             className="w-full max-w-[min(95%,80ch)]"
@@ -469,8 +484,11 @@ const PurePreviewMessage = ({
 
     if ((type as string) === "tool-generateImageTool") {
       const { state } = part as { state?: string };
+      const input = (part as { input?: { display?: string } }).input;
+      const shouldShow = input?.display === "on";
 
       if (
+        shouldShow &&
         state === "output-available" &&
         (part as { output?: unknown }).output
       ) {
