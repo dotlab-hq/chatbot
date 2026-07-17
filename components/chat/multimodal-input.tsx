@@ -45,7 +45,7 @@ import {
   PromptInputTextarea,
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
-import { MicIcon, PaperclipIcon, StopIcon } from "@/components/chat/icons";
+import { MicIcon, PaperclipIcon } from "@/components/chat/icons";
 import { PreviewAttachment } from "@/components/chat/preview-attachment";
 import {
   type SlashCommand,
@@ -703,24 +703,21 @@ function PureMultimodalInput({
                 <MicIcon size={14} />
               </Button>
             )}
-            {status === "submitted" ? (
-              <StopButton setMessages={setMessages} stop={stop} />
-            ) : (
-              <PromptInputSubmit
-                className={cn(
-                  "h-7 w-7 rounded-xl transition-all duration-200",
-                  input.trim()
-                    ? "bg-foreground text-background hover:opacity-85 active:scale-95"
-                    : "bg-muted text-muted-foreground/25 cursor-not-allowed"
-                )}
-                data-testid="send-button"
-                disabled={!input.trim() || uploadQueue.length > 0}
-                status={status}
-                variant="secondary"
-              >
-                <ArrowUpIcon className="size-4" />
-              </PromptInputSubmit>
-            )}
+            <PromptInputSubmit
+              className={cn(
+                "h-7 w-7 rounded-xl transition-all duration-200",
+                input.trim()
+                  ? "bg-foreground text-background hover:opacity-85 active:scale-95"
+                  : "bg-muted text-muted-foreground/25 cursor-not-allowed"
+              )}
+              data-testid="send-button"
+              disabled={!input.trim() || uploadQueue.length > 0}
+              onStop={stop}
+              status={status}
+              variant="secondary"
+            >
+              <ArrowUpIcon className="size-4" />
+            </PromptInputSubmit>
           </div>
         </PromptInputFooter>
       </PromptInput>
@@ -957,27 +954,3 @@ function PureModelSelectorCompact({
 }
 
 const ModelSelectorCompact = memo(PureModelSelectorCompact);
-
-function PureStopButton({
-  stop,
-  setMessages,
-}: {
-  stop: () => void;
-  setMessages: UseChatHelpers<ChatMessage>["setMessages"];
-}) {
-  return (
-    <Button
-      className="h-7 w-7 rounded-xl bg-foreground p-1 text-background transition-all duration-200 hover:opacity-85 active:scale-95 disabled:bg-muted disabled:text-muted-foreground/25 disabled:cursor-not-allowed"
-      data-testid="stop-button"
-      onClick={(event) => {
-        event.preventDefault();
-        stop();
-        setMessages((messages) => messages);
-      }}
-    >
-      <StopIcon size={14} />
-    </Button>
-  );
-}
-
-const StopButton = memo(PureStopButton);
