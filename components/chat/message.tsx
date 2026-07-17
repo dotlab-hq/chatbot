@@ -199,63 +199,58 @@ const PurePreviewMessage = ({
       return part.type === "tool-createDocument" ? i : acc;
     }, -1) ?? -1;
 
+  // Merge all reasoning parts into a single block, hoisted above tool/image
+  // outputs so the thinking renders first regardless of stream order.
+  const mergedReasoning = (() => {
+    const acc = {
+      text: "",
+      isStreaming: false,
+      durationSeconds: undefined as number | undefined,
+    };
+    for (const p of message.parts ?? []) {
+      if (p.type === "reasoning" && p.text?.trim().length > 0) {
+        const providerMetadata = (
+          p as {
+            providerMetadata?: {
+              chatbot?: { thinkingDurationSeconds?: number };
+            };
+          }
+        ).providerMetadata;
+        acc.text = acc.text ? `${acc.text}\n\n${p.text}` : p.text;
+        acc.isStreaming = "state" in p ? p.state === "streaming" : false;
+        acc.durationSeconds =
+          providerMetadata?.chatbot?.thinkingDurationSeconds ??
+          acc.durationSeconds;
+      }
+    }
+    return acc;
+  })();
+
+  const reasoningBlock =
+    isAssistant && mergedReasoning.text ? (
+      <Marker variant="border" className="w-full max-w-[min(95%,80ch)]">
+        <MarkerContent>
+          <Reasoning
+            className="w-full"
+            defaultOpen={mergedReasoning.isStreaming || isLoading}
+            duration={mergedReasoning.durationSeconds}
+            isStreaming={mergedReasoning.isStreaming || isLoading}
+          >
+            <ReasoningTrigger />
+            <ReasoningContent>{mergedReasoning.text}</ReasoningContent>
+          </Reasoning>
+        </MarkerContent>
+      </Marker>
+    ) : null;
+
   const parts = message.parts?.map((part, index) => {
     const { type } = part;
     const key = `message-${message.id}-part-${index}`;
 
     if (type === "reasoning") {
-      const mergedReasoning = message.parts?.reduce(
-        (acc, p) => {
-          if (p.type === "reasoning" && p.text?.trim().length > 0) {
-            const providerMetadata = (
-              p as {
-                providerMetadata?: {
-                  chatbot?: { thinkingDurationSeconds?: number };
-                };
-              }
-            ).providerMetadata;
-            return {
-              text: acc.text ? `${acc.text}\n\n${p.text}` : p.text,
-              isStreaming: "state" in p ? p.state === "streaming" : false,
-              durationSeconds:
-                providerMetadata?.chatbot?.thinkingDurationSeconds ??
-                acc.durationSeconds,
-            };
-          }
-          return acc;
-        },
-        {
-          text: "",
-          isStreaming: false,
-          durationSeconds: undefined as number | undefined,
-        }
-      );
-
-      // Only render the merged reasoning block once — on the first
-      // reasoning part. Subsequent reasoning parts return null so we
-      // don't duplicate the block.
-      if (index !== message.parts?.findIndex((p) => p.type === "reasoning")) {
-        return null;
-      }
-
-      if (mergedReasoning.text) {
-        return (
-          <Marker variant="border" className="w-full max-w-[min(95%,80ch)]">
-            <MarkerContent>
-              <Reasoning
-                className="w-full"
-                defaultOpen={mergedReasoning.isStreaming || isLoading}
-                duration={mergedReasoning.durationSeconds}
-                isStreaming={mergedReasoning.isStreaming || isLoading}
-                key={key}
-              >
-                <ReasoningTrigger />
-                <ReasoningContent>{mergedReasoning.text}</ReasoningContent>
-              </Reasoning>
-            </MarkerContent>
-          </Marker>
-        );
-      }
+      // Reasoning is hoisted to the top of the message (above tool/image
+      // outputs, which arrive before it in the stream) to avoid the image
+      // appearing above the thinking block. Rendered once here as null.
       return null;
     }
 
@@ -619,6 +614,7 @@ const PurePreviewMessage = ({
   ) : (
     <>
       {attachments}
+      {reasoningBlock}
       {isAssistant && hasImages && <ImageCarousel images={imageResults} />}
       {parts}
       {isAssistant && hasSources && (

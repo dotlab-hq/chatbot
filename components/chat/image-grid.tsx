@@ -14,7 +14,7 @@ export function ImageGrid({ images }: ImageGridProps) {
         <picture>
           <img
             alt="AI-generated artwork"
-            className="h-auto max-h-[520px] w-auto max-w-full rounded-xl border border-border/50"
+            className="max-h-[360px] w-auto max-w-[min(100%,360px)] rounded-xl border border-border/50"
             src={images[0]?.url}
           />
         </picture>
