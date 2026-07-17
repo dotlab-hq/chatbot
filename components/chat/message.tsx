@@ -182,6 +182,8 @@ const PurePreviewMessage = ({
       return part.type === "tool-createDocument" ? i : acc;
     }, -1) ?? -1;
 
+  const renderedReasoningTextRef = useRef<string | null>(null);
+
   const mergedReasoning = message.parts?.reduce(
     (acc, part) => {
       if (part.type === "reasoning" && part.text?.trim().length > 0) {
@@ -198,7 +200,6 @@ const PurePreviewMessage = ({
           durationSeconds:
             providerMetadata?.chatbot?.thinkingDurationSeconds ??
             acc.durationSeconds,
-          rendered: false,
         };
       }
       return acc;
@@ -207,13 +208,11 @@ const PurePreviewMessage = ({
       text: "",
       isStreaming: false,
       durationSeconds: undefined as number | undefined,
-      rendered: false,
     }
   ) ?? {
     text: "",
     isStreaming: false,
     durationSeconds: undefined,
-    rendered: false,
   };
 
   const parts = message.parts?.map((part, index) => {
@@ -221,8 +220,11 @@ const PurePreviewMessage = ({
     const key = `message-${message.id}-part-${index}`;
 
     if (type === "reasoning") {
-      if (!mergedReasoning.rendered && mergedReasoning.text) {
-        mergedReasoning.rendered = true;
+      if (
+        renderedReasoningTextRef.current !== mergedReasoning.text &&
+        mergedReasoning.text
+      ) {
+        renderedReasoningTextRef.current = mergedReasoning.text;
         return (
           <Reasoning
             className="w-full max-w-[min(95%,80ch)]"
