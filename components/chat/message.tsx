@@ -70,17 +70,15 @@ function CollapsibleUserMessage({ text }: { text: string }) {
   return (
     <Bubble variant="secondary">
       <BubbleContent
-        className="max-w-[min(80%,56ch)]"
+        className="max-w-full"
         data-testid="message-content"
       >
-        <div className="relative">
-          <MessageResponse className="typeset">
-            {sanitizeText(text)}
-          </MessageResponse>
-          {!expanded && isLong && (
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-linear-to-t from-muted to-transparent" />
-          )}
-        </div>
+        <MessageResponse className="typeset relative">
+          {sanitizeText(text)}
+        </MessageResponse>
+        {!expanded && isLong && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-linear-to-t from-muted to-transparent" />
+        )}
         {isLong && (
           <button
             className="mt-2 flex items-center gap-1 text-muted-foreground text-xs font-medium transition-colors hover:text-foreground"

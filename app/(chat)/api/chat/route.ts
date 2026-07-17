@@ -496,7 +496,10 @@ export async function POST(request: Request) {
           mcpToolNamesForAgent: mcpToolNamesForPlan,
         });
 
-        const result = await agent.stream({ messages: modelMessages });
+        const result = await agent.stream({
+          messages: modelMessages,
+          abortSignal: request.signal,
+        });
 
         // Merge stream into UI message stream FIRST so it pipes immediately
         dataStream.merge(
