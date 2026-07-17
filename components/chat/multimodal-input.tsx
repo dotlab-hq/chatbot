@@ -46,7 +46,15 @@ import {
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
 import { MicIcon, PaperclipIcon } from "@/components/chat/icons";
-import { PreviewAttachment } from "@/components/chat/preview-attachment";
+import {
+  Attachment as ShadcnAttachment,
+  AttachmentAction,
+  AttachmentActions,
+  AttachmentMedia,
+  AttachmentTitle,
+} from "@/components/ui/attachment";
+import { CrossSmallIcon, FileIcon } from "@/components/chat/icons";
+import { Spinner } from "@/components/ui/spinner";
 import {
   type SlashCommand,
   SlashCommandMenu,
@@ -574,31 +582,54 @@ function PureMultimodalInput({
             className="flex w-full self-start flex-row gap-2 overflow-x-auto px-3 pt-3 no-scrollbar"
             data-testid="attachments-preview"
           >
-            {attachments.map((attachment, idx) => (
-              <PreviewAttachment
-                attachment={attachment}
-                key={attachment.url ?? `att-${idx}`}
-                onRemove={() => {
-                  setAttachments((currentAttachments) =>
-                    currentAttachments.filter((_, i) => i !== idx)
-                  );
-                  if (fileInputRef.current) {
-                    fileInputRef.current.value = "";
-                  }
-                }}
-              />
-            ))}
+            {attachments.map((attachment, idx) => {
+              const isImage = attachment.contentType
+                ?.startsWith("image");
+              return (
+                <ShadcnAttachment
+                  key={attachment.url ?? `att-${idx}`}
+                  size="sm"
+                  state="done"
+                >
+                  <AttachmentMedia variant={isImage ? "image" : "icon"}>
+                    {isImage && attachment.url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        alt={attachment.name}
+                        className="size-full object-cover"
+                        src={attachment.url}
+                      />
+                    ) : (
+                      <FileIcon size={16} />
+                    )}
+                  </AttachmentMedia>
+                  <AttachmentTitle>{attachment.name}</AttachmentTitle>
+                  <AttachmentActions>
+                    <AttachmentAction
+                      aria-label="Remove attachment"
+                      onClick={() => {
+                        setAttachments((currentAttachments) =>
+                          currentAttachments.filter((_, i) => i !== idx)
+                        );
+                        if (fileInputRef.current) {
+                          fileInputRef.current.value = "";
+                        }
+                      }}
+                    >
+                      <CrossSmallIcon size={14} />
+                    </AttachmentAction>
+                  </AttachmentActions>
+                </ShadcnAttachment>
+              );
+            })}
 
             {uploadQueue.map((filename) => (
-              <PreviewAttachment
-                attachment={{
-                  url: "",
-                  name: filename,
-                  contentType: "",
-                }}
-                isUploading={true}
-                key={filename}
-              />
+              <ShadcnAttachment key={filename} size="sm" state="uploading">
+                <AttachmentMedia variant="icon">
+                  <FileIcon size={16} />
+                </AttachmentMedia>
+                <AttachmentTitle>{filename}</AttachmentTitle>
+              </ShadcnAttachment>
             ))}
           </div>
         )}

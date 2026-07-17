@@ -3,10 +3,12 @@ import type { UseChatHelpers } from "@ai-sdk/react";
 import type { DynamicToolUIPart } from "ai";
 import { ChevronDownIcon } from "lucide-react";
 import { useState } from "react";
+import { MessageResponse } from "@/components/ai-elements/message";
 import {
-  MessageContent,
-  MessageResponse,
-} from "@/components/ai-elements/message";
+  Marker,
+  MarkerContent,
+  MarkerIcon,
+} from "@/components/ui/marker";
 import {
   Reasoning,
   ReasoningContent,
@@ -49,6 +51,12 @@ import { Timer } from "@/components/chat/timer";
 import { UnitConverter } from "@/components/chat/unit-converter";
 import { VideoInline } from "@/components/chat/video-inline";
 import { Weather } from "@/components/chat/weather";
+import { Bubble, BubbleContent } from "@/components/ui/bubble";
+import {
+  Message,
+  MessageAvatar,
+  MessageContent,
+} from "@/components/ui/message";
 import { ShimmeringText } from "@/components/ui/shimmering-text";
 import type { GeneratedImage } from "@/lib/ai/tools/generate-image";
 import type { Vote } from "@/lib/db/schema";
@@ -60,35 +68,36 @@ function CollapsibleUserMessage({ text }: { text: string }) {
   const isLong = text.length > 420 || text.split("\n").length > 8;
 
   return (
-    <MessageContent
-      className={cn(
-        "w-fit max-w-[min(80%,56ch)] overflow-hidden wrap-break-word rounded-2xl rounded-br-lg border border-border/30 bg-linear-to-br from-secondary to-muted px-3.5 py-2 shadow-(--shadow-card) text-sm leading-[1.65]",
-        !expanded && isLong && "max-h-72"
-      )}
-      data-testid="message-content"
-    >
-      <div className="relative">
-        <MessageResponse>{sanitizeText(text)}</MessageResponse>
-        {!expanded && isLong && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-linear-to-t from-muted to-transparent" />
+    <Bubble variant="secondary">
+      <BubbleContent
+        className="max-w-[min(80%,56ch)]"
+        data-testid="message-content"
+      >
+        <div className="relative">
+          <MessageResponse className="typeset">
+            {sanitizeText(text)}
+          </MessageResponse>
+          {!expanded && isLong && (
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-linear-to-t from-muted to-transparent" />
+          )}
+        </div>
+        {isLong && (
+          <button
+            className="mt-2 flex items-center gap-1 text-muted-foreground text-xs font-medium transition-colors hover:text-foreground"
+            onClick={() => setExpanded((value) => !value)}
+            type="button"
+          >
+            {expanded ? "Show less" : "Show more"}
+            <ChevronDownIcon
+              className={cn(
+                "size-3.5 transition-transform",
+                expanded && "rotate-180"
+              )}
+            />
+          </button>
         )}
-      </div>
-      {isLong && (
-        <button
-          className="mt-2 flex items-center gap-1 text-muted-foreground text-xs font-medium transition-colors hover:text-foreground"
-          onClick={() => setExpanded((value) => !value)}
-          type="button"
-        >
-          {expanded ? "Show less" : "Show more"}
-          <ChevronDownIcon
-            className={cn(
-              "size-3.5 transition-transform",
-              expanded && "rotate-180"
-            )}
-          />
-        </button>
-      )}
-    </MessageContent>
+      </BubbleContent>
+    </Bubble>
   );
 }
 
@@ -160,10 +169,7 @@ const PurePreviewMessage = ({
       {attachmentsFromMessage.map((attachment) => {
         // Skip image attachments when the message already renders a
         // generateImage tool output (collage) — avoids duplicate images.
-        if (
-          hasImageGenTool &&
-          attachment.mediaType?.startsWith("image/")
-        ) {
+        if (hasImageGenTool && attachment.mediaType?.startsWith("image/")) {
           return null;
         }
 
@@ -200,7 +206,7 @@ const PurePreviewMessage = ({
     const key = `message-${message.id}-part-${index}`;
 
     if (type === "reasoning") {
-      const mergedReasoning = message.parts!.reduce(
+      const mergedReasoning = message.parts?.reduce(
         (acc, p) => {
           if (p.type === "reasoning" && p.text?.trim().length > 0) {
             const providerMetadata = (
@@ -211,11 +217,8 @@ const PurePreviewMessage = ({
               }
             ).providerMetadata;
             return {
-              text: acc.text
-                ? `${acc.text}\n\n${p.text}`
-                : p.text,
-              isStreaming:
-                "state" in p ? p.state === "streaming" : false,
+              text: acc.text ? `${acc.text}\n\n${p.text}` : p.text,
+              isStreaming: "state" in p ? p.state === "streaming" : false,
               durationSeconds:
                 providerMetadata?.chatbot?.thinkingDurationSeconds ??
                 acc.durationSeconds,
@@ -233,24 +236,26 @@ const PurePreviewMessage = ({
       // Only render the merged reasoning block once — on the first
       // reasoning part. Subsequent reasoning parts return null so we
       // don't duplicate the block.
-      if (index !==
-        message.parts!.findIndex((p) => p.type === "reasoning")
-      ) {
+      if (index !== message.parts?.findIndex((p) => p.type === "reasoning")) {
         return null;
       }
 
       if (mergedReasoning.text) {
         return (
-          <Reasoning
-            className="w-full max-w-[min(95%,80ch)]"
-            defaultOpen={mergedReasoning.isStreaming || isLoading}
-            duration={mergedReasoning.durationSeconds}
-            isStreaming={mergedReasoning.isStreaming || isLoading}
-            key={key}
-          >
-            <ReasoningTrigger />
-            <ReasoningContent>{mergedReasoning.text}</ReasoningContent>
-          </Reasoning>
+          <Marker variant="border" className="w-full max-w-[min(95%,80ch)]">
+            <MarkerContent>
+              <Reasoning
+                className="w-full"
+                defaultOpen={mergedReasoning.isStreaming || isLoading}
+                duration={mergedReasoning.durationSeconds}
+                isStreaming={mergedReasoning.isStreaming || isLoading}
+                key={key}
+              >
+                <ReasoningTrigger />
+                <ReasoningContent>{mergedReasoning.text}</ReasoningContent>
+              </Reasoning>
+            </MarkerContent>
+          </Marker>
         );
       }
       return null;
@@ -262,16 +267,19 @@ const PurePreviewMessage = ({
       }
 
       return (
-        <MessageContent
-          className={cn("text-sm leading-[1.65]", {
-            "w-fit max-w-[min(80%,56ch)] overflow-hidden wrap-break-word rounded-2xl rounded-br-lg border border-border/30 bg-linear-to-br from-secondary to-muted px-3.5 py-2 shadow-(--shadow-card)":
-              message.role === "user",
-          })}
-          data-testid="message-content"
-          key={key}
-        >
-          <MessageResponse>{sanitizeText(part.text)}</MessageResponse>
-        </MessageContent>
+        <Message align={message.role === "user" ? "end" : "start"} key={key}>
+          <MessageContent
+            className={cn("text-sm leading-[1.65]", {
+              "w-fit max-w-[min(80%,56ch)] overflow-hidden wrap-break-word rounded-2xl rounded-br-lg border border-border/30 bg-linear-to-br from-secondary to-muted px-3.5 py-2 shadow-(--shadow-card)":
+                message.role === "user",
+            })}
+            data-testid="message-content"
+          >
+            <MessageResponse className="typeset">
+              {sanitizeText(part.text)}
+            </MessageResponse>
+          </MessageContent>
+        </Message>
       );
     }
 
@@ -632,7 +640,8 @@ const PurePreviewMessage = ({
   );
 
   return (
-    <div
+    <Message
+      align={isUser ? "end" : "start"}
       className={cn(
         "group/message w-full",
         !isAssistant && "animate-[fade-up_0.25s_cubic-bezier(0.22,1,0.36,1)]"
@@ -640,28 +649,22 @@ const PurePreviewMessage = ({
       data-role={message.role}
       data-testid={`message-${message.role}`}
     >
+      {isAssistant && (
+        <MessageAvatar className="size-7" data-personalize-avatar>
+          <div className="flex size-7 items-center justify-center rounded-full bg-muted/60 text-muted-foreground ring-1 ring-border/50">
+            <SparklesIcon size={13} />
+          </div>
+        </MessageAvatar>
+      )}
       <div
         className={cn(
-          isUser ? "flex flex-col items-end gap-2" : "flex items-start gap-3"
+          "flex min-w-0 flex-1 flex-col gap-2",
+          isUser && "items-end"
         )}
       >
-        {isAssistant && (
-          <div
-            className="flex h-[calc(13px*1.65)] shrink-0 items-center"
-            data-personalize-avatar
-          >
-            <div className="flex size-7 items-center justify-center rounded-full bg-muted/60 text-muted-foreground ring-1 ring-border/50">
-              <SparklesIcon size={13} />
-            </div>
-          </div>
-        )}
-        {isAssistant ? (
-          <div className="flex min-w-0 flex-1 flex-col gap-2">{content}</div>
-        ) : (
-          content
-        )}
+        {content}
       </div>
-    </div>
+    </Message>
   );
 };
 
